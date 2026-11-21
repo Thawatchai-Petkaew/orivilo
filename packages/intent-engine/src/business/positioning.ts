@@ -1,12 +1,18 @@
 import { z } from "zod";
+import type { IntakeAnswers } from "./intake";
+import { BUSINESS_ANSWER_KEYS } from "./reading";
 
 /**
- * The positioning choice contract and the gate (ORV-285 tech notes sections 3 and 5.1; spec
- * `positioning-choice-1`, `positioning-gate-1`, `positioning-stale-1`). One check the client wrapper,
- * the server action and the service share. Pure code, no AI.
+ * The positioning choice contract, the gate and the draft record (ORV-285 tech notes sections 3, 4.2
+ * and 5.1; spec `positioning-choice-1`, `positioning-gate-1`, `positioning-stale-1`,
+ * `positioning-draft-1`). One check the client wrapper, the server action and the service share.
+ * Pure code, no AI.
  */
 
 export const POSITIONING_STATEMENT_MAX = 300;
+
+/** Postgres refuses U+0000 in a text column: dropped before the trim, as `checkIntake` does (row 27). */
+const NUL = "\u0000";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const projectId = z.string().regex(UUID);
@@ -16,7 +22,7 @@ const option = z.number().int().min(1).max(3);
 const statement = z
   .string()
   .max(2000)
-  .transform((s) => s.trim())
+  .transform((s) => s.replaceAll(NUL, "").trim())
   .pipe(z.string().min(1).max(POSITIONING_STATEMENT_MAX));
 
 const choiceInputSchema = z.discriminatedUnion("kind", [
@@ -156,4 +162,80 @@ export function positioningGate(input: {
     skipped: false,
     stale: c !== null && c.kind !== "skipped", // positioning-stale-1
   };
+}
+
+/** The one job a draft is saved under; the table's `job` column holds it. */
+export const POSITIONING_DRAFT_JOB = "positioning-draft";
+
+const quoteRecord = z
+  .object({
+    answer: z.enum(BUSINESS_ANSWER_KEYS),
+    /** The first place the text occurs in the answer. */
+    start: z.number().int().min(0),
+    end: z.number(),
+    text: z.string().min(1).max(300),
+  })
+  .strict();
+
+const optionRecord = z
+  .object({
+    statement: z.string().min(1).max(POSITIONING_STATEMENT_MAX),
+    // No minimum: an option with no quote has none on `value` or `idea`, which the check below refuses.
+    quotes: z.array(quoteRecord).max(8),
+  })
+  .strict();
+
+/**
+ * One saved draft: the job, the model and adapter that made it, the prompt version, the intake it
+ * answers and the checked options in the model's order (option n is index n - 1). A draft is never a
+ * value: only a choice row holds a statement the gate counts.
+ */
+export const positioningDraftSchema = z
+  .object({
+    job: z.literal(POSITIONING_DRAFT_JOB),
+    intakeId: z.string().min(1).max(100),
+    modelId: z.string().min(1).max(200),
+    adapter: z
+      .object({ id: z.string().min(1).max(40), version: z.string().min(1).max(40) })
+      .strict(),
+    promptVersion: z.string().min(1).max(40),
+    options: z.array(optionRecord).min(2).max(3),
+  })
+  .strict()
+  .superRefine((draft, ctx) => {
+    const bad = (path: (string | number)[], message: string) =>
+      ctx.addIssue({ code: "custom", message, path });
+    const seen = new Set<string>();
+    draft.options.forEach((option, at) => {
+      option.quotes.forEach((quote, q) => {
+        if (quote.end - quote.start !== quote.text.length) {
+          bad(["options", at, "quotes", q], "a span as long as its text");
+        }
+      });
+      for (const answer of ["value", "idea"] as const) {
+        if (!option.quotes.some((quote) => quote.answer === answer)) {
+          bad(["options", at, "quotes"], `a quote on ${answer}`);
+        }
+      }
+      const text = option.statement.trim();
+      if (seen.has(text)) bad(["options", at, "statement"], "a statement of its own");
+      seen.add(text);
+    });
+  });
+
+export type PositioningDraft = z.infer<typeof positioningDraftSchema>;
+
+/** A draft read back with its row id, which a `picked` or `edited` choice names. */
+export type StoredDraft = PositioningDraft & { id: string };
+
+/**
+ * Whether every quote of every option is at its place in the saved answers. The service runs it
+ * after each read, so a row changed outside the app opens as invalid, never as unchecked quotes.
+ */
+export function checkDraftAgainst(draft: PositioningDraft, intake: IntakeAnswers): boolean {
+  return draft.options.every((option) =>
+    option.quotes.every(
+      (quote) => intake[quote.answer]?.slice(quote.start, quote.end) === quote.text,
+    ),
+  );
 }

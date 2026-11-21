@@ -10,13 +10,24 @@ import {
   type EntryRequest,
 } from "@orivilo/intent-engine";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import type { WebMessages } from "../../../i18n/messages";
 import { errorLine, failureLines } from "../../../i18n/wait";
 import { enterFoundation } from "../foundation-actions";
-import { choosePositioning } from "../positioning-actions";
+import { choosePositioning, draftPositioning } from "../positioning-actions";
 
-type Chosen = Awaited<ReturnType<typeof choosePositioning>>;
+/** What either action answers; the one outcome a request leaves in state. */
+type Answered =
+  Awaited<ReturnType<typeof choosePositioning>> | Awaited<ReturnType<typeof draftPositioning>>;
+
+/** The four reasons a draft request stops (`positioning-honest-1`): the screen has a line for each. */
+type Stopped = "ai-not-configured" | "ai-failed" | "ai-rate-limited" | "ai-spend-cap";
+const isStop = (error: string): error is Stopped =>
+  error === "ai-not-configured" ||
+  error === "ai-failed" ||
+  error === "ai-rate-limited" ||
+  error === "ai-spend-cap";
+
 type Entered = Awaited<ReturnType<typeof enterFoundation>>;
 
 /**
@@ -24,9 +35,11 @@ type Entered = Awaited<ReturnType<typeof enterFoundation>>;
  * refusing the statement before any call. One state, so a language switch redraws the line too.
  */
 type Last =
-  | { kind: "answer"; outcome: Chosen }
+  | { kind: "answer"; outcome: Answered }
   | { kind: "rejected" }
-  | { kind: "invalid"; problem: "required" | "too-long" };
+  | { kind: "stopped"; reason: Stopped }
+  | { kind: "invalid"; problem: "required" | "too-long" }
+  | { kind: "running"; request: "saving" | "drafting" };
 
 /** The same for a foundation entry: the server's answer, no answer, or the wrapper's own refusal. */
 type EntryLast =
@@ -41,11 +54,14 @@ type Labels = {
 };
 
 /** A rejected call has no answer to show. It is never retried: a server action has no idempotency key. */
-async function settle(call: () => Promise<Chosen>): Promise<Last> {
+async function settle(call: () => Promise<Answered>, rejected: Last): Promise<Last> {
   try {
-    return { kind: "answer", outcome: await call() };
+    const outcome = await call();
+    return !outcome.ok && isStop(outcome.error)
+      ? { kind: "stopped", reason: outcome.error }
+      : { kind: "answer", outcome };
   } catch {
-    return { kind: "rejected" };
+    return rejected;
   }
 }
 
@@ -59,7 +75,8 @@ async function settleEntry(call: () => Promise<Entered>): Promise<EntryLast> {
 
 /** The statement's own problem, which the field shows: the wrapper's check or the server's refusal. */
 function problemOf(last: Last | null): "required" | "too-long" | null {
-  if (last === null || last.kind === "rejected") return null;
+  if (last === null || last.kind === "rejected" || last.kind === "stopped") return null;
+  if (last.kind === "running") return null;
   if (last.kind === "invalid") return last.problem;
   const { outcome } = last;
   if (outcome.ok || !("problems" in outcome)) return null;
@@ -77,7 +94,8 @@ function failureOf(
   labels: Labels,
   m: ReturnType<typeof useMessages>,
 ): string | undefined {
-  if (last === null || last.kind === "invalid") return undefined;
+  if (last === null || last.kind === "invalid" || last.kind === "stopped") return undefined;
+  if (last.kind === "running") return undefined;
   if (last.kind === "rejected") return labels.errors.failed;
   const { outcome } = last;
   if (outcome.ok || problemOf(last) !== null) return undefined;
@@ -86,7 +104,7 @@ function failureOf(
 
 /** The line for a refusal that points at no field, in the person's language. */
 function lineOfRefused(
-  outcome: Extract<Chosen | Entered, { ok: false }>,
+  outcome: Extract<Answered | Entered, { ok: false }>,
   labels: Labels,
   m: ReturnType<typeof useMessages>,
 ): string {
@@ -129,13 +147,16 @@ function entryFailureOf(
 }
 
 /**
- * The wiring of the Positioning gate (ORV-285 tech notes section 5.3): it renders the board, keeps
- * the last outcome in state, and calls `choosePositioning` in a transition. It checks the choice
- * before it calls out, so an empty statement and one past its bound make no server call, and a
- * second press while a request runs is ignored. On a saved choice it asks the page to build the view
- * again, inside the same transition, so the buttons stay disabled until the new view arrives. The
- * view holds keys and values, so a language switch redraws with no second load. Cancel and closing
- * the viewer call `onDismiss`, which drops the last outcome, so a failure never outlives its editor. Its `errors`, `wait`
+ * The wiring of the Positioning gate (ORV-285 tech notes section 5.3, ORV-292): it renders the board,
+ * keeps the last outcome in state, and calls `choosePositioning` or `draftPositioning` in a
+ * transition. It checks a choice before it calls out, so an empty statement and one past its bound
+ * make no server call, and a second press while a request runs is ignored. On a saved choice or a
+ * stored draft it asks the page to build the view again, inside the same transition, so the buttons
+ * stay disabled until the new view arrives. The view holds keys and values, so a language switch
+ * redraws with no second load. Cancel and closing the viewer call `onDismiss`, which drops the last
+ * outcome, so a failure never outlives its editor. An answer that arrives after the viewer closed is
+ * dropped too (spec row 29), and a stopped draft is never kept past the view it came in (row 24): it
+ * is a reason, not text, so the screen draws its line in the language it has. Its `errors`, `wait`
  * and `failure` come from the page. ORV-291: the foundation entries run the same way through
  * `enterFoundation`, in a transition of their own with their own outcome; a request of either kind
  * is ignored while the other runs, an unchosen scale and an answer past its bound make no call.
@@ -154,6 +175,19 @@ export function ProjectBoard({
   const [pending, startTransition] = useTransition();
   const [entered, setEntered] = useState<EntryLast | null>(null);
   const [entering, startEntering] = useTransition();
+  // How many times the viewer was closed since the page opened: an answer that finds the count
+  // changed belongs to a view that is gone. Read in handlers only, never in render.
+  const closed = useRef(0);
+
+  const start = (request: "saving" | "drafting", call: () => Promise<Answered>, rejected: Last) => {
+    const closedThen = closed.current;
+    setLast({ kind: "running", request });
+    startTransition(async () => {
+      const next = await settle(call, rejected);
+      setLast(closed.current === closedThen ? next : null);
+      if (next.kind === "answer" && next.outcome.ok) router.refresh();
+    });
+  };
 
   const onChoose = (request: ChoiceRequest) => {
     if (pending || entering) return;
@@ -163,11 +197,14 @@ export function ProjectBoard({
       setLast({ kind: "invalid", problem: tooLong ? "too-long" : "required" });
       return;
     }
-    setLast(null);
-    startTransition(async () => {
-      const next = await settle(() => choosePositioning(checked.choice));
-      setLast(next);
-      if (next.kind === "answer" && next.outcome.ok) router.refresh();
+    start("saving", () => choosePositioning(checked.choice), { kind: "rejected" });
+  };
+
+  const onDraft = () => {
+    if (pending || entering) return;
+    start("drafting", () => draftPositioning({ projectId }), {
+      kind: "stopped",
+      reason: "ai-failed",
     });
   };
 
@@ -194,11 +231,17 @@ export function ProjectBoard({
       listHref="/business"
       guidebookHref={guidebookHref}
       positioning={{
-        pending: pending ? "saving" : null,
+        pending: pending ? (last?.kind === "running" ? last.request : "saving") : null,
         problem: problemOf(last),
         failure: failureOf(last, { errors, wait, failure }, m),
+        stopped: last?.kind === "stopped" ? last.reason : undefined,
         onChoose,
-        onDismiss: () => setLast(null),
+        onDraft,
+        onDismiss: () => {
+          closed.current += 1;
+          // A request still running keeps its state, so a reopened viewer shows it busy.
+          setLast(last?.kind === "running" ? last : null);
+        },
       }}
       foundation={{
         pending: entering ? "saving" : null,

@@ -15,7 +15,9 @@ import {
   modelReading,
   ruleBasedReading,
   scoreConfidence,
+  settleEdit,
   type StoredChoice,
+  type StoredDraft,
   type StoredEntry,
   type StoredIntake,
   toBusinessView,
@@ -36,7 +38,7 @@ const view = (
   name: string,
   intake: Omit<StoredIntake, "version">,
   reading?: BusinessReading,
-  positioning?: { intakeId: string; choice: StoredChoice | null },
+  positioning?: { intakeId: string; choice: StoredChoice | null; draft?: StoredDraft | null },
   foundation?: StoredEntry[],
 ): BusinessView =>
   toBusinessView({
@@ -426,17 +428,23 @@ const choiceOf = (
         createdAt: SAVED_AT,
       };
 
-/** The Thai project of the board, with the newest choice a person made on the Positioning gate. */
+/**
+ * The project of the board, with the newest choice a person made on the Positioning gate, the draft
+ * of the newest intake when one is stored (ORV-292), and the foundation entries a story names
+ * (ORV-291).
+ */
 const thaiWith = (
   choice: StoredChoice | null,
   intakeId = NEWEST_INTAKE_ID,
+  draft: StoredDraft | null = null,
   foundation?: StoredEntry[],
-) => view("คาเฟ่ริมคลอง", THAI_INTAKE, undefined, { intakeId, choice }, foundation);
+) => view("คาเฟ่ริมคลอง", THAI_INTAKE, undefined, { intakeId, choice, draft }, foundation);
 const englishWith = (
   choice: StoredChoice | null,
   intakeId = NEWEST_INTAKE_ID,
+  draft: StoredDraft | null = null,
   foundation?: StoredEntry[],
-) => view("Canalside Cafe", ENGLISH_INTAKE, undefined, { intakeId, choice }, foundation);
+) => view("Canalside Cafe", ENGLISH_INTAKE, undefined, { intakeId, choice, draft }, foundation);
 
 /** What a person wrote on the gate, in each language: one sentence of their own. */
 export const POSITIONING_STATEMENTS = {
@@ -450,6 +458,141 @@ export const HOSTILE_STATEMENT = "<img src=x onerror=alert(1)>";
 /** A statement of 300 Thai characters with no space, the longest the choice keeps. */
 export const LONG_STATEMENT = LONG_ANSWER.slice(0, 300);
 
+// ----- drafted options (ORV-292, rows 17 to 19, 21, 23 and 24) -----
+
+/** The model id the fixture drafts say they were made by: the saved id of the record, as the view shows it. */
+export const DRAFT_MODEL_ID = "anthropic/claude-sonnet-5.5";
+/** The row id of every fixture draft; a `picked` or `edited` choice names it. */
+export const DRAFT_ID = "draft-fixture";
+
+type Answers = Partial<Record<BusinessAnswerKey, string>>;
+
+/** A quote of an answer with its first place in it, as the engine's own check finds it. */
+const quoteOf = (answers: Answers, answer: BusinessAnswerKey, text: string) => {
+  const start = (answers[answer] ?? "").indexOf(text);
+  if (start === -1) throw new Error(`fixture quote "${text}" is not in the ${answer} answer`);
+  return { answer, start, end: start + text.length, text };
+};
+
+/**
+ * A draft written by hand for a fixture: no model made it. Three options, each quoting the value
+ * and the idea answers, as `positioning-draft-1` requires.
+ */
+const draftOf = (
+  answers: Answers,
+  options: ReadonlyArray<{
+    statement: string;
+    quotes: ReadonlyArray<readonly [BusinessAnswerKey, string]>;
+  }>,
+): StoredDraft => ({
+  id: DRAFT_ID,
+  job: "positioning-draft",
+  intakeId: NEWEST_INTAKE_ID,
+  modelId: DRAFT_MODEL_ID,
+  adapter: { id: "positioning-draft", version: "1" },
+  promptVersion: "positioning-prompt-1",
+  options: options.map((o) => ({
+    statement: o.statement,
+    quotes: o.quotes.map(([answer, text]) => quoteOf(answers, answer, text)),
+  })),
+});
+
+export const POSITIONING_DRAFTS = {
+  th: draftOf(THAI_INTAKE, [
+    {
+      statement:
+        "ร้านกาแฟริมคลองที่คั่วเมล็ดสดทุกเช้า สำหรับคนทำงานในย่านเมืองเก่าที่อยากได้ที่นั่งเงียบ",
+      quotes: [
+        ["value", "เมล็ดกาแฟที่คั่วสดทุกเช้าในร้าน"],
+        ["idea", "สำหรับคนทำงานในย่านเมืองเก่า"],
+        ["problem", "ที่นั่งเงียบ ๆ"],
+      ],
+    },
+    {
+      statement: "กาแฟคั่วสดและที่นั่งริมคลองที่เงียบ ให้คนทำงานย่านเมืองเก่าได้พักโดยไม่ต้องรอ",
+      quotes: [
+        ["value", "ที่นั่งริมคลองที่เงียบ"],
+        ["idea", "ร้านกาแฟคั่วเอง"],
+        ["problem", "ไม่ต้องรอนาน"],
+      ],
+    },
+    {
+      statement: "ไม่ใช่แฟรนไชส์ ไม่ใช่กาแฟกระป๋อง แต่เป็นร้านคั่วเองริมคลองสำหรับคนย่านเมืองเก่า",
+      quotes: [
+        ["value", "คั่วสดทุกเช้า"],
+        ["idea", "ร้านกาแฟคั่วเอง"],
+        ["competitors", "ร้านกาแฟแฟรนไชส์หน้าปากซอย"],
+      ],
+    },
+  ]),
+  en: draftOf(ENGLISH_INTAKE, [
+    {
+      statement:
+        "A canalside roastery that roasts its beans fresh each morning for the old town's workers.",
+      quotes: [
+        ["value", "Beans roasted fresh in the shop each morning"],
+        ["idea", "for people who work in the old town"],
+        ["problem", "a quiet seat"],
+      ],
+    },
+    {
+      statement:
+        "Fresh coffee and a quiet seat by the canal, with no wait, for people who work in the old town.",
+      quotes: [
+        ["value", "a quiet seat by the canal"],
+        ["idea", "A roastery and bakery"],
+        ["problem", "no wait"],
+      ],
+    },
+    {
+      statement:
+        "Not the chain cafe and not canned coffee: a roastery by the canal for the old town.",
+      quotes: [
+        ["value", "roasted fresh in the shop"],
+        ["idea", "A roastery"],
+        ["competitors", "The chain cafe at the end of the lane"],
+      ],
+    },
+  ]),
+} as const;
+
+/** Markup in an answer and in a drafted statement: all of it must show as literal text (row 23). */
+const HOSTILE_ANSWERS = {
+  idea: "A cafe <script>alert(1)</script> for the old town",
+  value: "Beans <script>alert(1)</script> roasted fresh",
+} as const;
+export const HOSTILE_QUOTE = "<script>alert(1)</script>";
+const HOSTILE_DRAFT = draftOf(HOSTILE_ANSWERS, [
+  {
+    statement: HOSTILE_STATEMENT,
+    quotes: [
+      ["value", HOSTILE_QUOTE],
+      ["idea", "A cafe"],
+    ],
+  },
+  {
+    statement: "Beans roasted fresh for the old town",
+    quotes: [
+      ["value", "roasted fresh"],
+      ["idea", "for the old town"],
+    ],
+  },
+]);
+
+const choiceOfDraft = (
+  kind: "picked" | "edited",
+  option: 1 | 2 | 3,
+  statement: string,
+): StoredChoice => ({
+  id: `choice-${kind}`,
+  intakeId: NEWEST_INTAKE_ID,
+  kind,
+  statement,
+  draftId: DRAFT_ID,
+  option,
+  createdAt: SAVED_AT,
+});
+
 /** The four projects of spec row 5, then the stale and the markup cases, in each language. */
 export const POSITIONING_VIEWS = {
   th: {
@@ -462,6 +605,14 @@ export const POSITIONING_VIEWS = {
     stale: thaiWith(choiceOf(OLDER_INTAKE_ID, "written", POSITIONING_STATEMENTS.th)),
     hostile: thaiWith(choiceOf(NEWEST_INTAKE_ID, "written", HOSTILE_STATEMENT)),
     long: thaiWith(choiceOf(NEWEST_INTAKE_ID, "written", LONG_STATEMENT)),
+    /** A draft of the newest intake stored, no choice: waiting for the person's choice. */
+    drafted: thaiWith(null, NEWEST_INTAKE_ID, POSITIONING_DRAFTS.th),
+    /** A draft stored and a markup option and quote (row 23). */
+    draftedHostile: view("ร้านทดสอบ", HOSTILE_ANSWERS, undefined, {
+      intakeId: NEWEST_INTAKE_ID,
+      choice: null,
+      draft: HOSTILE_DRAFT,
+    }),
   },
   en: {
     open: englishWith(null),
@@ -471,24 +622,64 @@ export const POSITIONING_VIEWS = {
     stale: englishWith(choiceOf(OLDER_INTAKE_ID, "written", POSITIONING_STATEMENTS.en)),
     hostile: englishWith(choiceOf(NEWEST_INTAKE_ID, "written", HOSTILE_STATEMENT)),
     long: englishWith(choiceOf(NEWEST_INTAKE_ID, "written", LONG_STATEMENT)),
+    drafted: englishWith(null, NEWEST_INTAKE_ID, POSITIONING_DRAFTS.en),
+    draftedHostile: view("Test shop", HOSTILE_ANSWERS, undefined, {
+      intakeId: NEWEST_INTAKE_ID,
+      choice: null,
+      draft: HOSTILE_DRAFT,
+    }),
   },
 } as const;
 
+/** What a person decides on the gate, as the screen sends it without the project. */
+export type Decision =
+  | { kind: "written"; statement: string }
+  | { kind: "skipped" }
+  | { kind: "picked"; draftId: string; option: number }
+  | { kind: "edited"; draftId: string; option: number; statement: string };
+
 /**
- * What a stub action does when a person writes or skips: the view the page would build again after
- * the save, from the same engine function. The stories use it in place of the server.
+ * What a stub action does when a person decides: the view the page would build again after the
+ * save, from the same engine function. The stories use it in place of the server. `drafted` says a
+ * draft is stored, so a skip keeps its options and a pick or an edit copies from it, as the server
+ * does (`positioning-choice-1`); an edit equal to its option is saved as `picked` (W4).
  */
 export function positioningAfter(
   locale: "th" | "en",
-  choice: { kind: "written"; statement: string } | { kind: "skipped" },
+  choice: Decision,
+  drafted = false,
 ): BusinessView {
   const make = locale === "th" ? thaiWith : englishWith;
-  return make(
-    choice.kind === "skipped"
-      ? choiceOf(NEWEST_INTAKE_ID, "skipped", null)
-      : choiceOf(NEWEST_INTAKE_ID, "written", choice.statement.trim()),
-  );
+  const draft = drafted ? POSITIONING_DRAFTS[locale] : null;
+  if (choice.kind === "skipped") {
+    return make(choiceOf(NEWEST_INTAKE_ID, "skipped", null), NEWEST_INTAKE_ID, draft);
+  }
+  if (choice.kind === "written") {
+    return make(
+      choiceOf(NEWEST_INTAKE_ID, "written", choice.statement.trim()),
+      NEWEST_INTAKE_ID,
+      draft,
+    );
+  }
+  const option = POSITIONING_DRAFTS[locale].options[choice.option - 1];
+  if (option === undefined) throw new Error(`fixture draft has no option ${choice.option}`);
+  const n = choice.option as 1 | 2 | 3;
+  const saved =
+    choice.kind === "picked"
+      ? choiceOfDraft("picked", n, option.statement)
+      : choiceOfDraft(
+          settleEdit(option.statement, choice.statement),
+          n,
+          settleEdit(option.statement, choice.statement) === "picked"
+            ? option.statement
+            : choice.statement.trim(),
+        );
+  return make(saved, NEWEST_INTAKE_ID, POSITIONING_DRAFTS[locale]);
 }
+
+/** What a stub draft action does when it drafts: the view of a stored draft and no choice. */
+export const draftedAfter = (locale: "th" | "en"): BusinessView =>
+  POSITIONING_VIEWS[locale].drafted;
 
 /**
  * A project for the foundation stories (ORV-291): the Positioning gate `open` (Brand personality
@@ -511,6 +702,7 @@ export function foundationProject(
         : // `stale`: agreed on an older intake, then a later one was saved (ORV-296, spec row 30).
           choiceOf(gate === "stale" ? OLDER_INTAKE_ID : NEWEST_INTAKE_ID, "written", statement),
     NEWEST_INTAKE_ID,
+    null,
     entries,
   );
 }

@@ -326,29 +326,50 @@ function Rules({ rules }: { rules: readonly string[] }) {
 }
 
 /**
- * A statement as the person wrote it, with its label. PR 1 shows `business.positioning.by.own` and
- * no line for a drafted label, as the board on `develop` does: those keys come with ORV-292.
+ * The label line of a statement, as the board's node view shows it (ORV-292): `by.own` for the
+ * person's own words; `by.picked` or `by.edited` with the draft's model id for a statement from a
+ * drafted option, the one AI label the page may show (`guidebook-honest-1`). A drafted statement
+ * with no saved model id shows no line, as on the board: the id is never invented.
+ */
+function labelLine(
+  m: Messages,
+  statement: { label: string; modelId?: string | null | undefined },
+): string | null {
+  if (statement.label === "business.positioning.by.own") return m.business.positioning.by.own;
+  if (statement.modelId === null || statement.modelId === undefined) return null;
+  if (statement.label === "business.positioning.by.picked") {
+    return fill(m.business.positioning.by.picked, { model: statement.modelId });
+  }
+  if (statement.label === "business.positioning.by.edited") {
+    return fill(m.business.positioning.by.edited, { model: statement.modelId });
+  }
+  return null;
+}
+
+/**
+ * A statement as the person wrote it or picked it, with its label line: the person's own label, or
+ * the board's label of a drafted statement with its model id. Both are notes, so the AI label is
+ * neither hidden nor louder than the person's own.
  */
 function Statement({
   statement,
   gatePassed,
   marked = true,
 }: {
-  statement: { text: string; label: string };
+  statement: { text: string; label: string; modelId?: string | null | undefined };
   gatePassed: string;
   /** False inside a value that already carries `data-value` (the core idea), so the item holds one. */
   marked?: boolean;
 }) {
   const m = useMessages();
+  const label = labelLine(m, statement);
   return (
     <div className="flex min-w-0 flex-col gap-1" data-value={marked ? "" : undefined}>
       <p className="text-body-lg whitespace-pre-wrap">
         <Typed>{statement.text}</Typed>
       </p>
       <div className="flex min-w-0 flex-col gap-2" data-notes>
-        {statement.label === "business.positioning.by.own" ? (
-          <p className={FIELD_NOTE}>{m.business.positioning.by.own}</p>
-        ) : null}
+        {label === null ? null : <p className={FIELD_NOTE}>{label}</p>}
         <p className={FIELD_NOTE}>{gatePassed}</p>
       </div>
     </div>

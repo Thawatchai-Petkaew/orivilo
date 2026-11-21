@@ -12,6 +12,7 @@ import {
   readBusiness,
   ruleBasedReading,
 } from "@orivilo/intent-engine";
+import { recordUsage } from "./ai-usage";
 import { accessDeps } from "./auth";
 import { limiter } from "./rate-limit";
 import { spendCap } from "./spend-cap";
@@ -39,30 +40,6 @@ type Decided = {
 
 const sha256Text = (text: string): string =>
   createHash("sha256").update(text, "utf8").digest("hex");
-
-/**
- * Writes the usage of one read with the charge `check` issued. A failed record never costs the
- * person the paid reading: it is one step line, with no error text, answer or amount, as
- * `readBriefWithAi` does (ORV-121 spend-cap-6). Never throws.
- */
-async function recordUsage(charge: Charge, calls: readonly UsageEntry[]): Promise<void> {
-  for (const call of calls) {
-    if (call.costMicroUsd === null) {
-      logStep({ step: "ai-usage", outcome: "cost-not-reported", level: "warn", durationMs: 0 });
-    }
-  }
-  const started = performance.now();
-  try {
-    await spendCap().record(charge, calls);
-  } catch {
-    logStep({
-      step: "ai-usage",
-      outcome: "record-failed",
-      level: "warn",
-      durationMs: performance.now() - started,
-    });
-  }
-}
 
 /** Steps 6 to 8: what the reading of this intake is. Never throws. */
 async function decide(

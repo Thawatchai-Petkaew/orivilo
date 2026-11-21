@@ -119,6 +119,8 @@ describe("the field classification map (ORV-158, orv158-walk)", () => {
         "account.accountId",
         "account.userId",
         "aiUsage.userId",
+        "businessDraft.createdBy",
+        "businessDraft.options",
         "businessFoundationEntry.createdBy",
         "businessFoundationEntry.payload",
         "businessIntake.competitors",

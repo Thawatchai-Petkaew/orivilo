@@ -17,7 +17,7 @@ import {
 } from "./guidebook";
 import guidebookSource from "./guidebook.ts?raw";
 import { storedIntakeSchema } from "./intake";
-import type { StoredChoice } from "./positioning";
+import type { StoredChoice, StoredDraft } from "./positioning";
 import { PROXY_QUESTIONS, START_QUESTIONS } from "./questions";
 import { BUSINESS_READ_MODEL, modelReading, readBusiness } from "./read";
 import {
@@ -586,28 +586,34 @@ const AI_KEYS = [
   "logo-mark.draftLabel",
 ];
 
+/** Every string, every key and every `modelId` value of a guidebook's JSON, for T9 and T37. */
+const claimsOf = (json: string): { strings: string[]; keys: string[]; modelIds: unknown[] } => {
+  const strings: string[] = [];
+  const keys: string[] = [];
+  const modelIds: unknown[] = [];
+  // `faces.reading` is the typography role "reading text", not the model's reading: it is the
+  // one `reading` key the guidebook may hold, so its path is told apart.
+  const walk = (v: unknown, parent: string): void => {
+    if (typeof v === "string") strings.push(v);
+    else if (Array.isArray(v)) v.forEach((x) => walk(x, parent));
+    else if (v !== null && typeof v === "object") {
+      for (const [k, inner] of Object.entries(v)) {
+        keys.push(parent === "faces" ? `faces.${k}` : k);
+        if (k === "modelId") modelIds.push(inner);
+        walk(inner, k);
+      }
+    }
+  };
+  walk(JSON.parse(json), "");
+  return { strings, keys, modelIds };
+};
+
 describe("no AI label, no claim", () => {
   it.each(FIXTURES)("%s: the data holds no AI key, reading or model id", (_name, s) => {
     const g = gb(s);
     const json = JSON.stringify(g);
     for (const key of AI_KEYS) expect(json).not.toContain(key);
-    const strings: string[] = [];
-    const keys: string[] = [];
-    const modelIds: unknown[] = [];
-    // `faces.reading` is the typography role "reading text", not the model's reading: it is the
-    // one `reading` key the guidebook may hold, so its path is told apart.
-    const walk = (v: unknown, parent: string): void => {
-      if (typeof v === "string") strings.push(v);
-      else if (Array.isArray(v)) v.forEach((x) => walk(x, parent));
-      else if (v !== null && typeof v === "object") {
-        for (const [k, inner] of Object.entries(v)) {
-          keys.push(parent === "faces" ? `faces.${k}` : k);
-          if (k === "modelId") modelIds.push(inner);
-          walk(inner, k);
-        }
-      }
-    };
-    walk(JSON.parse(json), "");
+    const { strings, keys, modelIds } = claimsOf(json);
     expect(modelIds.every((m) => m === null)).toBe(true);
     expect(keys).not.toContain("readings");
     expect(keys).not.toContain("reading");
@@ -621,6 +627,154 @@ describe("no AI label, no claim", () => {
     expect(view.reading).toMatchObject({ status: "model" });
     expect(JSON.stringify(view)).toContain(BUSINESS_READ_MODEL);
   });
+});
+
+// ORV-307, T36 and T37 (spec rows 20 and 21). ORV-292's real view: a saved project holding a stored
+// draft of three options, run through `toBusinessView`, then `guidebookOf`. Stand-in text and a
+// stand-in model id; no model is called.
+const DRAFT_INTAKE = { idea: "คั่วเองที่ขายเมล็ดกาแฟ", value: "คั่วสดทุกสัปดาห์" };
+const DRAFT_MODEL = "anthropic/claude-sonnet-5.5";
+const OPTIONS = [
+  "กาแฟคั่วสดสำหรับคนทำงานออฟฟิศ",
+  "เมล็ดกาแฟคั่วใหม่ทุกสัปดาห์ถึงโต๊ะคุณ",
+  "คั่วเองส่งตรงไม่ผ่านคนกลาง",
+] as const;
+const EDITED_STATEMENT = "เมล็ดกาแฟคั่วใหม่ถึงโต๊ะคุณทุกสัปดาห์";
+const quote = (answer: keyof typeof DRAFT_INTAKE) => ({
+  answer,
+  start: 0,
+  end: DRAFT_INTAKE[answer].length,
+  text: DRAFT_INTAKE[answer],
+});
+const STORED_DRAFT: StoredDraft = {
+  id: "d1",
+  job: "positioning-draft",
+  intakeId: NEWEST,
+  modelId: DRAFT_MODEL,
+  adapter: { id: "positioning-draft", version: "1" },
+  promptVersion: "positioning-prompt-1",
+  options: OPTIONS.map((statement) => ({ statement, quotes: [quote("idea"), quote("value")] })),
+};
+const draftChoice = (kind: "picked" | "edited" | null): StoredChoice | null =>
+  kind === null
+    ? null
+    : {
+        id: "c",
+        intakeId: NEWEST,
+        createdAt: at,
+        kind,
+        statement: kind === "picked" ? OPTIONS[1] : EDITED_STATEMENT,
+        draftId: "d1",
+        option: 2,
+      };
+const draftProject = (kind: "picked" | "edited" | null): SavedBusiness => ({
+  project: { id: "p1", name: "คลินิกฟัน", createdAt: at },
+  intake: storedIntakeSchema.parse({ version: "intake-1", ...DRAFT_INTAKE }),
+  positioning: { intakeId: NEWEST, choice: draftChoice(kind), draft: STORED_DRAFT },
+  // No entry while the draft waits, as `OPEN_FIRST`; the whole foundation once an option is chosen.
+  foundation: kind === null ? [] : [...FOUNDATION_A, ...VISUAL],
+});
+
+describe("a draft is not a decision", () => {
+  it("keeps a positioning that waits for a choice open, with no question, no value and no option text", () => {
+    const saved = draftProject(null);
+    expect(viewOf(saved).positioning.gate).toBe("awaiting-choice");
+    const g = gb(saved);
+    expect(itemOf(g, "positioning")).toMatchObject({
+      status: "open",
+      state: "awaitingChoice",
+      questions: [],
+      notes: [],
+      value: null,
+    });
+    // The foundation items still wait for the positioning, as on a project with no draft.
+    for (const id of ["identity-frame", "architecture", "name", "core-idea"] as const) {
+      expect(itemOf(g, id)).toMatchObject({
+        status: "open",
+        state: "waiting",
+        waitingFor: ["positioning"],
+        value: null,
+      });
+    }
+    const json = JSON.stringify(g);
+    for (const option of OPTIONS) expect(json).not.toContain(option);
+    expect(json).not.toContain(DRAFT_MODEL);
+  });
+
+  it("reads option 2 once picked, with the picked label and the draft's model id, and options 1 and 3 nowhere", () => {
+    const g = gb(draftProject("picked"));
+    expect(itemOf(g, "positioning")).toMatchObject({
+      status: "done",
+      method: "ai-draft-picked",
+      value: {
+        statement: {
+          text: OPTIONS[1],
+          label: "business.positioning.by.picked",
+          modelId: DRAFT_MODEL,
+        },
+      },
+    });
+    const json = JSON.stringify(g);
+    expect(json).toContain(OPTIONS[1]);
+    expect(json).not.toContain(OPTIONS[0]);
+    expect(json).not.toContain(OPTIONS[2]);
+  });
+
+  it("reads an edited choice with the edited label, the edited statement and the same model id", () => {
+    const g = gb(draftProject("edited"));
+    expect(itemOf(g, "positioning")).toMatchObject({
+      status: "done",
+      method: "ai-draft-picked",
+      value: {
+        statement: {
+          text: EDITED_STATEMENT,
+          label: "business.positioning.by.edited",
+          modelId: DRAFT_MODEL,
+        },
+      },
+    });
+    const json = JSON.stringify(g);
+    for (const option of OPTIONS) expect(json).not.toContain(option);
+  });
+});
+
+describe("no AI label, the one exception", () => {
+  const ROW_20: Array<[string, SavedBusiness, string | null]> = [
+    ["a draft that waits for a choice", draftProject(null), null],
+    ["option 2 picked", draftProject("picked"), "business.positioning.by.picked"],
+    ["option 2 edited", draftProject("edited"), "business.positioning.by.edited"],
+  ];
+
+  it.each(ROW_20)(
+    "%s: T9's checks hold, bar the label and model id of the picked statement",
+    (_name, s, label) => {
+      const json = JSON.stringify(gb(s));
+      // The exception is exactly one label and one model id, on the positioning statement.
+      expect(json.split(DRAFT_MODEL).length - 1).toBe(label === null ? 0 : 1);
+      for (const key of AI_KEYS) {
+        expect(json.split(key).length - 1).toBe(key === label ? 1 : 0);
+      }
+      const rest = JSON.parse(json) as {
+        foundation: Array<{ id: string; value: { statement?: Record<string, unknown> } | null }>;
+      };
+      const statement = rest.foundation.find((i) => i.id === "positioning")?.value?.statement;
+      if (label !== null) {
+        expect(statement).toMatchObject({ label, modelId: DRAFT_MODEL });
+        delete statement?.label;
+        delete statement?.modelId;
+      }
+      const bare = JSON.stringify(rest);
+      for (const key of AI_KEYS) expect(bare).not.toContain(key);
+      expect(bare).not.toContain(DRAFT_MODEL);
+      expect(bare).not.toContain(BUSINESS_READ_MODEL);
+      const { strings, keys, modelIds } = claimsOf(bare);
+      expect(modelIds.every((m) => m === null)).toBe(true);
+      expect(keys).not.toContain("readings");
+      expect(keys).not.toContain("reading");
+      const lines = [...PROXY_QUESTIONS, ...START_QUESTIONS].flatMap((q) => [q.en, q.th]);
+      for (const text of strings) expect(lines).not.toContain(text);
+    },
+  );
 });
 
 /** Strips `/* *\/` and `//` comments, as `business-read.test.ts` does. */
@@ -1058,7 +1212,8 @@ describe("the lines of an open item, clause by clause", () => {
   });
 
   it("asks nothing of a positioning that waits for a choice, in a hand-edited view", () => {
-    // `toBusinessView` never gives awaitingChoice before ORV-292; the hand-edited copy is the proof.
+    // `toBusinessView` gives awaitingChoice from a stored draft (T36 proves it over the real view);
+    // this copy keeps the state for a view with no draft, so the item's own rule is proven alone.
     const view = viewOf(OPEN_FIRST);
     const waiting: BusinessView = {
       ...view,

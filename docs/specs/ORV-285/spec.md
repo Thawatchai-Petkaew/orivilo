@@ -2,7 +2,7 @@
 issue: ORV-285 (https://tpetkaew.atlassian.net/browse/ORV-285)
 lane: L (risk flags: a new pinned model job with its prompt and answer schema; stored workspace data, new tenant tables behind the authorization helper; a new contract on the positioning node, its gate states and its saved statement)
 mode: POC mode short spec (`.claude/skills/ovl/SKILL.md`, section "POC mode")
-version: 1.2
+version: 1.6
 ---
 
 # ORV-285: the positioning gate, drafted options to pick, edit, replace or skip
@@ -32,6 +32,7 @@ The slice 3 evaluation of `business-read` (ORV-283 comment 10694) found most of 
 
 - **Real (once built):** the choice check and the saved choice, the gate states, the model call and its checks, the saved draft and its replay, the quote check of every option.
 - **Drafted by a model, labelled (PR 2 only):** the options. Each is a proposal with its quotes, never a value until the person picks or edits it. The quote check proves that each quote is in the answers; it does not prove that the statement says only what the quotes say. The evaluation set reports that by a person's marks (row 25), with no pass claim.
+  - **Note, 2026-11-21 (ORV-292-spec-6).** Who makes the marks of row 25, and how the G3 packet reports them, follows the slice's rule `positioning-draft-marks-1` (`docs/specs/ORV-292/spec.md` v1.5, decided by the owner in ORV-292 comment 10817). The line above is unchanged; the slice spec holds the rule.
 - **Rule-based, not AI:** the gate state, the labels of `positioning-honest-1`, the check that the value answer is given before a draft is offered.
 - **Hypothesis-grade:** the statement form. ORV-126 names an onliness statement, and the book's exact template was not read (K-0030, "What the sources do not show"), so the form below uses no fixed template words (open question 1). The 300-character bound of a statement is ours.
 - **Not done, and said so:** the brand brief; changing an agreed positioning; any stage that builds on the gate.
@@ -87,6 +88,8 @@ Draft request (PR 2):
 8. the model call and its checks (`positioning-draft-1`);
 9. the save of the draft.
 
+**Note, 2026-11-19 (ORV-292-spec-5).** The OpenRouter key is read after draft step 5 and before draft step 6, by the slice's rule `positioning-draft-key-1` (`docs/specs/ORV-292/spec.md`, decided in ORV-292 comment 10747 under the owner's POC delegation). The steps above are unchanged; the slice spec holds the rule.
+
 Choice (PR 1; picked and edited from PR 2):
 
 1. the session;
@@ -98,6 +101,8 @@ Choice (PR 1; picked and edited from PR 2):
 
 A refusal at draft steps 1 to 5 or choice steps 1 to 5 saves nothing, consumes no `ai-read` limit and calls no model. A project of another workspace, an unknown project id and a draft that is not the newest intake's (or has no option of the given number) all answer 404 with one body (`.claude/rules/security.md` rule 9). Without a session the answer is `signed-out` (`saved.errors.signed-out`); refused at step 2, `forbidden` with no address in it, as ORV-268 `read-door-1` gives it; over the `write` limit, `rate-limited` with the wait (`saved.errors.rate-limited`). A stop at draft steps 6 to 8 stores no draft and answers its reason: `ai-rate-limited`, `ai-spend-cap`, `ai-not-configured` or `ai-failed`, shown by `positioning-honest-1`; the person may write their own, skip, or ask again, and each request that reaches step 6 counts the limit. No answer text, statement, option or quote reaches a log line or an error body.
 
+**Note, 2026-11-19 (ORV-292-spec-5).** `ai-not-configured` is answered after draft step 5 and before draft step 6, by the slice's rule `positioning-draft-key-1` (`docs/specs/ORV-292/spec.md`, ORV-292 comment 10747), and such a request counts no limit. The paragraph above is unchanged; the slice spec holds the rule.
+
 ### positioning-choice-1
 
 The choice the person sends, parsed strictly. A key outside its row, or a missing key of its row, refuses the whole input.
@@ -106,8 +111,8 @@ The choice the person sends, parsed strictly. A key outside its row, or a missin
 | Kind | The person | Sent besides the project id | Saved statement |
 | --- | --- | --- | --- |
 | `picked` | presses `business.positioning.pick` on an option | the draft id and the option number, 1 to 3 | the option's statement, copied on the server from the saved draft, never from the client |
-| `edited` | presses `business.positioning.edit`, changes the text, presses `business.positioning.save` | the draft id, the option number and the statement, 1 to 300 characters after the trim | the trimmed text; when it equals the option's statement, the choice is saved as `picked` (W4) |
-| `written` | presses `business.positioning.writeOwn`, types, presses `business.positioning.save` | the statement, 1 to 300 characters after the trim | the trimmed text |
+| `edited` | presses `business.positioning.edit`, changes the text, presses `business.positioning.save` | the draft id, the option number and the statement, 1 to 300 characters after U+0000 is dropped and the text trimmed (ORV-292 row 27) | the trimmed text; when it equals the option's statement, the choice is saved as `picked` (W4) |
+| `written` | presses `business.positioning.writeOwn`, types, presses `business.positioning.save` | the statement, 1 to 300 characters after U+0000 is dropped and the text trimmed (ORV-292 row 27) | the trimmed text |
 | `skipped` | presses `strategy.skip` | nothing | none |
 
 Each choice is a new row: the project's newest intake id at the time of the choice, the kind, the statement or none, the draft id and option number or none, who made it, when. No row is changed or deleted; the newest choice of the project wins (`created_at` desc, `id` desc). The options not picked stay in the saved draft unchanged and are never a value (ORV-126 row 19). Changing an agreed positioning is out of scope: the view offers no choice control once the gate is `given` or `confirmed`, and a choice sent directly meets choice step 5 of `positioning-door-1`.
@@ -234,6 +239,12 @@ Tests use fixtures, a fake network and recorded or typed model answers; none rea
 | 25 | The evaluation set: 6 Thai and 6 English ordinary cases, among them short answers, an empty competitors answer and mixed Thai and English; 3 Thai and 3 English injection cases, each with a marker word | Recorded answers are replayed | No UI | Each recording gives a draft or is refused by `positioning-draft-1`; no injection case gives an accepted option whose statement holds its marker; the G3 packet reports, per language, how many options a person marked faithful, adds a claim, or unclear, and how many answers were refused, with no pass claim | `positioning-draft-eval.test.ts`; G3 packet |
 | 26 | The PR 2 head | The gate runs | No UI | Gate as row 11, the draft table included; the model is imported only by the draft's adapter module; an ADR 0009 addition and `AI_MODELS` name the new job, pinned by `openrouter.test.ts`; `pnpm contrast` unchanged from `develop` | Gate output |
 
+**Note, 2026-11-19 (ORV-292-spec-3).** Row 13 gains one refused answer, a statement that holds U+0000, under the slice card ORV-292 (ORV-292 row 13, `docs/specs/ORV-292/spec.md` v1.2, rule `positioning-draft-nul-1`, decided in ORV-292 comment 10742). Row 13's text above is unchanged; the slice spec holds the added case and its values.
+
+**Note, 2026-11-19 (ORV-292-spec-5).** Row 15's no-key case follows ORV-292 row 15 (`docs/specs/ORV-292/spec.md` v1.3, rule `positioning-draft-key-1`, decided in ORV-292 comment 10747 under the owner's POC delegation). Row 15's text above is unchanged; the slice spec holds the no-key case and its values.
+
+**Note, 2026-11-21 (ORV-292-spec-6).** Row 25's marks follow ORV-292 row 25 (`docs/specs/ORV-292/spec.md` v1.5, rule `positioning-draft-marks-1`, decided by the owner in ORV-292 comment 10817): who makes them and how the G3 packet reports them. Row 25's text above is unchanged; the slice spec holds the rule.
+
 ## Rows that render nothing
 
 - Rows: 1, 6, 11-14, 20, 22, 25, 26
@@ -242,7 +253,7 @@ Tests use fixtures, a fake network and recorded or typed model answers; none rea
 
 - PR 226: rows 1-11
 
-PR 2 of "Delivery: two PRs" (rows 12 to 26) gets its line here once its pull request has a number.
+PR 2 of "Delivery: two PRs" (rows 12 to 26) is delivered under the slice card ORV-292, `docs/specs/ORV-292/spec.md`, which adds rows 27 to 30.
 
 ## Delivery: two PRs
 
@@ -339,3 +350,7 @@ node -e 'const K=["picked","edited","written"];const g=(d,draft,newest)=>{const 
 - v1.0 (2026-11-18): first version, task ORV-285-spec-1, from ORV-126 D1 and node 6, ORV-281 v1.3 and its tech notes, the ORV-283 code (`read.ts`, `reading.ts`, `view.ts`, `place.ts`, `read-fixtures.ts`), ADR 0009 and its addition of 2026-11-18, K-0028, K-0030 and K-0036. No Jira tool call and no shell in this role, so ORV-285, ORV-284 and comment 10694 were taken from the envelope's facts and no worked example was run. Downstream to review: the G1 and G2 packets (open questions 1 to 10), the architect's tech notes and ADR 0009 addition, the designer's notes for the Positioning view, the builder envelopes for PR 1 and PR 2, the `security` envelopes for both, the qa envelopes, and the ORV-281 lines listed under "Downstream review".
 - v1.1 (2026-11-18): task ORV-285-spec-2, three points from the architect (ORV-285-tech-1) and the designer (design N1), accepted by the main session under the owner's POC delegation for G2 (comment 10710). (1) `positioning-door-1`, choice step 5: a choice is refused as `invalid-input`, nothing saved, when the gate is `given` or `confirmed` (tech D4), proven by a new case in row 6; `positioning-choice-1` points to it. (2) Row 25: an accepted option "whose statement holds" its marker, since a quote rightly copies the answer that carries it. (3) Cancel: the new key `business.positioning.cancel` ("Cancel" / "ยกเลิก"), the editors' behaviour under `positioning-choice-1` "The editors", proven by a new case in row 3 (write-own editor, PR 1) and row 19 (option editor, PR 2); `business.positioning.statementRequired` reworded to name only what the person can do inside the editor; the count of new keys under "Impact on contracts" goes from 24 to 25. No row number, open question, default, bound or cost changed. Downstream to review: tech notes rows T14 (D4, test "agreed stays agreed", now named in row 6) and the string list if it counts keys; design N1 (now accepted), its note on `statementRequired` and its changelog line ("N1 open"), the plays `PositioningInvalid` and `PositioningEdit`; the builder and qa envelopes for PR 1 and PR 2; and, once ORV-283 merges, the ORV-281 pointer lines under "Downstream review" (ORV-281 spec lines 121, 127, 168 and 184, and ORV-281 tech notes line 405, `business_analysis` to `business_draft`), not edited in this task.
 - v1.2 (2026-11-19): task ORV-285-spec-3, bookkeeping only, no requirement change. (1) New section "Rows per PR" with the line for PR 226 (rows 1 to 11, PR 1 of "Delivery: two PRs"); PR 2 gets its line once it has a number. (2) Row 5's Check cell names the states stories as built by task ORV-285-a3-screens, one per fixture with its English story, in place of one `PositioningStates` story; its Given, When, User sees and Data effect cells are unchanged. No row number, rule, string, bound, default or open question changed. Downstream to review: the qa, reviewer, security and designer sign-off envelopes for PR 226; tech notes row T16 and design section 9's `PositioningStates` row, which name the one story, not edited in this task.
+- v1.3 (2026-11-19): task ORV-292-spec-2, after PR 226 merged into `develop` (c2f1061). (1) `positioning-choice-1`, the `edited` and `written` rows: the statement's bound of 1 to 300 characters is counted after U+0000 is dropped and the text trimmed, as `checkIntake` does (ORV-292 row 27, from finding ORV-285-SEC-1); a statement of U+0000 and spaces only is now refused as empty, and one with U+0000 inside is saved without it. (2) "Rows per PR": PR 2 is delivered under the slice card ORV-292 with its spec path, in place of the note that it gets its line here; the line for PR 226 is unchanged. No row number, string, default or open question changed; rows 12 to 26 are as in v1.2. Downstream to review: `docs/specs/ORV-292/spec.md` (its parent version), the ORV-292 B1 and B3 builder envelopes (`checkChoice` and the choice action, row 27), tech notes section 3 if it states the bound, and the `security` envelope of ORV-292's PR.
+- v1.4 (2026-11-19): task ORV-292-spec-3. A dated note under the acceptance table points row 13 to ORV-292 row 13 for one added case, a model statement that holds U+0000, refused by the slice's rule `positioning-draft-nul-1` (ORV-292 spec v1.2, decided in ORV-292 comment 10742, under the owner's POC delegation). No row's text, rule, string, bound, default or open question of this spec changed. Downstream to review: `positioning-draft-1`, whose "Checks" bullet does not name the case (listed for the main session, not edited in this task); the ORV-292 engine and B3 builder envelopes and the `security` envelope of ORV-292's PR; tech notes section 8.2 and row T21, corrected in the same task.
+- v1.5 (2026-11-19): task ORV-292-spec-5, bookkeeping of the key-first order of a draft request (ORV-292 comment 10747, under the owner's POC delegation), built on the slice's branch as 5235b4e. Three dated notes point to the slice's rule `positioning-draft-key-1` (`docs/specs/ORV-292/spec.md`): one under the draft steps of `positioning-door-1`, one under its paragraph on a stop at draft steps 6 to 8, and one under the acceptance table for row 15's no-key case (ORV-292 row 15). No row's text, rule, string, bound, default or open question of this spec changed. Downstream to review: the `security`, reviewer and qa envelopes of ORV-292's PR (row 15 and the order of the limit and the cap); `docs/specs/ORV-292/spec.md` v1.4 and tech notes section 6.2, updated in the same task; tech notes row T33, which still reads "not built at 4900487" (listed for the main session, not edited in this task).
+- v1.6 (2026-11-21): task ORV-292-spec-6, the owner's decision on who marks the evaluation set (ORV-292 comment 10817). Two dated notes point to the slice's rule `positioning-draft-marks-1` (`docs/specs/ORV-292/spec.md` v1.5): one under the "Drafted by a model, labelled" line of "What is real, rule-based and simulated", and one under the acceptance table for row 25. No row's text, rule, string, bound, default or open question of this spec changed; open question 10 keeps its default (a). Downstream to review: the builder envelope of `positioning-draft-eval.test.ts`, the architect task for the ADR 0009 addition, the reviewer and qa envelopes and the G3 packet of ORV-292's PR; `docs/specs/ORV-292/spec.md` v1.5 and tech notes sections 8.4 and 11, updated in the same task.

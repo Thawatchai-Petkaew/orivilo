@@ -5,13 +5,14 @@ import {
   type BusinessFieldId,
   type BusinessFieldReading,
   type BusinessNote,
+  type BusinessReadReason,
   type BusinessView,
   checkChoice,
   type ChoiceInput,
   POSITIONING_STATEMENT_MAX,
   type PositioningView,
 } from "@orivilo/intent-engine";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import {
   Button,
   EvidenceList,
@@ -30,6 +31,7 @@ import {
   FIELD_NOTE,
   fieldLabel,
   fromModelNote,
+  labelOfKey,
   nodeTitle,
   questionText,
   readingQuotes,
@@ -57,13 +59,16 @@ export type ChoiceRequest = ChoiceInput extends infer C
     : never
   : never;
 
-/** The write-own editor's text. Held by the board, so it stays while the viewer closes and opens. */
-export type PositioningEditor = { text: string } | null;
+/**
+ * The editor's text and what it edits: `option` null is the write-own editor, a number is that
+ * drafted option. Held by the board, so it stays while the viewer closes and opens.
+ */
+export type PositioningEditor = { option: 1 | 2 | 3 | null; text: string } | null;
 
 /** What the caller gives the section so a person can decide (`positioning-choice-1`). */
 export interface PositioningControls {
   /** A request is running: its button shows `loading`, every other button is inert. */
-  pending: "saving" | null;
+  pending: "saving" | "drafting" | null;
   /**
    * What the server found wrong with the statement, shown on the field. Pass a new value for each
    * refusal and leave it out otherwise; a new value moves focus to the field.
@@ -71,6 +76,10 @@ export interface PositioningControls {
   problem?: "required" | "too-long" | null | undefined;
   /** A line already resolved by the caller (signed out, rate limited, failed), kept under the controls. */
   failure?: string | undefined;
+  /** Why the last draft request stopped; shown as a line of its own, never as a failure of the save. */
+  stopped?: BusinessReadReason | undefined;
+  /** Asks for drafted options. Absent, no Draft button is drawn. */
+  onDraft?: (() => void) | undefined;
   /** Called with a choice the screen has checked; the caller checks again and calls the action. */
   onChoose: (choice: ChoiceRequest) => void;
   /**
@@ -162,15 +171,36 @@ function problemOf(text: string): "required" | "too-long" | null {
     : "required";
 }
 
-type FocusTarget = "field" | "opener" | "heading";
+type FocusTarget =
+  { target: "field" } | { target: "opener"; option: 1 | 2 | 3 | null } | { target: "heading" };
+
+/** What was pressed while a request runs: the one button that shows `loading`. */
+type Pressed = "save" | "skip" | `pick:${1 | 2 | 3}`;
+
+/** The line for each reason a draft request stopped (`positioning-honest-1`). */
+function stoppedLine(m: Messages, reason: BusinessReadReason): string {
+  switch (reason) {
+    case "ai-not-configured":
+      return m.business.positioning.errors.aiNotConfigured;
+    case "ai-failed":
+      return m.business.positioning.errors.aiFailed;
+    case "ai-rate-limited":
+      return m.business.positioning.errors.aiRateLimited;
+    case "ai-spend-cap":
+      return m.business.positioning.errors.aiSpendCap;
+  }
+}
 
 /**
  * The statement section of the Positioning view (ORV-285 design sections 3 and 5): the heading, the
- * agreed or stale statement as text with who wrote it, and the controls of `positioning-gate-1`.
- * "Write my own" opens an editor that holds its text in the board; "Agree" checks it and calls
- * `onChoose`; "Skip" calls it with a skip; "Cancel" closes the editor, keeps nothing and drops the last failure. Focus follows
- * each action: the field when the editor opens or the check fails, "Write my own" after a cancel or
- * a skip, the heading after the gate passes. The statement is a text node in `bdi`, never HTML.
+ * agreed or stale statement as text with who wrote it, the drafted options in one well, and the
+ * controls of `positioning-gate-1`. "Draft options" asks for them; "Use this one" and "Edit this
+ * one" decide on one; "Write my own" opens an editor that holds its text in the board; "Agree"
+ * checks it and calls `onChoose`; "Skip" calls it with a skip; "Cancel" closes the editor, keeps
+ * nothing and drops the last failure. Focus follows each action: the field when an editor opens or
+ * the check fails, the opener after a cancel or a skip, the heading after the gate passes or the
+ * options arrive. Every statement, option and quote is a text node in `bdi`, never HTML, and a
+ * drafted line says AI drafted it only because the view holds a stored draft (`positioning-honest-1`).
  */
 function PositioningSection({
   gate,
@@ -180,15 +210,18 @@ function PositioningSection({
   controls: PositioningControls | undefined;
 }) {
   const m = useMessages();
+  const ids = useId();
+  const root = useRef<HTMLDivElement>(null);
   const heading = useRef<HTMLHeadingElement>(null);
-  const rows = useRef<HTMLDivElement>(null);
-  const [pressed, setPressed] = useState<"save" | "skip" | null>(null);
+  const [pressed, setPressed] = useState<Pressed | null>(null);
   const [shown, setShown] = useState<"required" | "too-long" | null>(null);
   const [seen, setSeen] = useState(controls?.problem);
-  const [focus, setFocus] = useState<{ target: FocusTarget } | null>(null);
+  const [focus, setFocus] = useState<FocusTarget | null>(null);
   const passed = gate.gate === "given" || gate.gate === "confirmed";
   const [wasPassed, setWasPassed] = useState(passed);
   const [wasSkipped, setWasSkipped] = useState(gate.skipped);
+  const options = gate.options;
+  const [hadOptions, setHadOptions] = useState(options !== null);
 
   // A new refusal from the caller replaces what is shown and asks for focus on the field.
   if (controls?.problem !== seen) {
@@ -203,17 +236,31 @@ function PositioningSection({
   }
   if (gate.skipped !== wasSkipped) {
     setWasSkipped(gate.skipped);
-    if (gate.skipped) setFocus({ target: "opener" });
+    if (gate.skipped) setFocus({ target: "opener", option: null });
+  }
+  // The options arrived after a draft request: focus the heading, as the Draft button is gone.
+  if ((options !== null) !== hadOptions) {
+    setHadOptions(options !== null);
+    if (options !== null) setFocus({ target: "heading" });
   }
 
   useEffect(() => {
     if (focus === null) return;
-    const target = {
-      field: () => rows.current?.querySelector<HTMLElement>("textarea"),
-      opener: () => rows.current?.querySelector<HTMLElement>('[data-choice="writeOwn"]'),
-      heading: () => heading.current,
-    }[focus.target]();
-    target?.focus();
+    const section = root.current;
+    if (focus.target === "heading") {
+      heading.current?.focus();
+    } else if (focus.target === "field") {
+      const field = section?.querySelector<HTMLTextAreaElement>("textarea");
+      field?.focus();
+      // An option editor opens with the caret after its text, where the person goes on typing.
+      field?.setSelectionRange(field.value.length, field.value.length);
+    } else {
+      const opener =
+        focus.option === null
+          ? '[data-choice="writeOwn"]'
+          : `[data-choice="edit"][data-option="${focus.option}"]`;
+      section?.querySelector<HTMLElement>(opener)?.focus();
+    }
   }, [focus]);
 
   // An agreed positioning has no editor left to keep.
@@ -225,7 +272,15 @@ function PositioningSection({
 
   const statement = gate.statement;
   const busy = controls?.pending != null;
-  const editor = controls?.editor ?? null;
+  const drafting = controls?.pending === "drafting";
+  const items = options?.items ?? [];
+  // An editor on an option the view no longer holds is no editor.
+  const editor =
+    controls?.editor != null &&
+    (controls.editor.option === null || items.some((i) => i.n === controls.editor?.option))
+      ? controls.editor
+      : null;
+  const editing = editor?.option ?? null;
   const fieldError =
     shown === "required"
       ? m.business.positioning.statementRequired
@@ -246,12 +301,21 @@ function PositioningSection({
       return;
     }
     setPressed("save");
-    choose({ kind: "written", statement: editor.text });
+    choose(
+      editor.option === null || options === null
+        ? { kind: "written", statement: editor.text }
+        : {
+            kind: "edited",
+            draftId: options.draftId,
+            option: editor.option,
+            statement: editor.text,
+          },
+    );
   };
-  const openEditor = () => {
+  const openEditor = (option: 1 | 2 | 3 | null) => {
     if (busy) return;
     setShown(null);
-    controls?.onEditor({ text: "" });
+    controls?.onEditor({ option, text: items.find((i) => i.n === option)?.statement ?? "" });
     setFocus({ target: "field" });
   };
   const cancel = () => {
@@ -259,17 +323,83 @@ function PositioningSection({
     setShown(null);
     controls?.onEditor(null);
     controls?.onDismiss?.();
-    setFocus({ target: "opener" });
+    setFocus({ target: "opener", option: editing });
   };
   const skip = () => {
     if (busy) return;
     setPressed("skip");
     choose({ kind: "skipped" });
   };
+  const pick = (option: 1 | 2 | 3) => {
+    if (busy || options === null) return;
+    setPressed(`pick:${option}`);
+    choose({ kind: "picked", draftId: options.draftId, option });
+  };
+  const draft = () => {
+    if (busy) return;
+    controls?.onDraft?.();
+  };
   const inert = busy || undefined;
 
+  const offers = (control: PositioningView["controls"][number]) => gate.controls.includes(control);
+  // `primary` only where no engine action and no option is offered (design section 5, "One primary").
+  const ownVariant = offers("draft") || options !== null ? "secondary" : "primary";
+  const by =
+    statement === null || statement.label === "business.positioning.stale"
+      ? null
+      : statement.label === "business.positioning.by.own"
+        ? m.business.positioning.by.own
+        : statement.modelId === null
+          ? null
+          : fill(
+              statement.label === "business.positioning.by.picked"
+                ? m.business.positioning.by.picked
+                : m.business.positioning.by.edited,
+              { model: statement.modelId },
+            );
+
+  const writeOwnButton = (
+    <Button
+      variant={ownVariant}
+      data-choice="writeOwn"
+      aria-disabled={inert}
+      onClick={() => openEditor(null)}
+    >
+      {m.business.positioning.writeOwn}
+    </Button>
+  );
+  const skipButton = (
+    <Button
+      variant="ghost"
+      data-choice="skip"
+      aria-disabled={inert}
+      loading={busy && pressed === "skip"}
+      loadingLabel={m.business.positioning.saving}
+      onClick={skip}
+    >
+      {m.strategy.skip}
+    </Button>
+  );
+  const agreeAndCancel = (
+    <div className="flex flex-wrap items-center gap-2">
+      <Button
+        variant="primary"
+        data-choice="save"
+        aria-disabled={inert}
+        loading={busy && pressed === "save"}
+        loadingLabel={m.business.positioning.saving}
+        onClick={agree}
+      >
+        {m.business.positioning.save}
+      </Button>
+      <Button variant="secondary" data-choice="cancel" aria-disabled={inert} onClick={cancel}>
+        {m.business.positioning.cancel}
+      </Button>
+    </div>
+  );
+
   return (
-    <div className="flex min-w-0 flex-col gap-3" data-field="positioning.statement">
+    <div ref={root} className="flex min-w-0 flex-col gap-3" data-field="positioning.statement">
       <div className="flex min-w-0 flex-col gap-1">
         <h3 ref={heading} tabIndex={-1} className="self-start text-label-md">
           {m.business.field.statement}
@@ -282,40 +412,142 @@ function PositioningSection({
             <bdi>{statement.text}</bdi>
           </p>
         )}
-        {/* `by.picked` and `by.edited` say who drafted the text, so they need a stored draft: PR 2. */}
-        {statement?.label === "business.positioning.by.own" ? (
-          <p className={FIELD_NOTE}>{m.business.positioning.by.own}</p>
-        ) : null}
+        {by === null ? null : <p className={FIELD_NOTE}>{by}</p>}
+        {gate.needsValue ? <p className={FIELD_NOTE}>{m.business.positioning.needsValue}</p> : null}
       </div>
+      {options === null ? null : (
+        <div
+          role="group"
+          aria-labelledby={`${ids}-intro`}
+          className="flex min-w-0 flex-col gap-4 rounded-container bg-surface-sunken p-4"
+          data-drafted-options=""
+        >
+          <p id={`${ids}-intro`} className={FIELD_NOTE}>
+            {m.strategy.draftedOptions}
+          </p>
+          <ul className="flex flex-col gap-4">
+            {items.map((item, at) => {
+              const name = fill(m.business.positioning.option, { n: String(item.n) });
+              const open = editing === item.n;
+              return (
+                <li
+                  key={item.n}
+                  className={
+                    at === 0
+                      ? "flex min-w-0 flex-col gap-1"
+                      : "flex min-w-0 flex-col gap-1 border-t border-border-subtle pt-4"
+                  }
+                  data-option={item.n}
+                >
+                  {open && editor !== null ? (
+                    <Field label={name} error={fieldError}>
+                      <Textarea
+                        size="md"
+                        rows={3}
+                        maxRows={8}
+                        value={editor.text}
+                        onChange={(event) => {
+                          setShown(null);
+                          controls?.onEditor({ option: item.n, text: event.target.value });
+                        }}
+                      />
+                    </Field>
+                  ) : (
+                    <>
+                      <h4 id={`${ids}-name-${item.n}`} className="text-label-md">
+                        {name}
+                      </h4>
+                      <p className="whitespace-pre-wrap" data-option-statement="">
+                        <bdi>{item.statement}</bdi>
+                      </p>
+                    </>
+                  )}
+                  <p className={FIELD_NOTE}>
+                    {fill(m.business.positioning.draftedBy, { model: options.modelId })}
+                  </p>
+                  <div className="mt-2 flex min-w-0 flex-col gap-1">
+                    <p className={FIELD_NOTE}>{m.business.positioning.restsOn}</p>
+                    <ul className="flex flex-col gap-2">
+                      {item.quotes.map((quote, q) => (
+                        <li key={q} className="flex min-w-0 flex-col">
+                          <p className="whitespace-pre-wrap text-body-sm" data-quote="">
+                            <q>
+                              <bdi>{quote.text}</bdi>
+                            </q>
+                          </p>
+                          <p className={FIELD_NOTE}>{labelOfKey(m, quote.labelKey)}</p>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  {open ? (
+                    <div className="mt-3">{agreeAndCancel}</div>
+                  ) : controls !== undefined && editing === null && offers("pick") ? (
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                      <Button
+                        id={`${ids}-pick-${item.n}`}
+                        variant="secondary"
+                        data-choice="pick"
+                        data-option={item.n}
+                        aria-labelledby={`${ids}-pick-${item.n} ${ids}-name-${item.n}`}
+                        aria-disabled={inert}
+                        loading={busy && pressed === `pick:${item.n}`}
+                        loadingLabel={m.business.positioning.saving}
+                        onClick={() => pick(item.n)}
+                      >
+                        {m.business.positioning.pick}
+                      </Button>
+                      {offers("edit") ? (
+                        <Button
+                          id={`${ids}-edit-${item.n}`}
+                          variant="ghost"
+                          data-choice="edit"
+                          data-option={item.n}
+                          aria-labelledby={`${ids}-edit-${item.n} ${ids}-name-${item.n}`}
+                          aria-disabled={inert}
+                          onClick={() => openEditor(item.n)}
+                        >
+                          {m.business.positioning.edit}
+                        </Button>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
       {controls === undefined || passed ? null : (
         <div className="flex min-w-0 flex-col">
-          {editor === null ? (
-            <div ref={rows} className="flex flex-wrap items-center gap-2">
-              {gate.controls.includes("writeOwn") ? (
-                <Button
-                  variant="primary"
-                  data-choice="writeOwn"
-                  aria-disabled={inert}
-                  onClick={openEditor}
-                >
-                  {m.business.positioning.writeOwn}
-                </Button>
-              ) : null}
-              {gate.controls.includes("skip") ? (
-                <Button
-                  variant="ghost"
-                  data-choice="skip"
-                  aria-disabled={inert}
-                  loading={busy && pressed === "skip"}
-                  loadingLabel={m.business.positioning.saving}
-                  onClick={skip}
-                >
-                  {m.strategy.skip}
-                </Button>
-              ) : null}
-            </div>
+          {editing !== null ? null : editor === null ? (
+            offers("draft") ? (
+              <div className="flex flex-col gap-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    variant="intent"
+                    data-choice="draft"
+                    aria-disabled={inert}
+                    loading={drafting}
+                    loadingLabel={m.business.positioning.drafting}
+                    onClick={draft}
+                  >
+                    {m.business.positioning.draft}
+                  </Button>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  {offers("writeOwn") ? writeOwnButton : null}
+                  {offers("skip") ? skipButton : null}
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-wrap items-center gap-2">
+                {offers("writeOwn") ? writeOwnButton : null}
+                {offers("skip") ? skipButton : null}
+              </div>
+            )
           ) : (
-            <div ref={rows} className="flex min-w-0 flex-col gap-3">
+            <div className="flex min-w-0 flex-col gap-3">
               <Field label={m.business.positioning.writeOwn} error={fieldError}>
                 <Textarea
                   size="md"
@@ -324,32 +556,20 @@ function PositioningSection({
                   value={editor.text}
                   onChange={(event) => {
                     setShown(null);
-                    controls.onEditor({ text: event.target.value });
+                    controls.onEditor({ option: null, text: event.target.value });
                   }}
                 />
               </Field>
-              <div className="flex flex-wrap items-center gap-2">
-                <Button
-                  variant="primary"
-                  data-choice="save"
-                  aria-disabled={inert}
-                  loading={busy && pressed === "save"}
-                  loadingLabel={m.business.positioning.saving}
-                  onClick={agree}
-                >
-                  {m.business.positioning.save}
-                </Button>
-                <Button
-                  variant="secondary"
-                  data-choice="cancel"
-                  aria-disabled={inert}
-                  onClick={cancel}
-                >
-                  {m.business.positioning.cancel}
-                </Button>
-              </div>
+              {agreeAndCancel}
             </div>
           )}
+          <div role="status">
+            {controls.stopped === undefined ? null : (
+              <div className="mt-3">
+                <Notice variant="info" text={stoppedLine(m, controls.stopped)} live="off" />
+              </div>
+            )}
+          </div>
           <div role="alert">
             {controls.failure === undefined ? null : (
               <div className="mt-3">

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { inputEvidenceSchema } from "../evidence";
 import { slugSchema } from "../knowledge";
+import type { IntakeAnswers } from "./intake";
 
 /**
  * The record one `business-read` is saved and replayed as (ORV-281 tech notes section 8.4, "The
@@ -20,6 +21,21 @@ export const BUSINESS_ANSWER_KEYS = [
   "value",
 ] as const;
 export type BusinessAnswerKey = (typeof BUSINESS_ANSWER_KEYS)[number];
+
+export type BusinessAnswers = Partial<Record<BusinessAnswerKey, string>>;
+
+/**
+ * The given answers among the six, in `BUSINESS_ANSWER_KEYS` order and nothing else: the one set both
+ * jobs send, so no project name or website is ever in a request.
+ */
+export function givenAnswers(intake: IntakeAnswers): BusinessAnswers {
+  const answers: BusinessAnswers = {};
+  for (const key of BUSINESS_ANSWER_KEYS) {
+    const text = intake[key];
+    if (typeof text === "string" && text !== "") answers[key] = text;
+  }
+  return answers;
+}
 
 /** The seven fields marked "reading" or "both" in `business-fields-1`. */
 export const BUSINESS_READ_FIELDS = [

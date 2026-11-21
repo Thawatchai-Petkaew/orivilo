@@ -11,7 +11,7 @@ import {
 } from "@orivilo/intent-engine";
 import { type AccessDeps, withWorkspace } from "./access.ts";
 import { BusinessError } from "./business.ts";
-import { readPositioning } from "./positioning.ts";
+import { readChoice } from "./positioning.ts";
 
 /**
  * The brand foundation entries of a business project (ORV-291 tech notes sections 4 and 8), every
@@ -104,7 +104,7 @@ export function foundationService(deps: AccessDeps) {
           .orderBy(desc(businessIntake.createdAt), desc(businessIntake.id))
           .limit(1);
         if (!newest) throw new BusinessError("not-found");
-        const choice = await readPositioning(tx, workspaceId, found.id);
+        const choice = await readChoice(tx, workspaceId, found.id);
         const entries = await readFoundation(tx, workspaceId, found.id);
         // The foundation reads no draft: `awaiting-choice` and `open` count the same.
         const gate = positioningGate({ newestIntakeId: newest.id, choice, draftOfNewest: false });

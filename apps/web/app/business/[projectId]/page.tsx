@@ -5,6 +5,9 @@ import { loadProject } from "../data";
 import { ProjectBoard } from "./ProjectBoard";
 
 export const dynamic = "force-dynamic";
+// The draft action (ORV-292) takes the setting of the page that calls it: a 20 s model call leaves room
+// for the read before it and the save after it (ORV-285 tech notes section 6.2).
+export const maxDuration = 60;
 
 /**
  * One saved business (ORV-281 design section 6, slice 2): the project name, when it was saved and

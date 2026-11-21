@@ -58,7 +58,7 @@ function leafKeys(tree: Record<string, unknown>, prefix = ""): string[] {
 
 /**
  * Every `business.*` key of the spec's Strings section, `home.openBusiness` apart (it lives in the
- * app). The positioning keys are those of ORV-285 PR 1; PR 2 adds the drafted options' keys.
+ * app). The positioning keys are those of ORV-285 PR 1 and, from ORV-292, PR 2's drafted options.
  */
 const SPEC_KEYS = [
   "business.list.heading",
@@ -112,6 +112,20 @@ const SPEC_KEYS = [
   "business.positioning.statementRequired",
   "business.positioning.by.own",
   "business.positioning.stale",
+  "business.positioning.draft",
+  "business.positioning.drafting",
+  "business.positioning.option",
+  "business.positioning.draftedBy",
+  "business.positioning.restsOn",
+  "business.positioning.pick",
+  "business.positioning.edit",
+  "business.positioning.by.picked",
+  "business.positioning.by.edited",
+  "business.positioning.needsValue",
+  "business.positioning.errors.aiNotConfigured",
+  "business.positioning.errors.aiFailed",
+  "business.positioning.errors.aiRateLimited",
+  "business.positioning.errors.aiSpendCap",
   "business.stillToAsk",
   "business.label.yourWords",
   "business.label.aiUnavailable",
@@ -486,6 +500,89 @@ describe("positioning gate, strings", () => {
       ];
       expect(keys.length).toBeGreaterThan(0);
       for (const key of keys) expect(String(at(m, key)), key).not.toMatch(/[\u00B7\u2014]/);
+    });
+  }
+});
+
+/**
+ * The lines of the drafted options (ORV-285 PR 2, built under ORV-292, spec "Strings"): the keys the
+ * spec gives in both languages, word for word, and `strategy.draftedOptions`, ORV-126's own line.
+ * None holds a middot or an em dash, and the `{n}` and `{model}` slots are spelled.
+ */
+describe("drafted options, strings", () => {
+  const LINES = {
+    en: {
+      "business.positioning.draft": "Draft options from my answers",
+      "business.positioning.drafting": "Drafting options",
+      "business.positioning.option": "Option {n}",
+      "business.positioning.draftedBy": "Drafted by AI ({model}). Check it before you use it.",
+      "business.positioning.restsOn": "Rests on your words:",
+      "business.positioning.pick": "Use this one",
+      "business.positioning.edit": "Edit this one",
+      "business.positioning.by.picked": "Drafted by AI ({model}) and picked by you.",
+      "business.positioning.by.edited": "Drafted by AI ({model}) and edited by you.",
+      "business.positioning.needsValue":
+        "AI can draft options only after you say what customers get from you alone. Write your own, or skip for now.",
+      "business.positioning.errors.aiNotConfigured":
+        "AI is not set up in this environment, so no options were drafted. Write your own, or skip for now.",
+      "business.positioning.errors.aiFailed":
+        "AI could not draft options from your answers. Write your own, or skip for now.",
+      "business.positioning.errors.aiRateLimited":
+        "You have reached the limit for AI requests, so no options were drafted. Write your own, or skip for now.",
+      "business.positioning.errors.aiSpendCap":
+        "This workspace has used its AI budget for this month, so no options were drafted. Write your own, or skip for now.",
+      "strategy.draftedOptions":
+        "Drafted by AI from your answers. Pick one, edit it, or write your own.",
+    },
+    th: {
+      "business.positioning.draft": "ร่างตัวเลือกจากคำตอบของฉัน",
+      "business.positioning.drafting": "กำลังร่างตัวเลือก",
+      "business.positioning.option": "ตัวเลือกที่ {n}",
+      "business.positioning.draftedBy": "AI ร่างข้อความนี้ ({model}) โปรดตรวจสอบก่อนนำไปใช้",
+      "business.positioning.restsOn": "อิงจากคำของคุณ:",
+      "business.positioning.pick": "ใช้ข้อนี้",
+      "business.positioning.edit": "แก้ไขข้อนี้",
+      "business.positioning.by.picked": "AI ({model}) ร่าง และคุณเป็นผู้เลือก",
+      "business.positioning.by.edited": "AI ({model}) ร่าง และคุณเป็นผู้แก้ไข",
+      "business.positioning.needsValue":
+        "AI จะร่างตัวเลือกได้เมื่อคุณบอกแล้วว่าลูกค้าได้อะไรจากคุณเท่านั้น เขียนเอง หรือข้ามไปก่อน",
+      "business.positioning.errors.aiNotConfigured":
+        "สภาพแวดล้อมนี้ยังไม่ได้ตั้งค่า AI จึงไม่ได้ร่างตัวเลือก เขียนเอง หรือข้ามไปก่อน",
+      "business.positioning.errors.aiFailed":
+        "AI ร่างตัวเลือกจากคำตอบของคุณไม่สำเร็จ เขียนเอง หรือข้ามไปก่อน",
+      "business.positioning.errors.aiRateLimited":
+        "ใช้ AI ครบจำนวนที่กำหนดแล้ว จึงไม่ได้ร่างตัวเลือก เขียนเอง หรือข้ามไปก่อน",
+      "business.positioning.errors.aiSpendCap":
+        "เวิร์กสเปซนี้ใช้งบ AI ของเดือนนี้ครบแล้ว จึงไม่ได้ร่างตัวเลือก เขียนเอง หรือข้ามไปก่อน",
+      "strategy.draftedOptions": "AI ร่างจากคำตอบของคุณ เลือกหนึ่งข้อ แก้ไข หรือเขียนเอง",
+    },
+  } as const;
+
+  for (const locale of LOCALES) {
+    const m = messagesFor(locale);
+
+    it(`${locale}: each line is the spec's, word for word, and ORV-126's for strategy.draftedOptions`, () => {
+      for (const [key, line] of Object.entries(LINES[locale])) {
+        expect(at(m, key), key).toBe(line);
+      }
+    });
+
+    it(`${locale}: spells the {n} and {model} slots`, () => {
+      expect(m.business.positioning.option).toContain("{n}");
+      for (const line of [
+        m.business.positioning.draftedBy,
+        m.business.positioning.by.picked,
+        m.business.positioning.by.edited,
+      ]) {
+        expect(line).toContain("{model}");
+      }
+    });
+
+    it(`${locale}: the four stopped-draft lines are distinct and none is a business.errors line`, () => {
+      const stopped = Object.values(m.business.positioning.errors);
+      expect(stopped).toHaveLength(4);
+      expect(new Set(stopped).size).toBe(4);
+      for (const line of stopped) expect(Object.values(m.business.errors)).not.toContain(line);
     });
   }
 });
