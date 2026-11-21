@@ -9,6 +9,7 @@ import {
   PERSONALITY_AXES,
   type PersonalityAxis,
   type StoredEntry,
+  type TypographyScripts,
 } from "@orivilo/intent-engine";
 import { fixtures } from "../components/fixtures";
 import { foundationProject } from "./business-fixtures";
@@ -85,6 +86,33 @@ export const nameEntry = (name: string): StoredEntry => ({
   node: "name",
   kind: "given",
   payload: { name },
+});
+
+/** The competitors' main colours, as the table holds them (ORV-298 PR 1). */
+export const lineupEntry = (lineup: Array<{ name: string; hex: string }>): StoredEntry => ({
+  id: "entry-lineup",
+  createdAt: SAVED_AT,
+  node: "competitive-frame",
+  kind: "lineup",
+  payload: { lineup },
+});
+
+/** The scripts the brand writes in, as the table holds them (ORV-298 PR 2). */
+export const scriptsEntry = (scripts: TypographyScripts): StoredEntry => ({
+  id: "entry-typography",
+  createdAt: SAVED_AT,
+  node: "typography",
+  kind: "answered",
+  payload: { scripts },
+});
+
+/** The answer to "Will your brand need a small square mark on its own?", as the table holds it (ORV-298 PR 3). */
+export const logoTypeEntry = (appIcon: boolean): StoredEntry => ({
+  id: "entry-logo-type",
+  createdAt: SAVED_AT,
+  node: "logo-type",
+  kind: "answered",
+  payload: { appIcon },
 });
 
 /** The working name of the stories: the one of spec row 18. */
@@ -168,6 +196,9 @@ export function entryOf(request: EntryRequest): StoredEntry {
       ? coreIdeaSkippedEntry
       : coreIdeaEntry(request.payload.statement.trim(), remember === "" ? undefined : remember);
   }
+  if (request.node === "competitive-frame") return lineupEntry(request.payload.lineup);
+  if (request.node === "typography") return scriptsEntry(request.payload.scripts);
+  if (request.node === "logo-type") return logoTypeEntry(request.payload.appIcon);
   return request.kind === "skipped"
     ? skippedEntry
     : {

@@ -29,6 +29,7 @@ export * from "./business/intake";
 export * from "./business/place";
 export * from "./business/positioning";
 export * from "./business/foundation";
+export * from "./business/expression";
 export * from "./business/foundation-marks";
 export * from "./business/view";
 export * from "./business/reading";

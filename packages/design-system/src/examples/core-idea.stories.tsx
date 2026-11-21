@@ -137,8 +137,8 @@ const focusedIs = (el: Element) => waitFor(() => expect(document.activeElement).
 /** React Flow keeps a node hidden until it is measured and draws edges after: wait for all of it. */
 const boardReady = (root: HTMLElement) =>
   waitFor(() => {
-    expect(root.querySelectorAll(".react-flow__node")).toHaveLength(9);
-    expect(root.querySelectorAll(".react-flow__edge")).toHaveLength(13);
+    expect(root.querySelectorAll(".react-flow__node")).toHaveLength(12);
+    expect(root.querySelectorAll(".react-flow__edge")).toHaveLength(18);
     for (const n of root.querySelectorAll<HTMLElement>(".react-flow__node")) {
       expect(n.style.visibility).not.toBe("hidden");
     }

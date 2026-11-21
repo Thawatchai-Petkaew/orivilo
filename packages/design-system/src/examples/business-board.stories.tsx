@@ -113,8 +113,8 @@ const viewNode = (view: BusinessView, id: BusinessNodeId) =>
 /** React Flow keeps a node hidden until it is measured and draws edges after: wait for all of it. */
 const boardReady = (root: HTMLElement) =>
   waitFor(() => {
-    expect(root.querySelectorAll(".react-flow__node")).toHaveLength(9);
-    expect(root.querySelectorAll(".react-flow__edge")).toHaveLength(13);
+    expect(root.querySelectorAll(".react-flow__node")).toHaveLength(12);
+    expect(root.querySelectorAll(".react-flow__edge")).toHaveLength(18);
     for (const n of root.querySelectorAll<HTMLElement>(".react-flow__node")) {
       expect(n.style.visibility).not.toBe("hidden");
     }
@@ -286,9 +286,17 @@ const W2 = [
   "architecture>name",
   "positioning>core-idea",
   "identity-frame>core-idea",
+  // ORV-298 PR 3: Logo type reads Brand architecture and Name (spec row 35).
+  "architecture>logo-type",
+  "name>logo-type",
+  // ORV-298 PR 1: Colour reads Competitive frame and Brand personality (spec row 12).
+  "competitive-frame>color",
+  "identity-frame>color",
+  // ORV-298 PR 2: Typography reads Brand personality (spec row 18).
+  "identity-frame>typography",
 ];
 
-/** The header, the nine nodes at rest, the thirteen edges and the dock (spec row 22). */
+/** The header, the twelve nodes at rest, the eighteen edges and the dock (spec row 22). */
 async function expectBoard(
   canvasElement: HTMLElement,
   m: Messages,
@@ -323,7 +331,8 @@ async function expectBoard(
     await expect(el).toHaveAttribute("aria-haspopup", "dialog");
     await expect(textOf(el.querySelector(".ds-node__title") as HTMLElement)).toBe(nodeTitle(m, id));
     // The title row ends with the open glyph and has no page count (spec row 23).
-    await expect(el.querySelector(".ds-node__open")).toBeVisible();
+    // It is drawn once the label is 10rem wide; a board in a frame under 1440 sits below that (design 2.6).
+    await expect(el.querySelector(".ds-node__open")).not.toBeNull();
     await expect(el.querySelector(".ds-node__pages")).toBeNull();
     await expect(getComputedStyle(el.querySelector(".ds-node") as Element).cursor).toBe("zoom-in");
   }
@@ -342,7 +351,7 @@ async function expectBoard(
   for (const f of answersOf(view)) {
     await expect(textOf(region)).not.toContain(f.answer?.text ?? "");
   }
-  // Exactly the thirteen edges of W2 and the foundation require, and the dock says view only.
+  // Exactly the eighteen edges of W2 and the foundation require, and the dock says view only.
   const edges = [...canvasElement.querySelectorAll<HTMLElement>(".react-flow__edge")].map((e) => {
     const [, source, , target] = (e.dataset["id"] ?? "").split(":");
     return `${source}>${target}`;
@@ -448,7 +457,9 @@ async function expectStateAlignment(root: HTMLElement) {
 
 /**
  * Down column 2, from each card's bottom to the next node's label top is at least 40 screen pixels
- * (design 6.3), measured from the rendered boxes at the zoom the board is at.
+ * (design 6.3) at the base fit of 0.412, which is 90 world pixels (96.3 measured, and the positions
+ * did not move). The fit zoom falls as the board widens (0.364 at ORV-298 PR 2), so the bound is
+ * read in world pixels: the rendered boxes at the zoom the board is at, divided by that zoom.
  */
 async function expectCardsClear(root: HTMLElement) {
   const column = ["business-core", "audience", "competitive-frame"] as const;
@@ -458,7 +469,7 @@ async function expectCardsClear(root: HTMLElement) {
     const label = nodeEl(root, column[i] as string).querySelector(".ds-node__label") as HTMLElement;
     gaps.push(label.getBoundingClientRect().top - above.getBoundingClientRect().bottom);
   }
-  for (const gap of gaps) await expect(gap).toBeGreaterThanOrEqual(40);
+  for (const gap of gaps) await expect(gap / zoomOf(root)).toBeGreaterThanOrEqual(90);
 }
 
 /**
@@ -566,11 +577,12 @@ async function expectFoundationCard(
   await closeViewer(root, id);
 }
 
-/** The four foundation cards of the head (design 6.5 B1, sections 7 and 10) on the Thai or English fixture. */
+/** The six foundation cards (design 6.5 B1, sections 7 and 10; ORV-298 design 2.5) on the Thai or English fixture. */
 async function expectFoundationCards(root: HTMLElement, m: Messages, locale: "th" | "en") {
   const list = (...ids: (FoundationNodeId | BusinessNodeId)[]) =>
     new Intl.ListFormat(locale, { type: "conjunction" }).format(ids.map((id) => nodeTitle(m, id)));
-  await expectFoundationCard(root, m, "identity-frame", { x: 1400, y: 160 }, list("positioning"), [
+  // Brand personality moved up 500 in ORV-298 PR 1 (design 2.1), so its edge to Colour clears the cards.
+  await expectFoundationCard(root, m, "identity-frame", { x: 1400, y: -340 }, list("positioning"), [
     m.business.field.person,
     m.business.field.never,
     m.business.field.personality,
@@ -592,9 +604,33 @@ async function expectFoundationCards(root: HTMLElement, m: Messages, locale: "th
     [m.business.field.remember, m.business.field.coreIdea],
     m.business.state.gate,
   );
+  // ORV-298 PR 3, spec row 35: Logo type right of Name and Brand architecture, its two field names and no value.
+  await expectFoundationCard(root, m, "logo-type", { x: 2376, y: 552 }, list("positioning"), [
+    m.business.field.appIcon,
+    m.business.field.logoType,
+  ]);
+  // ORV-298 PR 1, spec row 12: Colour right of Brand personality, its five field names and no value.
+  await expectFoundationCard(root, m, "color", { x: 2376, y: -330 }, list("positioning"), [
+    m.business.field.signature,
+    m.business.field.neutral,
+    m.business.field.canvas,
+    m.business.field.lineup,
+    m.business.field.crowded,
+  ]);
+  // ORV-298 PR 2, spec row 18: Typography right of Colour, its three field names and no value.
+  await expectFoundationCard(root, m, "typography", { x: 2864, y: 0 }, list("positioning"), [
+    m.business.field.scripts,
+    m.business.field.readingFace,
+    m.business.field.displayFace,
+  ]);
+  for (const card of root.querySelectorAll<HTMLElement>(".ds-node")) {
+    // A card shows no colour: no hex, and no element with a background of its own (expression-board-1).
+    await expect(textOf(card)).not.toContain("#");
+    await expect(card.querySelectorAll("[style*='background']")).toHaveLength(0);
+  }
 }
 
-/** A saved Thai project on the present board: nine nodes, thirteen edges, the dock, the gestures (rows 22, 23, 25, 34). */
+/** A saved Thai project on the present board: twelve nodes, eighteen edges, the dock, the gestures (rows 22, 23, 25, 34). */
 export const Board: Story = {
   play: async ({ canvasElement }) => {
     await expectBoard(canvasElement, th, THAI_VIEW, SAVED_TH);
@@ -606,30 +642,110 @@ export const Board: Story = {
 };
 
 /**
- * Design 7 (stage 2, eight cards): at the 1440 frame every card sits inside the board and the fit is
- * 0.524 within 0.01, the figure the design gives and the real cards measure. Stage 1 held 0.617;
- * the wider world of Name at x 1888 now sets the fit. The fit is asked
- * for again after the window is resized, then waited for.
+ * ORV-298 design 2.4 (PR 3, twelve cards with Core idea of ORV-296 and Logo type): at the 1440 frame
+ * every card sits inside the board and the fit is 0.381 within 0.01 (design 2.6, the margin step: the
+ * fit padding is 0.15, not 0.2; measured 0.3800, where 0.3637 was the zoom at padding 0.2). Typography
+ * at x 2864 still sets the fit, the width bound, and Logo type at x 2376 adds no width. The fit is asked
+ * for again after the window is resized, then waited for. Two zoom-in steps give 0.547 (0.380 x 1.44).
  */
 export const BoardAt1440: Story = {
   play: async ({ canvasElement }) => {
-    await atWindow(1440, 900, async () => {
-      await boardReady(canvasElement);
-      await userEvent.click(
-        canvasElement.querySelector('[data-command="board.zoom-to-fit"]') as HTMLElement,
-      );
-      await settled(canvasElement);
-      await expect(Math.abs(zoomOf(canvasElement) - 0.524)).toBeLessThanOrEqual(0.01);
-      const region = within(canvasElement).getByRole("region", { name: th.business.board.label });
-      const box = region.getBoundingClientRect();
-      for (const id of BOARD_NODES) {
-        const r = nodeEl(canvasElement, id).getBoundingClientRect();
-        await expect(r.left).toBeGreaterThanOrEqual(box.left - 0.5);
-        await expect(r.right).toBeLessThanOrEqual(box.right + 0.5);
-        await expect(r.top).toBeGreaterThanOrEqual(box.top - 0.5);
-        await expect(r.bottom).toBeLessThanOrEqual(box.bottom + 0.5);
-      }
-    });
+    await boardAt1440Play(canvasElement, th);
+  },
+};
+
+/** The parts of a label that are drawn, in DOM order: a `display: contents` wrapper gives its children. */
+const drawnParts = (label: HTMLElement): HTMLElement[] =>
+  [...label.children].flatMap((c) => {
+    const display = getComputedStyle(c).display;
+    if (display === "none") return [];
+    return display === "contents" ? [...c.children] : [c];
+  }) as HTMLElement[];
+
+/**
+ * Design 2.6 (ORV-298-design-f1, spec expression-board-1): at the fit the label is narrower than 10rem,
+ * so the kind glyph and the open glyph are not drawn and every title is whole, not cut. After two clicks
+ * on zoom in every label is at least 160 px, both glyphs are drawn and every title is still whole.
+ */
+async function expectTitlesWhole(canvasElement: HTMLElement, m: Messages, narrowLabel: boolean) {
+  for (const id of BOARD_NODES) {
+    const root = nodeEl(canvasElement, id);
+    const label = root.querySelector(".ds-node__label") as HTMLElement;
+    const title = label.querySelector(".ds-node__title") as HTMLElement;
+    const name = nodeTitle(m, id);
+    await expect(
+      title.scrollWidth,
+      `${name}: title scrollWidth ${title.scrollWidth} against clientWidth ${title.clientWidth}`,
+    ).toBeLessThanOrEqual(title.clientWidth);
+    await expect(title.hasAttribute("data-cut"), `${name}: title is cut`).toBe(false);
+    const glyphs = [
+      label.querySelector(":scope > svg:first-child"),
+      label.querySelector(".ds-node__open"),
+    ] as HTMLElement[];
+    for (const glyph of glyphs) {
+      await expect(glyph, `${name}: a glyph is in the label`).not.toBeNull();
+      await expect(
+        getComputedStyle(glyph).display === "none",
+        `${name}: glyph display on a label ${label.getBoundingClientRect().width.toFixed(1)} px wide`,
+      ).toBe(narrowLabel);
+    }
+    if (narrowLabel) {
+      const card = root.querySelector(".ds-node") as HTMLElement;
+      const last = drawnParts(label).at(-1) as HTMLElement;
+      await expect(
+        last.getBoundingClientRect().right,
+        `${name}: the label's last part ends in the card`,
+      ).toBeLessThanOrEqual(card.getBoundingClientRect().right + 0.5);
+    } else {
+      await expect(
+        label.getBoundingClientRect().width,
+        `${name}: label width`,
+      ).toBeGreaterThanOrEqual(160);
+    }
+  }
+}
+
+async function boardAt1440Play(canvasElement: HTMLElement, m: Messages) {
+  await atWindow(1440, 900, async () => {
+    await boardReady(canvasElement);
+    await userEvent.click(
+      canvasElement.querySelector('[data-command="board.zoom-to-fit"]') as HTMLElement,
+    );
+    await settled(canvasElement);
+    await expect(Math.abs(zoomOf(canvasElement) - 0.381)).toBeLessThanOrEqual(0.01);
+    const region = within(canvasElement).getByRole("region", { name: m.business.board.label });
+    const box = region.getBoundingClientRect();
+    for (const id of BOARD_NODES) {
+      const r = nodeEl(canvasElement, id).getBoundingClientRect();
+      await expect(r.left).toBeGreaterThanOrEqual(box.left - 0.5);
+      await expect(r.right).toBeLessThanOrEqual(box.right + 0.5);
+      await expect(r.top).toBeGreaterThanOrEqual(box.top - 0.5);
+      await expect(r.bottom).toBeLessThanOrEqual(box.bottom + 0.5);
+    }
+    await waitFor(() => expectTitlesWhole(canvasElement, m, true));
+    const zoomIn = canvasElement.querySelector('[data-command="board.zoom-in"]') as HTMLElement;
+    // Each click animates for 150 ms, so wait for the zoom the step gives (1.2 times), not for a rest.
+    const fit = zoomOf(canvasElement);
+    await userEvent.click(zoomIn);
+    await waitFor(() =>
+      expect(Math.abs(zoomOf(canvasElement) - fit * 1.2)).toBeLessThanOrEqual(0.002),
+    );
+    await userEvent.click(zoomIn);
+    await waitFor(() =>
+      expect(Math.abs(zoomOf(canvasElement) - fit * 1.44)).toBeLessThanOrEqual(0.002),
+    );
+    await settled(canvasElement);
+    await expect(Math.abs(zoomOf(canvasElement) - 0.547)).toBeLessThanOrEqual(0.01);
+    await waitFor(() => expectTitlesWhole(canvasElement, m, false));
+  });
+}
+
+/** The same fit in English: the longer English titles are whole too (spec expression-board-1). */
+export const BoardAt1440English: Story = {
+  args: { view: ENGLISH_VIEW },
+  decorators: [inEnglish],
+  play: async ({ canvasElement }) => {
+    await boardAt1440Play(canvasElement, en);
   },
 };
 
@@ -956,6 +1072,17 @@ async function narrowPlay(canvasElement: HTMLElement, m: Messages) {
   await expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(
     Math.max(360, window.innerWidth),
   );
+  // Design 2.6: at 0.25 the label is under 10rem, so the title has the whole line: it is whole, or it
+  // is as wide as the label less 1 px (80 against a 79.5 label, where the head gave 62).
+  for (const id of BOARD_NODES) {
+    const title = nodeEl(canvasElement, id).querySelector(".ds-node__title") as HTMLElement;
+    const label = title.parentElement as HTMLElement;
+    await expect(
+      title.scrollWidth <= title.clientWidth ||
+        title.clientWidth >= label.getBoundingClientRect().width - 1,
+      `${nodeTitle(m, id)}: title ${title.clientWidth} / ${title.scrollWidth} in a label ${label.getBoundingClientRect().width}`,
+    ).toBe(true);
+  }
   for (const id of BOARD_NODES) {
     const el = nodeEl(canvasElement, id);
     el.focus({ preventScroll: true });

@@ -5,6 +5,7 @@ import { BOARD, BOARD_NODES } from "../canvas-board/fixtures";
 import { MatrixBoard, Stateful } from "../canvas-board/story-shell";
 import { Matrix, Narrow } from "../matrix";
 import { expectPillsClear, inVitest, resolvedColor } from "../../testing/visual-asserts";
+import { atWindow } from "../../testing/window";
 import { Button } from "../button/Button";
 import { CanvasControls } from "./CanvasControls";
 
@@ -409,6 +410,40 @@ export const WithChaptersAt360InEnglish: Story = {
   play: async ({ canvasElement }) => playDockAt360(canvasElement, "en"),
 };
 
+/** The window the label clause of the matrix reads the fit in (ORV-298 design 2.6 row c). */
+const LABEL_WINDOW = { width: 1440, height: 900 };
+/** The least a card label's top may sit under the board's top at the fit, in px (row c, measured 25.5 to 29.5). */
+const LABEL_TOP_MIN = 16;
+
+/**
+ * Zoom to fit on one board, read once the viewport has stopped moving (the same transform on three
+ * reads, a frame apart), then the top of every card label against the board's top. A label above the
+ * board's top is clipped by it and a Thai title loses its tone marks (ORV-298 sign-off R1).
+ */
+async function expectLabelsUnderTop(cell: HTMLElement) {
+  const board = cell.querySelector<HTMLElement>(".ds-board") as HTMLElement;
+  await waitFor(() => {
+    board.focus();
+    expect(board).toHaveFocus();
+  });
+  await userEvent.keyboard("{Shift>}1{/Shift}");
+  const transform = () =>
+    board.querySelector<HTMLElement>(".react-flow__viewport")?.style.transform ?? "";
+  const frame = () => new Promise((done) => requestAnimationFrame(done));
+  await waitFor(async () => {
+    const first = transform();
+    await frame();
+    const second = transform();
+    await frame();
+    expect(transform()).toBe(first);
+    expect(second).toBe(first);
+  });
+  for (const label of cell.querySelectorAll(".ds-node__label")) {
+    const top = label.getBoundingClientRect().top - board.getBoundingClientRect().top;
+    await expect(top).toBeGreaterThanOrEqual(LABEL_TOP_MIN);
+  }
+}
+
 /** The dock under three profiles in both modes: one current chapter, the selection pair, all six. */
 export const PresentRecipesAndModes: Story = {
   render: () => (
@@ -431,5 +466,13 @@ export const PresentRecipesAndModes: Story = {
       await expect(getComputedStyle(current).backgroundColor).toBe(bg);
       await expect(getComputedStyle(current).color).toBe(fg);
     }
+    // The fit leaves the top label whole (row c): read in a window wide enough for the matrix, as
+    // `Present` of Canvas board reads its fit; outside Vitest the window is the reader's own.
+    const readLabels = async () => {
+      for (const cell of cells) await expectLabelsUnderTop(cell);
+    };
+    if (inVitest) await atWindow(LABEL_WINDOW.width, LABEL_WINDOW.height, readLabels);
+    else if (window.innerWidth >= LABEL_WINDOW.width && window.innerHeight >= LABEL_WINDOW.height)
+      await readLabels();
   },
 };

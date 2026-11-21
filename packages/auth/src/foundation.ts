@@ -23,7 +23,7 @@ import { readPositioning } from "./positioning.ts";
  */
 
 /**
- * The most rows `readFoundation` returns. The unique index bounds a project to six, so this is a
+ * The most rows `readFoundation` returns. The unique index bounds a project to seven, so this is a
  * guard against a table changed outside the app, not a page size.
  */
 const READ_LIMIT = 24;
