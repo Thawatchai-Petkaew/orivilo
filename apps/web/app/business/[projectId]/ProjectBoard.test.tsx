@@ -89,6 +89,7 @@ vi.mock("../foundation-actions", () => ({ enterFoundation }));
 const { ProjectBoard } = await import("./ProjectBoard");
 
 const PROJECT = "9a8b7c6d-1111-4222-8333-444455556666";
+const GUIDEBOOK = `/business/${PROJECT}/guidebook`;
 const ID = "5f0c6f7e-2b1d-4c3a-9e8f-0a1b2c3d4e5f";
 const VIEW = toBusinessView({
   project: { id: PROJECT, name: "ร้านกาแฟคั่วเอง", createdAt: "2026-11-18T03:15:00.000Z" },
@@ -124,11 +125,19 @@ const elementOf = (locale: "en" | "th") => {
   const element = ProjectBoard({
     view: VIEW,
     projectId: PROJECT,
+    guidebookHref: GUIDEBOOK,
     errors: webMessages[locale].saved.errors,
     wait: webMessages[locale].wait,
     failure: webMessages[locale].failure,
-  }) as ReactElement<{ view: unknown; positioning: Controls; foundation: FoundationControls }>;
+  }) as ReactElement<{
+    view: unknown;
+    guidebookHref: string;
+    positioning: Controls;
+    foundation: FoundationControls;
+  }>;
   expect(element.props.view).toBe(VIEW);
+  // ORV-302: the wrapper passes the address of the guidebook to the screen as it is given.
+  expect(element.props.guidebookHref).toBe(GUIDEBOOK);
   return element.props;
 };
 const controlsOf = (locale: "en" | "th"): Controls => elementOf(locale).positioning;

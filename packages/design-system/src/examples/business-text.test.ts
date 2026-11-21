@@ -405,3 +405,40 @@ describe("Logo type words", () => {
     expect(before + outcome.name + after).toContain("Your working name {max}{n}{name} has 7");
   });
 });
+
+/**
+ * ORV-302 (A2): the guidebook item holds the same keys the board's nodes hold but is not a node, so
+ * the three line helpers take only the fields they read. A bare object with that one field gives the
+ * same line as a whole node, and a field that is empty gives no line.
+ */
+describe("lines of a guidebook item", () => {
+  const en = messagesFor("en");
+  const th = messagesFor("th");
+
+  it("gives the provisional pair from `restsOn` alone", () => {
+    expect(provisionalLines(en, "en", { restsOn: ["positioning"] })).toEqual({
+      provisional: "Provisional. This rests on a step you skipped.",
+      restsOn: "Rests on: Positioning",
+    });
+    expect(provisionalLines(th, "th", { restsOn: [] })).toBeNull();
+  });
+
+  it("gives the unchecked line from `unchecked` alone", () => {
+    expect(uncheckedLine(th, "th", { unchecked: ["positioning"] })).toBe(
+      "ยังไม่ได้ตรวจทานกับ: จุดยืน",
+    );
+    expect(uncheckedLine(en, "en", { unchecked: [] })).toBeNull();
+  });
+
+  it("gives a colour reason from `points` and `decisions` alone", () => {
+    const node = (view: BusinessView) =>
+      view.foundation.find((n) => n.id === "color") as Extract<FoundationNode, { id: "color" }>;
+    const whole = node(decided("en"));
+    const bare = { points: whole.points, decisions: whole.decisions };
+    expect(colorReason(en, bare, "neutral")).toBe(colorReason(en, whole, "neutral"));
+    expect(colorReason(en, bare, "neutral")).toBe("Warm at 4 of 5 sets the greys.");
+    expect(() => colorReason(en, { points: null, decisions: null }, "neutral")).toThrow(
+      "colorReason: no decision to explain",
+    );
+  });
+});
