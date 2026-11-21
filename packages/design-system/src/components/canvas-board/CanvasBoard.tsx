@@ -158,6 +158,8 @@ const NODE_TYPES: NodeTypes = { orivilo: CanvasNode, group: NodeGroup };
 const EDGE_TYPES: EdgeTypes = { orivilo: CanvasEdge };
 /** How near a fitting port pulls the line being drawn (ORV-57), in screen pixels. */
 const CONNECTION_RADIUS = 40;
+/** The most a board zooms in, for the `maxZoom` of the flow and for the fit's top padding. */
+const MAX_ZOOM = 2;
 
 /** One grid unit, from `space.grid-gap`; nudge, snap and the dot pitch share it. */
 export const GRID_UNIT = (() => {
@@ -632,11 +634,42 @@ function Board({
   };
 
   /**
+   * The screen height a present card's label takes above the card's box at the fit (ORV-298-design-r1):
+   * its box, the card's 1 px hairline and the 4 px its clip keeps above it for a Thai mark
+   * (`--_label-gap`). Up to zoom 1 the label keeps its screen size; above 1 it grows with the board, so
+   * the reach is scaled by the zoom the fit would reach, an upper bound of the zoom it does reach.
+   * xyflow fits the node boxes only. 0 on an edit board, which draws no label above a card.
+   */
+  const labelReach = (
+    rect: DOMRect,
+    x: number,
+    y: number,
+    bottom: number,
+    nodes: { id: string }[] | undefined,
+    maxZoom: number,
+  ) => {
+    const label = readOnly ? wrapper.current?.querySelector<HTMLElement>(".ds-node__label") : null;
+    if (!label) return 0;
+    const style = getComputedStyle(label);
+    const reach =
+      parseFloat(style.blockSize) + 1 + parseFloat(style.getPropertyValue("--_label-gap"));
+    const shown = nodes ?? flow.getNodes().filter((n) => !n.hidden);
+    const box = flow.getNodesBounds(shown.map((n) => n.id));
+    const zoom = Math.min(
+      (rect.width - 2 * x) / box.width,
+      (rect.height - y - bottom - reach) / box.height,
+      maxZoom,
+    );
+    return Math.ceil(reach * Math.max(1, zoom));
+  };
+
+  /**
    * Per-side padding for a fit: xyflow's own for `base` on each side, plus, on the bottom, the board
    * height that the bottom panels and the task bar cover, so no node lands under them (ORV-194 row
-   * 10). xyflow reads a number padding p as floor((V - V / (1 + p)) / 2) per side.
+   * 10), plus, on a present board, the label's reach on the top. xyflow reads a number padding p as
+   * floor((V - V / (1 + p)) / 2) per side.
    */
-  const freePadding = (base: number) => {
+  const freePadding = (base: number, nodes?: { id: string }[], maxZoom = MAX_ZOOM) => {
     const el = wrapper.current;
     if (!el) return base;
     const rect = el.getBoundingClientRect();
@@ -648,7 +681,13 @@ function Board({
     const y = side(rect.height);
     const x = side(rect.width);
     const px = (n: number): `${number}px` => `${n}px`;
-    return { top: px(y), right: px(x), bottom: px(y + Math.ceil(cover)), left: px(x) };
+    const bottom = y + Math.ceil(cover);
+    return {
+      top: px(y + labelReach(rect, x, y, bottom, nodes, maxZoom)),
+      right: px(x),
+      bottom: px(bottom),
+      left: px(x),
+    };
   };
 
   /**
@@ -675,7 +714,7 @@ function Board({
       nodes: [{ id }],
       duration: reduced ? 0 : 200,
       maxZoom: 1,
-      padding: freePadding(0.5),
+      padding: freePadding(0.5, [{ id }], 1),
     });
     focusNode(id);
     setMessage(fill(m.board.jumped, { title: node.data.title }));
@@ -804,7 +843,10 @@ function Board({
       case "board.zoom-to-selection":
         void flow.fitView({
           nodes: picked.map((n) => ({ id: n.id })),
-          padding: freePadding(0.3),
+          padding: freePadding(
+            0.3,
+            picked.map((n) => ({ id: n.id })),
+          ),
           duration: 200,
         });
         setMessage(
@@ -1233,7 +1275,7 @@ function Board({
       fitView={fitView}
       fitViewOptions={firstFit}
       minZoom={0.25}
-      maxZoom={2}
+      maxZoom={MAX_ZOOM}
       snapToGrid={snap}
       snapGrid={[GRID_UNIT, GRID_UNIT]}
       selectionOnDrag={tool === "select"}
