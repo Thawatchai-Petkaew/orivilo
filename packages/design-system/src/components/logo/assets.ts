@@ -1,7 +1,9 @@
 /**
  * The Logo's generated files (ORV-118 slice B, rules `logo-icon-1` and `logo-asset-1`, tech.md
  * section 5): the favicon SVG, the two app icon PNGs, the Storybook brand image and the Storybook tab
- * icon (the favicon again, ORV-274). They come from
+ * icon (the favicon again, ORV-274), then the two lockups the prototype canvas lays on its scenes as
+ * images (ORV-308: real Chrome draws an inline stroked SVG wrongly under a perspective transform, an
+ * image of the same drawing right). They come from
  * `drawing.ts` (the function the component renders with) and the token source, never by hand;
  * `pnpm --filter @orivilo/design-system logo-assets` writes them and `assets.test.ts` fails when a
  * committed file differs from a fresh render. Pure apart from the wasm start: no clock and no
@@ -16,7 +18,7 @@ import { cloneElement, createElement, type ReactElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { tokens, type Mode, type TokenSet } from "../../tokens/index.ts";
 import { logoSvg } from "./drawing.ts";
-import { GEOMETRY, round2, type Geometry } from "./geometry.ts";
+import { GEOMETRY, logoSize, round2, type Geometry } from "./geometry.ts";
 
 export const REPO_ROOT = path.resolve(import.meta.dirname, "../../../../..");
 
@@ -32,6 +34,38 @@ const ICON_180 = "apps/web/app/apple-icon.png";
 const STORYBOOK = "packages/design-system/.storybook/static/orivilo-logo.svg";
 /** The Storybook tab icon: the same bytes as the favicon. Storybook serves `<static dir>/favicon.svg`. */
 const STORYBOOK_FAVICON = "packages/design-system/.storybook/static/favicon.svg";
+
+const SCENE_DIR = "packages/design-system/.storybook/static/orv-274";
+
+/**
+ * The lockup on one scene of the prototype canvas: its width in px (lockup share times face width of
+ * the scene record in `orivilo-canvas.data.ts`), its tone and the mode its colours resolve in. The
+ * canvas test compares each to the scene record, so a changed record fails it until this list follows.
+ */
+export interface SceneLockup {
+  id: "card" | "sign";
+  /** From the repo root, with forward slashes. */
+  path: string;
+  width: number;
+  tone: "full" | "one-colour";
+  mode: Mode;
+}
+export const SCENE_LOCKUPS: readonly SceneLockup[] = [
+  {
+    id: "card",
+    path: `${SCENE_DIR}/scene-lockup-card.svg`,
+    width: 0.56 * 350,
+    tone: "full",
+    mode: "light",
+  },
+  {
+    id: "sign",
+    path: `${SCENE_DIR}/scene-lockup-sign.svg`,
+    width: 0.65 * 600,
+    tone: "one-colour",
+    mode: "dark",
+  },
+];
 
 type Layer = "semantic" | "component";
 
@@ -120,6 +154,23 @@ function storybookSvg(set: TokenSet, geometry: Geometry): string {
   );
 }
 
+/**
+ * A scene lockup: the horizontal lockup at the height its width calls for (width times 150 / 663, as
+ * the canvas draws it), with the colours of the recipe in the scene's mode. The dot follows the form
+ * rule of the recipe (form 16 and 24 take `logo.dot-small`) and the one-colour tone paints it as ink.
+ */
+function sceneLockupSvg(set: TokenSet, geometry: Geometry, scene: SceneLockup): string {
+  const height = (scene.width * 150) / 663;
+  const lockup = logoSvg({ kind: "horizontal", height, tone: scene.tone }, geometry);
+  const ink = colour(set, "component", "logo.ink", scene.mode);
+  const small = logoSize("horizontal", height).form !== "master";
+  const dot =
+    scene.tone === "one-colour"
+      ? ink
+      : colour(set, "component", small ? "logo.dot-small" : "logo.dot", scene.mode);
+  return withStyle(staticSvg(lockup), inkAndDot(ink, dot));
+}
+
 let wasmReady: Promise<void> | undefined;
 /** Starts the rasteriser once per process, from the `.wasm` file the package ships. */
 function startRasteriser(): Promise<void> {
@@ -136,7 +187,7 @@ function png(svg: string): Uint8Array {
 
 const utf8 = (text: string): Uint8Array => new TextEncoder().encode(text);
 
-/** The five generated files, in a fixed order, rendered in memory from the token set and geometry. */
+/** The seven generated files, in a fixed order, rendered in memory from the token set and geometry. */
 export async function logoAssetFiles(
   set: TokenSet = tokens,
   geometry: Geometry = GEOMETRY,
@@ -149,6 +200,10 @@ export async function logoAssetFiles(
     { path: ICON_180, bytes: png(appIconSvg(set, geometry, 180, "brand.signature")) },
     { path: STORYBOOK, bytes: utf8(storybookSvg(set, geometry)) },
     { path: STORYBOOK_FAVICON, bytes: favicon },
+    ...SCENE_LOCKUPS.map((scene) => ({
+      path: scene.path,
+      bytes: utf8(sceneLockupSvg(set, geometry, scene)),
+    })),
   ];
 }
 
