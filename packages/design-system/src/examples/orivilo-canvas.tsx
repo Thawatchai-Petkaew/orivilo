@@ -62,8 +62,13 @@ import { fill, type Messages } from "../i18n/messages/index";
 import { BRAND_PROFILES } from "../profiles/index";
 import { tokens } from "../tokens/index";
 import { BrandReportScreen, Notice, ReadingCard } from "./brand-report";
-import { ANALYSED, PAGE, PREMIUM_BODY } from "./brand-report.fixtures";
+import { PAGE, PREMIUM_BODY } from "./brand-report.fixtures";
+import { BusinessBoardScreen } from "./business-board";
+import { ENGLISH_VIEW, THAI_VIEW } from "./business-fixtures";
+import { GuidebookScreen } from "./guidebook";
+import { done } from "./guidebook-fixtures";
 import { Landing } from "./landing";
+import { OriviloLanding } from "./orivilo-landing";
 import {
   type ArtText,
   type ArtToken,
@@ -74,6 +79,7 @@ import {
   type ChapterId,
   type CopyKey,
   type ImageId,
+  type LiveId,
   type NodeRecord,
   type Paint,
   type PaletteId,
@@ -188,8 +194,16 @@ interface LiveFrameProps {
   outer: { w: number; h: number | "auto" };
   /** The width the page is laid out at, in design px. */
   design: number;
-  /** Design px down from the top, or the report's findings. */
-  start?: number | "report" | undefined;
+  /** Design px down from the top. */
+  start?: number | undefined;
+  /**
+   * A selector inside the page: the frame starts at its top, less `space.inset-md`. Measured with a
+   * `ResizeObserver`, so a font that swaps in later moves the start and not the page's lines.
+   * Internal to this example (spec ORV-309 C2).
+   */
+  startAt?: string | undefined;
+  /** Fades the cropped bottom edge into the page's own canvas colour (C1), by tokens only. */
+  fade?: boolean | undefined;
   mode?: BoundaryMode | undefined;
   children: ReactNode;
 }
@@ -199,24 +213,30 @@ interface LiveFrameProps {
  * the page keeps its design-width layout and its container queries; `inert` and `aria-hidden` take
  * it out of the tab order and the accessibility tree.
  */
-function LiveFrame({ outer, design, start = 0, mode, children }: LiveFrameProps) {
+function LiveFrame({ outer, design, start = 0, startAt, fade, mode, children }: LiveFrameProps) {
   const { live, mode: pageMode } = useContext(PageContext);
   const scale = outer.w / design;
+  // The scaled box, and inside it the page, which slides up to its start.
   const inner = useRef<HTMLDivElement>(null);
-  const [offset, setOffset] = useState(typeof start === "number" ? start : 0);
+  const page = useRef<HTMLDivElement>(null);
+  const [offset, setOffset] = useState(start);
   const [auto, setAuto] = useState(0);
   useLayoutEffect(() => {
-    const el = inner.current;
-    if (!el || !live) return;
+    const box = inner.current;
+    const el = page.current;
+    if (!box || !el || !live) return;
     const measure = () => {
-      if (outer.h === "auto") setAuto(el.offsetHeight * scale);
-      if (start !== "report") return;
-      const target = el.querySelector("[data-report]");
+      if (outer.h === "auto") setAuto(box.offsetHeight * scale);
+      if (startAt === undefined) return;
+      const target = el.querySelector(startAt);
       if (!target) return;
+      // Screen px per design px: this frame's scale times the zoom of any board that holds it.
+      const drawn = box.getBoundingClientRect().width / box.offsetWidth;
+      if (!(drawn > 0)) return;
       setOffset(
         Math.max(
           0,
-          (target.getBoundingClientRect().top - el.getBoundingClientRect().top) / scale - INSET_MD,
+          (target.getBoundingClientRect().top - el.getBoundingClientRect().top) / drawn - INSET_MD,
         ),
       );
     };
@@ -224,7 +244,7 @@ function LiveFrame({ outer, design, start = 0, mode, children }: LiveFrameProps)
     const observer = new ResizeObserver(measure);
     observer.observe(el);
     return () => observer.disconnect();
-  }, [live, outer.h, scale, start]);
+  }, [live, outer.h, scale, startAt]);
   return (
     <div
       className="relative overflow-hidden"
@@ -233,21 +253,40 @@ function LiveFrame({ outer, design, start = 0, mode, children }: LiveFrameProps)
       inert
       aria-hidden="true"
     >
-      <div
-        ref={inner}
-        className="absolute left-0 top-0"
-        style={{
-          width: design,
-          transform: `scale(${scale}) translateY(-${offset}px)`,
-          transformOrigin: "0 0",
-        }}
-      >
-        {live ? (
-          <DesignProfileBoundary profile={BRAND_PROFILES[0]} mode={mode ?? pageMode}>
-            <div className="bg-surface-canvas font-body text-text-primary">{children}</div>
-          </DesignProfileBoundary>
-        ) : null}
-      </div>
+      {live ? (
+        <DesignProfileBoundary profile={BRAND_PROFILES[0]} mode={mode ?? pageMode}>
+          {/* A fixed frame clips its page at its own box. The clip is a scroll region without a bar
+              (never scrolled: the page slides by a transform), because the a11y checker's colour
+              stack clips at scroll regions, not at `overflow: hidden`, and would read the page's
+              dark canvas behind the label of the node below. */}
+          <div
+            ref={inner}
+            className="absolute left-0 top-0"
+            style={{
+              width: design,
+              ...(outer.h === "auto"
+                ? {}
+                : { height: outer.h / scale, overflow: "auto", scrollbarWidth: "none" }),
+              transform: `scale(${scale})`,
+              transformOrigin: "0 0",
+            }}
+          >
+            <div ref={page} style={{ transform: `translateY(-${offset}px)` }}>
+              <div className="bg-surface-canvas font-body text-text-primary">{children}</div>
+            </div>
+          </div>
+          {fade ? (
+            <div
+              aria-hidden="true"
+              data-crop-fade=""
+              className="pointer-events-none absolute inset-x-0 bottom-0 h-12"
+              style={{
+                background: "linear-gradient(to bottom, transparent, var(--ds-surface-canvas))",
+              }}
+            />
+          ) : null}
+        </DesignProfileBoundary>
+      ) : null}
     </div>
   );
 }
@@ -2107,31 +2146,58 @@ function SheetComposed() {
   );
 }
 
-function LivePage({ id }: { id: "landing" | "form" | "report" }) {
-  if (id === "landing") return <Landing />;
-  if (id === "form") return <BrandReportScreen access="form" headingLevel={3} />;
-  return <BrandReportScreen access="form" view={ANALYSED} headingLevel={3} />;
+/**
+ * The landing and the two product screens, live, at their design width (spec ORV-309 rows 5 to 7).
+ * The landing brings its own dark profile and language; the app is a 1280 x 800 box, so the board
+ * inside it fits the same way at any scale; the guidebook is the page itself.
+ */
+function LivePage({ id }: { id: LiveId }) {
+  const locale = useLocale();
+  const { missing } = useContext(PageContext);
+  if (id === "landing") {
+    return <OriviloLanding lang={locale} photograph={!missing.has("direction-making")} />;
+  }
+  if (id === "app") {
+    return (
+      <div style={{ height: 800 }}>
+        <BusinessBoardScreen
+          access="ready"
+          view={locale === "en" ? ENGLISH_VIEW : THAI_VIEW}
+          signInHref="#"
+          listHref="#"
+          guidebookHref="#"
+        />
+      </div>
+    );
+  }
+  return <GuidebookScreen access="ready" guidebook={done(locale)} boardHref="#" signInHref="#" />;
 }
 
-function PageBody({ id }: { id: "landing" | "form" | "report" }) {
+function PageBody({ id }: { id: LiveId }) {
   const m = useMessages();
   const frame = FRAMES.find((f) => f.id === id);
   if (!frame) throw new RangeError(`orivilo-canvas: no frame ${id}`);
+  const p = m.orvCanvas.product;
   return (
     <>
       <div className="ds-node__media border border-border-subtle">
-        <LiveFrame outer={{ w: 460, h: frame.height - 2 }} design={frame.width} start={frame.start}>
+        <LiveFrame
+          outer={{ w: 460, h: frame.height - 2 }}
+          design={frame.width}
+          start={frame.start}
+          startAt={frame.startAt}
+          fade={frame.fade}
+          mode={id === "landing" ? "dark" : undefined}
+        >
           <LivePage id={id} />
         </LiveFrame>
       </div>
-      {id === "report" ? (
-        <div className="flex items-center gap-2 px-2 py-2">
-          <Badge variant="warning" size="sm">
-            {m.orvCanvas.product.badge}
-          </Badge>
-          <span className={MUTED}>{m.orvCanvas.product.opened}</span>
-        </div>
-      ) : null}
+      <div className="flex items-center gap-2 px-2 py-2">
+        <Badge variant="warning" size="sm">
+          {id === "landing" ? p.landingBadge : p.badge}
+        </Badge>
+        <span className={MUTED}>{p[`${id}Note` as const]}</span>
+      </div>
     </>
   );
 }
@@ -2206,21 +2272,22 @@ function Scrolling({
   label,
   size,
   width,
-  findings = false,
+  opensAt,
   children,
 }: {
   label: string;
   size: Size;
   width: number;
-  findings?: boolean;
+  /** A selector inside the page: the page opens scrolled to it. */
+  opensAt?: string | undefined;
   children: ReactNode;
 }) {
   const ref = useRef<HTMLDivElement>(null);
-  // The report opens at its findings. A web font that swaps in after mount, or a late image, moves
-  // the findings, so the offset is applied again whenever the content resizes, until the reader
-  // moves the page themselves (review R1-7).
+  // The guidebook opens at its foundation heading. A web font that swaps in after mount, or a late
+  // image, moves the heading, so the offset is applied again whenever the content resizes, until
+  // the reader moves the page themselves (review R1-7).
   useEffect(() => {
-    if (!findings) return;
+    if (opensAt === undefined) return;
     const root = ref.current;
     const viewport = root?.querySelector<HTMLElement>(".ds-scroll__viewport");
     const content = viewport?.firstElementChild;
@@ -2229,7 +2296,7 @@ function Scrolling({
     // (a scrollbar drag, a key, a wheel or a touch), not the apply's own.
     let placed = viewport.scrollTop;
     const apply = () => {
-      const target = root.querySelector("[data-report]");
+      const target = root.querySelector(opensAt);
       if (!target) return;
       viewport.scrollTop =
         target.getBoundingClientRect().top -
@@ -2253,7 +2320,7 @@ function Scrolling({
       for (const type of moves) viewport.removeEventListener(type, stop);
       viewport.removeEventListener("scroll", onScroll);
     };
-  }, [findings]);
+  }, [opensAt]);
   return (
     <div ref={ref} style={{ width, height: size.h }}>
       <ScrollArea label={label} className="size-full">
@@ -2263,32 +2330,36 @@ function Scrolling({
   );
 }
 
-function LiveScreen({ id, size }: { id: "landing" | "form" | "report"; size: Size }) {
+function LiveScreen({ id, size }: { id: LiveId; size: Size }) {
   const m = useMessages();
-  const { mode } = useContext(PageContext);
+  const label = copyOf(m, `node.${id}` as const);
   if (id === "landing") {
     const width = Math.min(size.w, 1280);
     return (
-      <Scrolling label={m.orvCanvas.node.landing} size={size} width={width}>
-        <LiveFrame outer={{ w: width, h: "auto" }} design={1280}>
-          <Landing />
+      <Scrolling label={label} size={size} width={width}>
+        <LiveFrame outer={{ w: width, h: "auto" }} design={1280} mode="dark">
+          <LivePage id={id} />
         </LiveFrame>
       </Scrolling>
     );
   }
+  if (id === "app") {
+    // A 1280 x 800 box scaled to fit the stage whole: the board inside it keeps its fit.
+    const width = Math.min(size.w, (size.h * 1280) / 800, 1280);
+    return (
+      <LiveFrame outer={{ w: width, h: (width * 800) / 1280 }} design={1280}>
+        <LivePage id={id} />
+      </LiveFrame>
+    );
+  }
+  // The guidebook at its design width, opened at its foundation heading.
+  const frame = FRAMES.find((f) => f.id === id);
   const width = Math.min(size.w, 800);
   return (
-    <Scrolling
-      label={copyOf(m, id === "form" ? "node.form" : "node.report")}
-      size={size}
-      width={width}
-      findings={id === "report"}
-    >
-      <DesignProfileBoundary profile={BRAND_PROFILES[0]} mode={mode}>
-        <div className="bg-surface-canvas font-body text-text-primary">
-          <LivePage id={id} />
-        </div>
-      </DesignProfileBoundary>
+    <Scrolling label={label} size={size} width={width} opensAt={frame?.startAt}>
+      <LiveFrame outer={{ w: width, h: "auto" }} design={800}>
+        <LivePage id={id} />
+      </LiveFrame>
     </Scrolling>
   );
 }
@@ -2505,7 +2576,8 @@ interface Jump {
 /**
  * The padding of a fit: `base` like the board's own fit command, plus the height the dock covers at
  * the bottom, so no node lands under it. xyflow reads a number padding p as
- * floor((V - V / (1 + p)) / 2) per side.
+ * floor((V - V / (1 + p)) / 2) per side. A panel inside a live frame belongs to a board that the
+ * page draws, not to this one, and covers nothing of it.
  */
 function fitPadding(root: Element | null, base: number) {
   const board = root?.closest(".ds-board") ?? root;
@@ -2514,9 +2586,10 @@ function fitPadding(root: Element | null, base: number) {
   const side = (v: number) => Math.floor((v - v / (1 + base)) / 2);
   const cover = Math.max(
     0,
-    ...Array.from(board.querySelectorAll(".react-flow__panel.bottom, .ds-taskbar")).map(
-      (o) => rect.bottom - o.getBoundingClientRect().top,
-    ),
+    ...Array.from(board.querySelectorAll(".react-flow__panel.bottom, .ds-taskbar"))
+      // The boards of the landing and the app, drawn live on the product stage, have panels of their own.
+      .filter((o) => o.closest("[data-live-frame]") === null)
+      .map((o) => rect.bottom - o.getBoundingClientRect().top),
   );
   const px = (n: number): `${number}px` => `${n}px`;
   return {

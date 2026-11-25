@@ -188,10 +188,10 @@ describe("orivilo canvas data, structure (spec rows 19, 23)", () => {
       "section",
       "notice",
     ]);
-    expect(FRAMES.map((f) => [f.id, f.width, f.height, f.start])).toEqual([
-      ["landing", 1280, 290, 0],
-      ["form", 800, 270, 8],
-      ["report", 800, 420, "report"],
+    expect(FRAMES.map((f) => [f.id, f.width, f.height, f.start, f.startAt, f.fade])).toEqual([
+      ["landing", 1280, 290, 0, undefined, undefined],
+      ["app", 1280, 290, 0, undefined, undefined],
+      ["guide", 800, 290, 0, '[data-section="foundation"]', true],
     ]);
     expect(PALETTE.map((p) => p.hex)).toEqual([
       "#7A22C7",
@@ -219,6 +219,92 @@ describe("orivilo canvas data, structure (spec rows 19, 23)", () => {
     ]);
     expect(everything).not.toContain(MIDDOT);
     expect(everything).not.toContain(EM_DASH);
+  });
+});
+
+describe("the product chapter (spec ORV-309 rows 5, 6, 7, 10 and 14)", () => {
+  const product = NODES.filter((n) => n.chapter === "product");
+
+  it("holds p-landing, p-app and p-guide, 480 wide, and no p-form or p-report", () => {
+    expect(product.map((n) => [n.id, n.width, n.pad])).toEqual([
+      ["p-landing", 480, "media"],
+      ["p-app", 480, "media"],
+      ["p-guide", 480, "media"],
+    ]);
+    const ids = new Set([...NODES.map((n) => n.id), ...CHAPTERS.flatMap((c) => c.nodes)]);
+    expect(ids.has("p-form")).toBe(false);
+    expect(ids.has("p-report")).toBe(false);
+    const ends = EDGES.flatMap((e) => [e.from.node, e.to.node]);
+    expect(ends).not.toContain("p-form");
+    expect(ends).not.toContain("p-report");
+    for (const n of product) {
+      expect(
+        EDGES.some((e) => e.to.node === n.id),
+        `${n.id} is fed`,
+      ).toBe(true);
+    }
+  });
+
+  it("opens the landing, the app and the guidebook as pages 1 to 3 of one sequence", () => {
+    const pages = SEQUENCES.find((s) => s.id === "pages");
+    expect(pages?.pages.map((p) => [p.show, p.caption, p.second])).toEqual([
+      [{ live: "landing" }, "node.landing", "product.landingNote"],
+      [{ live: "app" }, "node.app", "product.appNote"],
+      [{ live: "guide" }, "node.guide", "product.guideNote"],
+    ]);
+    expect(product.map((n) => [n.body, n.open])).toEqual([
+      [
+        { kind: "page", page: "landing" },
+        { sequence: "pages", page: 1 },
+      ],
+      [
+        { kind: "page", page: "app" },
+        { sequence: "pages", page: 2 },
+      ],
+      [
+        { kind: "page", page: "guide" },
+        { sequence: "pages", page: 3 },
+      ],
+    ]);
+  });
+
+  it("gives the three frames one height, so the media of the nodes match", () => {
+    expect(FRAMES.map((f) => f.height)).toEqual([290, 290, 290]);
+    // A 1280 x 800 page scaled to 460 wide is 288 tall: the frame height less its 2 px border.
+    expect(Math.round((460 / 1280) * 800) + 2).toBe(290);
+  });
+
+  it.each([
+    ["en", en],
+    ["th", th],
+  ] as const)("has the same product copy keys in %s, with no Thai-only claim", (_, m) => {
+    const c = m.orvCanvas;
+    expect(Object.keys(c.product).sort()).toEqual(
+      ["appNote", "badge", "guideNote", "landingBadge", "landingNote"].sort(),
+    );
+    for (const key of ["landing", "app", "guide"] as const) expect(c.node[key]).toBeTruthy();
+    expect(c.node).not.toHaveProperty("form");
+    expect(c.node).not.toHaveProperty("report");
+    for (const line of [c.use.phoneSub, c.product.landingNote]) {
+      expect(line).not.toMatch(/Thai only|ภาษาไทยเท่านั้น/);
+    }
+  });
+
+  it("names the honest labels the design gives, in both languages", () => {
+    expect([en.orvCanvas.product.landingBadge, en.orvCanvas.product.badge]).toEqual([
+      "Mockup",
+      "Sample data",
+    ]);
+    expect([th.orvCanvas.product.landingBadge, th.orvCanvas.product.badge]).toEqual([
+      "ภาพจำลอง",
+      "ข้อมูลตัวอย่าง",
+    ]);
+    expect(en.orvCanvas.use.phoneSub).toBe(
+      "Mockup: ORIVILO's own landing at 390, in English and Thai.",
+    );
+    expect(en.orvCanvas.product.landingNote).toBe(
+      "ORIVILO's own landing page, in English and Thai.",
+    );
   });
 });
 

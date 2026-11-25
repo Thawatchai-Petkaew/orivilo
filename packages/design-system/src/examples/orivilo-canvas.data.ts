@@ -37,7 +37,7 @@ export type ImageId =
   | "direction-place"
   | "scene-card"
   | "scene-sign";
-export type LiveId = "landing" | "form" | "report";
+export type LiveId = "landing" | "app" | "guide";
 export type BoardId = "direction" | "inUse";
 export type PieceId =
   | "people"
@@ -296,7 +296,9 @@ export interface FrameRecord {
   story: string; // the catalog story the live page comes from
   width: number; // the page's design width
   height: number; // the frame's height on the node card
-  start: number | "report"; // design px down from the top, or at `[data-report]` less `space.inset-md`
+  start: number; // design px down from the top
+  startAt?: string; // a selector inside the page: the frame starts at its top less `space.inset-md`
+  fade?: true; // the cropped bottom fades into the page's own canvas colour
 }
 export interface DemoPoint {
   n: number;
@@ -1245,8 +1247,8 @@ export const SEQUENCES: readonly SequenceRecord[] = [
     title: "preview.pages",
     pages: [
       { show: { live: "landing" }, caption: "node.landing", second: "product.landingNote" },
-      { show: { live: "form" }, caption: "node.form", second: "product.formNote" },
-      { show: { live: "report" }, caption: "node.report", second: "product.reportNote" },
+      { show: { live: "app" }, caption: "node.app", second: "product.appNote" },
+      { show: { live: "guide" }, caption: "node.guide", second: "product.guideNote" },
     ],
   },
 ];
@@ -1277,24 +1279,28 @@ export const SHEETS: { base: readonly RowRecord[]; composed: readonly RowRecord[
 export const FRAMES: readonly FrameRecord[] = [
   {
     id: "landing",
-    story: "examples-marketing-landing-page--default",
+    story: "examples-marketing-orivilo-landing--default",
     width: 1280,
     height: 290,
     start: 0,
   },
   {
-    id: "form",
-    story: "examples-application-brand-report--form",
-    width: 800,
-    height: 270,
-    start: 8,
+    id: "app",
+    story: "examples-application-business-board--board-english",
+    width: 1280,
+    height: 290,
+    start: 0,
   },
   {
-    id: "report",
-    story: "examples-application-brand-report--analysed",
+    // The guidebook starts at its foundation heading, the CI work itself, at the same place in
+    // both languages (a pixel start would cut Thai and English at different lines).
+    id: "guide",
+    story: "examples-application-brand-guidebook--guidebook-done",
     width: 800,
-    height: 420,
-    start: "report",
+    height: 290,
+    start: 0,
+    startAt: '[data-section="foundation"]',
+    fade: true,
   },
 ];
 
@@ -1357,7 +1363,7 @@ export const CHAPTERS: readonly ChapterRecord[] = [
     number: "07",
     title: "chapter.product",
     anchor: "p-landing",
-    nodes: ["p-base", "p-pat", "p-landing", "p-form", "p-report"],
+    nodes: ["p-base", "p-pat", "p-landing", "p-app", "p-guide"],
   },
 ];
 
@@ -1938,38 +1944,38 @@ export const NODES: readonly NodeRecord[] = [
     open: { sequence: "pages", page: 1 },
     inputs: [port("parts", "profile", c("port.parts"))],
     outputs: [],
-    source: "packages/design-system/src/examples/landing.tsx",
+    source: "packages/design-system/src/examples/orivilo-landing.tsx",
     body: { kind: "page", page: "landing" },
   },
   {
-    id: "p-form",
+    id: "p-app",
     chapter: "product",
     kind: "artifact",
-    title: "node.form",
+    title: "node.app",
     width: 480,
     x: 4432,
-    y: 412,
+    y: 444,
     pad: "media",
     open: { sequence: "pages", page: 2 },
     inputs: [port("parts", "profile", c("port.parts"))],
     outputs: [],
-    source: "packages/design-system/src/examples/brand-report.tsx",
-    body: { kind: "page", page: "form" },
+    source: "packages/design-system/src/examples/business-board.tsx",
+    body: { kind: "page", page: "app" },
   },
   {
-    id: "p-report",
+    id: "p-guide",
     chapter: "product",
     kind: "artifact",
-    title: "node.report",
+    title: "node.guide",
     width: 480,
     x: 4432,
-    y: 776,
+    y: 860,
     pad: "media",
     open: { sequence: "pages", page: 3 },
     inputs: [port("parts", "profile", c("port.parts"))],
     outputs: [],
-    source: "packages/design-system/src/examples/brand-report.tsx",
-    body: { kind: "page", page: "report" },
+    source: "packages/design-system/src/examples/guidebook.tsx",
+    body: { kind: "page", page: "guide" },
   },
 ];
 
@@ -2026,12 +2032,12 @@ export const EDGES: readonly EdgeRecord[] = [
   edge(32, ["p-base", "button"], ["p-landing", "parts"], "input"),
   edge(33, ["p-base", "badge"], ["p-landing", "parts"], "input"),
   edge(34, ["p-pat", "card"], ["p-landing", "parts"], "input"),
-  edge(35, ["p-pat", "header"], ["p-form", "parts"], "input"),
-  edge(36, ["p-pat", "header"], ["p-report", "parts"], "input"),
-  edge(37, ["p-pat", "form"], ["p-form", "parts"], "input"),
-  edge(38, ["p-pat", "form"], ["p-report", "parts"], "input"),
-  edge(39, ["p-pat", "section"], ["p-report", "parts"], "input"),
-  edge(40, ["p-pat", "notice"], ["p-report", "parts"], "input"),
+  edge(35, ["p-pat", "header"], ["p-app", "parts"], "input"),
+  edge(36, ["p-pat", "header"], ["p-guide", "parts"], "input"),
+  edge(37, ["p-pat", "form"], ["p-app", "parts"], "input"),
+  edge(38, ["p-pat", "form"], ["p-guide", "parts"], "input"),
+  edge(39, ["p-pat", "section"], ["p-guide", "parts"], "input"),
+  edge(40, ["p-pat", "notice"], ["p-guide", "parts"], "input"),
 ];
 
 // ---- from records to the board's graph
