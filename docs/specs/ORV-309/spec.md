@@ -2,7 +2,7 @@
 issue: ORV-309 (https://tpetkaew.atlassian.net/browse/ORV-309)
 lane: M (a normal story; no shared component API, token, recipe or profile changes)
 mode: POC mode short spec (`.claude/skills/ovl/SKILL.md`, section "POC mode")
-version: 1.0
+version: 1.1
 ---
 
 # ORV-309: the prototype canvas shows ORIVILO as a real digital product
@@ -23,6 +23,10 @@ On 2026-11-25 the owner looked at the Storybook story `examples-prototype-orivil
 4. "Go ahead, make it match what I want." Later the same day, comment 10829: on the canvas the
    landing and every application-level example are composed from the real components, never a
    generated picture; the example work in the mood board and the brand book may be generated.
+
+Then the owner sent a brand book made for an app as the reference for the In use board and the
+brandbook (comment 10837); the designer's revision 2 of the design answers it, and version 1.1 of
+this spec carries its changes. The reference images are third-party work and are not in the repo.
 
 The standing bar is the owner's "excellent UI, no UI slop, no AI slop" (ORV-274 comment 10637).
 The design that answers it is `docs/specs/ORV-309/design.md` (proposals 1 to 6, "Chapter wiring",
@@ -85,12 +89,23 @@ table, and open question 1 records the default.
 
 ### in-use-1
 
-The In use board holds the seven pieces of the design's proposal 4, ids in brackets: A the app
-window (`window`), B the phone with `OriviloLanding` at 390 (`phone`), C the app icon (`icon`), D
-the hero photograph (`hero`), E the link share image (`share`), F the card scene (`card`), G the
-sign scene (`sign`). The lockup tile and the ink tile are dropped. Brandbook page 10 opens with
-piece A as its art in place of the hero photograph, and page 11 holds six placements: pieces B to G
-(open question 2).
+The In use board holds the seven pieces of the design's proposal 4, ids in brackets:
+
+- A the app in a browser window (`window`): a tab with the mark as favicon and the name, an address
+  bar with `orivilo.vercel.app`, the Studio's `TopNavigation`, the live board in its edit view with
+  the Positioning node selected, on violet.
+- B the phone with `OriviloLanding` at 390 (`phone`).
+- C the app icon on a phone home screen (`icon`).
+- D the hero photograph (`hero`).
+- E the link share card (`share`): a 1.91 : 1 image (ink, the horizontal logo, the giant mark) over
+  the share tagline and the address.
+- F the card scene (`card`).
+- G the sign scene (`sign`).
+
+The lockup tile and the ink tile are dropped. Brandbook page 10 opens with a field of three live
+screens at -12 degrees on violet as its art: the landing at 390, the app in a browser, the
+guidebook. Page 11 holds six placements: B with its layout grid, A, C, the icon set specimen, F and
+G, in the boxes of the design's page 11 table (open question 2).
 
 ### Other decisions of comment 10830
 
@@ -139,8 +154,8 @@ section; a row quotes only the honest labels it asserts and the strings a play f
 | 8 | Canvas stories `DesignSystemChapter` (light), `DesignSystemChapterDark` and the chapter with the locale Thai | Rendering; then the play focuses "Project name" / "ชื่อโปรเจกต์" | `p-base`, 560 wide, shows the base sheet of proposal 5: three columns "Actions and navigation" / "ปุ่มและการนำทาง", "Inputs" / "ช่องกรอกข้อมูล", "Status and feedback" / "สถานะและการแจ้งเตือน", each item named by its catalog name. The states proposal 5 lists show: default, selected, disabled, loading, an error that says the fix ("Add the full address, starting with https://" / "ใส่ที่อยู่ให้ครบ โดยขึ้นต้นด้วย https://"), and empty (skeleton). After the play the field shows the focus line with its halo, apart from any selected look | The sheet holds one live instance of each entry of base-sheet-1, found by its role or recipe class. The sheet's closest `[data-design-profile]` is `orivilo`, and a `Button`'s `--ds-action-primary` equals the `orivilo` value in the sheet's mode. No intent button on the base sheet | Visual. The three plays |
 | 9 | Canvas stories `DesignSystemChapter` and the new `PreviewDesignSystem` | Rendering; opening `p-base`; paging to 2; the play focuses a control on the composed board | `p-pat` shows the working Studio of proposal 6: an edit board with Brief, Brand personality, Audience, Mood and theme, and Font, in the sheet's language; Mood and theme selected with its node toolbar; the canvas controls; the task bar collapsed and clear of the board's attribution (C6); the inspector of the selected node; the chat with one reply marked "By rules" / "ตามกฎ". The preview is "Design system" / "ระบบดีไซน์", 2 pages: the base sheet, then the composed sheet | The composed board holds 5 nodes and 4 edges, and the Audience to Mood and theme edge has `label: false` (C3). The selected node and the focused control differ in computed outline and box-shadow. At most one intent button on the composed sheet (intent-once-1) | Visual. `DesignSystemChapter` and `PreviewDesignSystem` plays |
 | 10 | The data module `orivilo-canvas.data.ts` | The unit test runs | Not a screen | 31 nodes, the chapter tally unchanged. 36 edges, numbered 1 to 36: 25 input, 8 reference, 3 derived; edges 26 to 36 as the design's "Chapter wiring" table, each joining ports of one kind and stepping right. 14 result nodes. 8 sequences of 6, 3, 2, 6, 8, 12, 2 and 3 pages, 42 in all. Nine chapter stops. Every node inside 5372 x 2260. The product node ids are `p-landing`, `p-app` and `p-guide`; `p-form` and `p-report` are gone (W1 to W3) | `orivilo-canvas.test.ts` |
-| 11 | Canvas stories `InUseChapter`, `PreviewInUseBoard` and `PreviewAt360`, English and Thai | Rendering; opening `u-board`; paging; at 360 | The seven pieces of in-use-1 on the 1280 x 800 grid, the screens first: the app window with ORIVILO's board in its shell on violet, the phone with the dark landing, the app icon, the hero photograph, the share image with the horizontal logo and its tagline (copy "share tagline"), then the card and the sign. The preview opens at "1 / 8", then one piece per page. At 360 every piece holds | 7 pieces with the ids of in-use-1. Exactly one intent button inside `u-board`, in the phone, in an `inert` subtree; the window holds none. The phone's corner is `rounded-overlay` and the icon's `rounded-container` (C5). Nothing is laid on `brand-hero`. The AI label sits as ORV-274 `honest-1` gives it. At 360 the frame's `scrollWidth` equals its `clientWidth` | Visual. `InUseChapter`, `PreviewInUseBoard` and `PreviewAt360` plays |
-| 12 | Canvas stories `BrandbookChapter` and `PreviewBrandbook`, English and Thai | Paging to pages 10 and 11 | Page 10: the ink half with its numeral, section name and page list as today, and the app window as the art in place of the hero photograph. Page 11: six placements, pieces B to G of in-use-1. No glyph clipped | Page 11 holds 6 placements and one intent button, in the phone, in an `inert` subtree. `expectLabelInkWhole` holds on page 10. The book keeps 12 pages, and `bb-use` opens at page 10 with a count of 3 | Visual. `BrandbookChapter` and `PreviewBrandbook` plays; `orivilo-canvas.test.ts` |
+| 11 | Canvas stories `InUseChapter`, `PreviewInUseBoard` and `PreviewAt360`, English and Thai | Rendering; opening `u-board`; paging; at 360 | The seven pieces of in-use-1 on the 1280 x 800 grid, the screens first: the app in a browser window with ORIVILO's live board, its address and its navigation, on violet; the phone with the dark landing; the app icon on a phone home screen; the hero photograph; the link share card: the image with the horizontal logo and the giant mark, the share tagline (copy "share tagline") as its title and the address; then the card and the sign. The preview opens at "1 / 8", then one piece per page. At 360 every piece holds | 7 pieces with the ids of in-use-1. Exactly one intent button inside `u-board`, in piece B's phone, in an `inert` subtree; the window, the icon and the share card hold none. The phones' bodies (B and C) are `rounded-overlay`; their screens and the app icon are `rounded-container`; the browser is `rounded-container` (C5). Nothing is laid on `brand-hero`. The AI label sits as ORV-274 `honest-1` gives it. At 360 the frame's `scrollWidth` equals its `clientWidth` | Visual. `InUseChapter`, `PreviewInUseBoard` and `PreviewAt360` plays |
+| 12 | Canvas stories `BrandbookChapter` and `PreviewBrandbook`, English and Thai | Paging to pages 10 and 11 | Page 10: the ink half with its numeral, section name and page list as today, and the field of three live screens as the art. Page 11: six placements: the phone with its layout grid (lines at 24 and 366 of 390, the measure 24, 342, 24), the window, the home-screen icon, the icon set (24 glyphs, 6 x 4), the card, the sign. No glyph clipped | Page 10 holds one intent button, in the landing, in an `inert` subtree, and no `img`. Page 11 holds 6 placements and one intent button, in piece B's phone, in an `inert` subtree. `expectLabelInkWhole` holds on page 10. The book keeps 12 pages, and `bb-use` opens at page 10 with a count of 3 | Visual. `BrandbookChapter` and `PreviewBrandbook` plays; `orivilo-canvas.test.ts` |
 | 13 | The image records and the static folder `.storybook/static/orv-274/` | The unit test runs; the PR diff is read | Not a screen | The seven image ids of ORV-274 `images-1` stay, each used at least once, and no other image is used. No file under the static folder is added or changed. Every rendered generated photograph keeps its AI label: `honest-1` on the canvas, the band label in the landing. No `img` shows a page or an app (canvas-image-1) | `orivilo-canvas.test.ts`; `git diff --name-only origin/develop...HEAD -- packages/design-system/.storybook/static` is empty |
 | 14 | The locale catalog | check-i18n, the copy check and the landing unit test run | Not a screen | Every string of the landing and the canvas comes from the catalog: the new group `oriviloLanding` and the `orvCanvas` additions exist in `en.ts` and `th.ts` with the same keys and placeholders. No middot, no em dash. U+2060 appears only in the Thai `oriviloLanding.title` and `oriviloLanding.bandTitle`, never in English (R7). `phoneSub` and `landingNote` no longer say the copy is Thai only (R6) | check-i18n; copy check; `orivilo-landing.test.ts` |
 | 15 | The PR head against `develop` | Reading the diff; the tests run | Not a screen | No change under `packages/design-system/src/components/`, `src/tokens/`, `src/recipes/`, `src/profiles/` or `apps/web/`: no public API, token, recipe class or contrast pair changes. No hunk inside `Scene` or `placeOnQuad`, and the `card` and `sign` scene records keep their values, so the ORV-308 lockups are unchanged and its check (each scene face holds an `img` of the lockup and no `svg`) still passes. `examples/landing.tsx` and its story are unchanged | `git diff --stat origin/develop...HEAD -- <the five paths>` is empty; reviewer reads the diff; `orivilo-canvas.test.ts` |
@@ -188,18 +203,23 @@ specs differ on the canvas story, this spec holds. ORV-274's file is not changed
 1. The base sheet count. The design says 18 entries; its table names 21, and each is in
    `packages/design-system/catalog/base/`. Options: (a) the 21 of the table; (b) cut three to
    reach 18. Default (a): the owner asked for more base components, and base-sheet-1 lists them.
-2. Brandbook page 11. The design gives page 11 six placements and no list. Options: (a) pieces B to
-   G (the window moves to page 10); (b) another six chosen by the designer. Default (a); the
-   designer sets their boxes in the page's 1184 x 646 area, and V8 checks them.
+2. Brandbook page 11. The design gives page 11 six placements. Options: (a) pieces B to G (the
+   window moves to page 10); (b) six chosen by the designer. Default (b), as revision 2 of the
+   design chooses them: B with its grid, A, C, the icon set, F, G. D stays on the board; E leaves
+   the book (too small at 288). Their boxes are the design's page 11 table, and V8 checks them.
 3. Copy the design's "Copy" section does not give. Defaults, which the designer may rewrite at
    sign-off:
    - `phoneSub`: "Mockup: ORIVILO's own landing at 390, in English and Thai." /
      "ม็อกอัป: หน้าแรกของ ORIVILO เองที่ 390 มีทั้งภาษาไทยและอังกฤษ".
    - `landingNote`: the design's "landing note".
-   - The window piece: caption "The app window" / "หน้าต่างแอป", second line "Mockup: the board
-     screen with a sample project." / "ม็อกอัป: หน้ากระดานกับโปรเจกต์ตัวอย่าง".
-   - The share piece: caption "Link share image" / "ภาพตัวอย่างเมื่อแชร์ลิงก์", second line "Drawn
-     from the logo geometry." / "วาดจากโครงสร้างของโลโก้".
+   - The window piece: caption "The app in a browser" / "แอปในเบราว์เซอร์", second line "Mockup: the
+     real board screen with ORIVILO's own example board." / "ม็อกอัป: หน้ากระดานจริง
+     กับกระดานตัวอย่างของ ORIVILO เอง".
+   - The share piece: caption "Link share card" / "การ์ดเมื่อแชร์ลิงก์", second line "Drawn from the
+     logo geometry." / "วาดจากโครงสร้างของโลโก้".
+   - The icon piece: caption "App icon on a home screen" / "ไอคอนแอปบนหน้าจอโฮม", second line "Drawn
+     with the real mark." / "วาดด้วยโลโก้จริง".
+   - New keys `studioName`, `grid`, `icons`, `iconsNote` as the design's copy table (revision 2).
    - The keys of the dropped lockup and ink tiles leave both catalogs.
 4. The landing story title. The design writes `Examples/OriviloLanding`; the examples folder names
    stories by tier. Default: `Examples/Marketing: ORIVILO landing`.
@@ -224,8 +244,10 @@ specs differ on the canvas story, this spec holds. ORV-274's file is not changed
 
 - `docs/specs/ORV-309/design.md`: proposals 1 to 6, "Chapter wiring", "Copy", "Honest labels",
   "Contract needs", "Rule changes for the owner", "Visual QA screens" V1 to V9, "Build slices" S1 to
-  S4.
-- ORV-309 comments 10829 (the image rule) and 10830 (R1 to R9 and C1 to C9 decided).
+  S4; revision 2: "Page 10: the opener", "Page 11: six placements on a tile grid", the copy table "In
+  use and part 03 (revision 2)" and "Spec statements this revision changes".
+- ORV-309 comments 10829 (the image rule), 10830 (R1 to R9 and C1 to C9 decided) and 10837 (the
+  owner's app brand book reference and the designer's revision 2).
 - `docs/specs/ORV-274/spec.md` v2.6: `live-only-1`, `structure-1`, `copy-1`, `honest-1`, `images-1`.
 - ORV-308 (PR 249): the scene lockup drawn as an image, on which this story builds.
 - `packages/design-system/src/examples/business-board.tsx`, `guidebook.tsx`,
@@ -268,6 +290,14 @@ of the design's proposal 5 table, as base-sheet-1 lists them (7, 7 and 7). Expec
 node -e 'const c=[7,7,7];console.log(...c,c.reduce((a,b)=>a+b))'
 ```
 
+W5. Page 11's layout grid and icon set (row 12). Input: the design's page 11 table, "two dashed
+lines ... at 24 and 366 of the 390 screen" with the landing's `px-6` margin of 24, and "a 6 x 4 grid
+of 24 glyphs". Expected `24 342 24 366 24`: the measure, the second line, the glyph count.
+
+```bash
+node -e 'const w=390,m=24;console.log(m,w-2*m,m,w-m,6*4)'
+```
+
 ## Changelog
 
 - v1.0 (2026-11-25): first version, task ORV-309-spec-1, from the owner's four messages of
@@ -276,3 +306,8 @@ node -e 'const c=[7,7,7];console.log(...c,c.reduce((a,b)=>a+b))'
   review downstream: the builder envelopes for slices S1 to S4, the designer sign-off envelope (open
   questions 2 and 3, V1 to V9), the qa envelope (every row; no PR number yet), and
   `docs/specs/ORV-309/design.md` where it says 18 entries, `Examples/OriviloLanding` and V7's label.
+- v1.1 (2026-11-25): task ORV-309-spec-v1-1, from the owner's app brand book reference (comment 10837) and the design's revision 2, table "In the spec". in-use-1 pieces A, C and E, page 10 and
+  page 11; open question 2's default to (b); open question 3's window, share and icon copy and the
+  new keys; rows 11 and 12; W5 added. Rows 1 to 10 and 13 to 16, the counts and W1 to W4 unchanged.
+  To review downstream: the builder envelope for slice S4, the designer sign-off envelope (V7 to
+  V9), the qa envelope (rows 11 and 12), and the locale files `en.ts` and `th.ts`.
