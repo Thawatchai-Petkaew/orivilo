@@ -34,24 +34,44 @@ import {
 } from "../boundary/DesignProfileBoundary";
 import {
   Alert,
+  Avatar,
   Badge,
+  Breadcrumb,
+  BreadcrumbLink,
+  BreadcrumbPage,
   Button,
-  Card,
-  CardTitle,
-  CardValue,
   CanvasBoard,
+  CanvasChat,
   CanvasControls,
+  Checkbox,
   Dialog,
   DialogContent,
+  FeaturedIcon,
   Field,
   Input,
+  Inspector,
+  Kbd,
   Logo,
   PageHeader,
+  Progress,
   RadioGroup,
   RadioGroupItem,
   ScrollArea,
-  SectionHeader,
+  Select,
+  Skeleton,
+  Slider,
+  Spinner,
+  Switch,
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TaskBar,
+  Tag,
+  Textarea,
+  ToggleGroup,
+  ToggleGroupItem,
 } from "../components/index";
+import { fixtureTaskJobs, fixtureTaskJobsEn } from "../components/fixtures";
 import type { BoardNode, Graph } from "../components/canvas-board/graph";
 import { cx } from "../components/cx";
 import { ChevronLeftIcon, ChevronRightIcon, CloseIcon } from "../components/icons";
@@ -61,8 +81,6 @@ import { useLocale, useMessages } from "../i18n/LocaleProvider";
 import { fill, type Messages } from "../i18n/messages/index";
 import { BRAND_PROFILES } from "../profiles/index";
 import { tokens } from "../tokens/index";
-import { BrandReportScreen, Notice, ReadingCard } from "./brand-report";
-import { PAGE, PREMIUM_BODY } from "./brand-report.fixtures";
 import { BusinessBoardScreen } from "./business-board";
 import { ENGLISH_VIEW, THAI_VIEW } from "./business-fixtures";
 import { GuidebookScreen } from "./guidebook";
@@ -106,6 +124,7 @@ import {
   quadInTile,
   SEQUENCES,
   SHEETS,
+  studioGraph,
   textOf,
   TYPE_SAMPLE,
   TYPE_SPECIMEN,
@@ -2046,107 +2065,259 @@ function BookStack({ part }: { part: keyof typeof FIRST_PAGE }) {
   );
 }
 
-function SheetBase() {
-  const m = useMessages();
-  const p = m.orvCanvas.part;
-  const row = (id: string, name: string, children: ReactNode) => (
-    <div key={id} data-port-row={id} className="flex flex-col gap-1">
+// ---- the design system sheets (spec ORV-309 rows 8 and 9)
+
+/** Sheet data, not copy: the project the sheets are about, and an address that is not complete. */
+const SHEET_PROJECT = "ORIVILO";
+const SHEET_SITE = "orivilo.example";
+/** The sheet's media slot: 540 wide at 1280 x 800 is 337.5 high. */
+const SHEET_FRAME_HEIGHT = 337.5;
+
+/** A catalog entry on the base sheet: its code name over one live instance (base-sheet-1). */
+function Item({ name, children }: { name: string; children: ReactNode }) {
+  return (
+    <div className="flex flex-col gap-1" data-catalog={name}>
       <span className="font-body text-label-sm text-text-secondary">{name}</span>
       {children}
     </div>
   );
-  const name = (r: RowRecord) => textOf(m, r.name);
-  const { mode } = useContext(PageContext);
-  return (
-    <DesignProfileBoundary profile={BRAND_PROFILES[0]} mode={mode}>
-      <div
-        className="flex flex-col gap-3 rounded-container bg-surface-canvas p-3 font-body text-text-primary"
-        inert
-        data-sheet="base"
-      >
-        {row(
-          "button",
-          name(at(SHEETS.base, 0)),
-          <div className="flex gap-2">
-            <Button variant="primary" size="sm">
-              {p.read}
-            </Button>
-            <Button variant="secondary" size="sm">
-              {p.clear}
-            </Button>
-          </div>,
-        )}
-        {row(
-          "badge",
-          name(at(SHEETS.base, 1)),
-          <div className="flex flex-wrap gap-2">
-            <Badge variant="brand" size="sm">
-              {at(BRAND_PROFILES, 0).id}
-            </Badge>
-            <Badge size="sm">{p.notMeasured}</Badge>
-            <Badge variant="warning" size="sm">
-              {p.sample}
-            </Badge>
-          </div>,
-        )}
-        {row(
-          "field",
-          name(at(SHEETS.base, 2)),
-          <Field label={p.site} required>
-            <Input size="sm" defaultValue={PAGE} />
-          </Field>,
-        )}
-        {row(
-          "radio",
-          name(at(SHEETS.base, 3)),
-          <RadioGroup defaultValue="mine" aria-label={name(at(SHEETS.base, 3))}>
-            <RadioGroupItem value="mine" label={p.mine} />
-            <RadioGroupItem value="competitor" label={p.competitor} />
-          </RadioGroup>,
-        )}
-        {row(
-          "alert",
-          name(at(SHEETS.base, 4)),
-          <Alert variant="info" title={p.alert} description="" />,
-        )}
+}
+
+/**
+ * The base sheet: three columns at 1280 x 800, one live instance of each catalog entry of
+ * `SHEETS.base` under its name. It shows default, selected, disabled, loading, error and empty
+ * states; focus is shown by a play. No intent button (intent-once-1).
+ */
+function BaseSheet() {
+  const m = useMessages();
+  const s = m.orvCanvas.sheet;
+  const entries: Record<string, ReactNode> = {
+    Button: (
+      <>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="primary">{s.button.start}</Button>
+          <Button variant="secondary">{s.button.open}</Button>
+          <Button variant="ghost">{s.button.skip}</Button>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="destructive" size="sm">
+            {s.button.remove}
+          </Button>
+          <Button variant="primary" size="sm" loading loadingLabel={s.button.saving}>
+            {s.button.saving}
+          </Button>
+          <Button variant="secondary" size="sm" disabled>
+            {s.button.publish}
+          </Button>
+          <Button variant="link" size="sm">
+            {s.button.readGuide}
+          </Button>
+        </div>
+      </>
+    ),
+    ToggleGroup: (
+      <div className="flex">
+        <ToggleGroup type="single" defaultValue="board" size="sm" aria-label={s.view.board}>
+          <ToggleGroupItem value="board">{s.view.board}</ToggleGroupItem>
+          <ToggleGroupItem value="list">{s.view.list}</ToggleGroupItem>
+        </ToggleGroup>
       </div>
-    </DesignProfileBoundary>
+    ),
+    Tabs: (
+      <Tabs defaultValue="board">
+        <TabsList size="sm">
+          <TabsTrigger value="board">{s.view.board}</TabsTrigger>
+          <TabsTrigger value="guide">{s.view.guidebook}</TabsTrigger>
+          <TabsTrigger value="history" count={3}>
+            {s.view.history}
+          </TabsTrigger>
+        </TabsList>
+      </Tabs>
+    ),
+    Breadcrumb: (
+      <Breadcrumb>
+        <BreadcrumbLink href="#">{s.view.projects}</BreadcrumbLink>
+        <BreadcrumbLink href="#">{SHEET_PROJECT}</BreadcrumbLink>
+        <BreadcrumbPage>{s.view.board}</BreadcrumbPage>
+      </Breadcrumb>
+    ),
+    Kbd: (
+      <div className="flex items-center gap-3 font-body text-body-sm text-text-secondary">
+        <Kbd shortcut="Mod+K" />
+        {s.view.command}
+      </div>
+    ),
+    Avatar: (
+      <div className="flex items-center gap-2">
+        <Avatar name={s.owner} size="md" />
+        <span className="font-body text-body-sm">{s.owner}</span>
+      </div>
+    ),
+    FeaturedIcon: (
+      <div className="flex items-center gap-3">
+        <FeaturedIcon variant="info" size="md" />
+        <FeaturedIcon variant="success" size="md" />
+      </div>
+    ),
+    Field: (
+      <Field label={s.field.name} required>
+        <Input size="sm" defaultValue={SHEET_PROJECT} />
+      </Field>
+    ),
+    Input: (
+      <Field label={s.field.site} error={s.siteError}>
+        <Input size="sm" defaultValue={SHEET_SITE} />
+      </Field>
+    ),
+    Select: (
+      <Field label={s.field.language}>
+        <Select
+          size="sm"
+          defaultValue="en"
+          options={[
+            { value: "en", label: s.option.english },
+            { value: "th", label: s.option.thai },
+          ]}
+        />
+      </Field>
+    ),
+    Checkbox: <Checkbox label={s.option.both} defaultChecked />,
+    Switch: (
+      <div className="flex items-center gap-3">
+        <Switch defaultChecked aria-label={s.option.dark} />
+        <span className="font-body text-body-sm">{s.option.dark}</span>
+      </div>
+    ),
+    Slider: <Slider label={s.option.radius} defaultValue={16} max={24} />,
+    Textarea: (
+      <Field label={s.field.brief}>
+        <Textarea size="sm" rows={2} maxLength={280} showCount defaultValue={s.briefValue} />
+      </Field>
+    ),
+    Badge: (
+      <div className="flex flex-wrap gap-2">
+        <Badge variant="brand">{at(BRAND_PROFILES, 0).id}</Badge>
+        <Badge variant="success">{s.badge.agreed}</Badge>
+        <Badge variant="warning">{s.badge.sample}</Badge>
+        <Badge variant="info">{s.badge.rules}</Badge>
+      </div>
+    ),
+    Tag: (
+      <div className="flex flex-wrap gap-2">
+        {[s.voice.thoughtful, s.voice.clear, s.voice.reasoned].map((label, i) => (
+          <Tag key={label} label={label} defaultSelected={i === 0} />
+        ))}
+      </div>
+    ),
+    RadioGroup: (
+      <RadioGroup defaultValue="mine" aria-label={s.radio.whose}>
+        <RadioGroupItem value="mine" label={s.radio.mine} />
+        <RadioGroupItem value="competitor" label={s.radio.competitor} />
+      </RadioGroup>
+    ),
+    Progress: <Progress label={s.reading} value={60} />,
+    Alert: <Alert variant="info" title={s.alert.title} description={s.alert.text} />,
+    Spinner: <Spinner size="sm" label={s.loading} labelHidden />,
+    Skeleton: (
+      <div className="flex flex-col gap-2">
+        <Skeleton shape="text" />
+        <Skeleton shape="text" className="w-2/3" />
+      </div>
+    ),
+  };
+  return (
+    <div
+      className="grid h-[800px] w-[1280px] grid-cols-3 gap-14 overflow-hidden bg-surface-canvas px-12 py-6"
+      data-sheet="base"
+    >
+      {SHEETS.base.map((column) => (
+        <section key={column.id} className="flex min-w-0 flex-col gap-2" data-column={column.id}>
+          <h3 className="m-0 border-b border-border-subtle pb-3 font-display text-heading-sm text-text-primary">
+            {copyOf(m, column.title)}
+          </h3>
+          {column.entries.map((name) => {
+            const entry = entries[name];
+            if (entry === undefined) throw new RangeError(`orivilo-canvas: no sheet entry ${name}`);
+            return (
+              <Item key={name} name={name}>
+                {entry}
+              </Item>
+            );
+          })}
+        </section>
+      ))}
+    </div>
   );
 }
 
-const COMPOSED_HEIGHT = [100, 70, 210, 44, 95] as const;
-
-function SheetComposed() {
+/**
+ * The composed sheet: a working Studio at 1280 x 800. A board of five block nodes with the
+ * selected one's toolbar, the canvas controls and a collapsed task bar; beside it the inspector of
+ * the selected node and the rules chat. The chat holds one sample exchange, asked once when the
+ * sheet mounts: the starter question and one fixed reply, labelled "By rules" (nothing is read).
+ */
+function ComposedSheet() {
   const m = useMessages();
-  const { mode } = useContext(PageContext);
-  const p = m.orvCanvas.part;
-  const name = (r: RowRecord) => textOf(m, r.name);
-  const parts: ReactNode[] = [
-    <Card key="card">
-      <CardTitle as="p">{p.site}</CardTitle>
-      <CardValue>{PAGE}</CardValue>
-    </Card>,
-    <PageHeader key="header" level={3} title={m.brandReport.heading} />,
-    <BrandReportScreen key="form" access="form" headingLevel={3} />,
-    <SectionHeader key="section" level={3} title={p.site} />,
-    <ul key="notice" className="m-0 flex list-none flex-col gap-2 p-0">
-      <Notice variant="info" text={p.alert} />
-      <ReadingCard reading={PREMIUM_BODY} url={PAGE} below={false} />
-    </ul>,
-  ];
+  const locale = useLocale();
+  const root = useRef<HTMLDivElement>(null);
+  const asked = useRef(false);
+  const graph = useMemo(() => studioGraph(locale, m), [locale, m]);
+  const reply = useMemo(
+    () =>
+      async function* () {
+        yield { text: m.orvCanvas.sheet.rulesReply, basis: "rules" as const };
+      },
+    [m],
+  );
+  useEffect(() => {
+    if (asked.current) return;
+    const starter = root.current?.querySelector<HTMLButtonElement>(".ds-chat__starters button");
+    const form = root.current?.querySelector<HTMLFormElement>(".ds-chat__composer");
+    if (!starter || !form) return;
+    asked.current = true;
+    // The starter fills the box; the next frame has rendered the filled box, which can be sent.
+    starter.click();
+    requestAnimationFrame(() => {
+      if (form.isConnected) form.requestSubmit();
+    });
+  }, []);
   return (
-    <DesignProfileBoundary profile={BRAND_PROFILES[0]} mode={mode}>
-      <div className="flex flex-col gap-3" data-sheet="composed">
-        {SHEETS.composed.map((row, i) => (
-          <div key={row.id} data-port-row={row.id} className="flex flex-col gap-1">
-            <span className="font-body text-label-sm text-text-secondary">{name(row)}</span>
-            <LiveFrame outer={{ w: 328, h: at(COMPOSED_HEIGHT, i) }} design={656}>
-              {at(parts, i)}
-            </LiveFrame>
-          </div>
-        ))}
+    // The seeding click bubbles; the node, the stage or the page that holds this sheet must not
+    // take it for a click of the person (it would select the node or turn the preview's page).
+    <div
+      ref={root}
+      className="flex h-[800px] w-[1280px] overflow-hidden bg-surface-canvas"
+      data-sheet="composed"
+      onClick={(event) => event.stopPropagation()}
+    >
+      <div className="relative min-w-0 flex-1">
+        <CanvasBoard label={m.orvCanvas.sheet.studio} graph={graph} minimap={false}>
+          {/* C6: a bottom inset of space.6 keeps the board's attribution link clear of the bar. */}
+          <TaskBar
+            className="bottom-6!"
+            jobs={locale === "en" ? fixtureTaskJobsEn : fixtureTaskJobs}
+            defaultExpanded={false}
+          />
+        </CanvasBoard>
       </div>
-    </DesignProfileBoundary>
+      <div className="grid w-[400px] shrink-0 grid-rows-[minmax(0,1fr)_minmax(0,1fr)] gap-3 border-s border-border-subtle p-3">
+        <div className="min-h-0 overflow-hidden rounded-container border border-border-card">
+          <Inspector graph={graph} onAnswer={() => undefined} />
+        </div>
+        <CanvasChat variant="sidebar" basis="rules" onAsk={reply} />
+      </div>
+    </div>
+  );
+}
+
+/** A sheet on a result node: the 1280 x 800 sheet scaled to the media slot (540 wide). */
+function SheetBody({ sheet }: { sheet: "base" | "composed" }) {
+  return (
+    <div className="ds-node__media border border-border-subtle">
+      <LiveFrame outer={{ w: 540, h: SHEET_FRAME_HEIGHT }} design={1280}>
+        {sheet === "base" ? <BaseSheet /> : <ComposedSheet />}
+      </LiveFrame>
+    </div>
   );
 }
 
@@ -2236,7 +2407,7 @@ function NodeBody({ record }: { record: NodeRecord }) {
     case "book":
       return <BookStack part={body.part} />;
     case "sheet":
-      return body.sheet === "base" ? <SheetBase /> : <SheetComposed />;
+      return <SheetBody sheet={body.sheet} />;
     case "page":
       return <PageBody id={body.page} />;
   }
@@ -2396,6 +2567,15 @@ function PreviewArt({ rec, size }: { rec: PreviewPageRecord; size: Size }) {
   if ("logo" in show) return contain(BOARD_DESIGN, <LogoPage kind={show.logo} />);
   if ("type" in show) return contain(BOARD_DESIGN, <TypeSpecimen kind={show.type} />);
   if ("palette" in show) return contain(BOARD_DESIGN, <PaletteSpecimen which={show.palette} />);
+  if ("sheet" in show) {
+    // A 1280 x 800 sheet scaled to fit the stage whole, like the app screen.
+    const width = Math.min(size.w, (size.h * 1280) / 800, 1280);
+    return (
+      <LiveFrame outer={{ w: width, h: (width * 800) / 1280 }} design={1280}>
+        {show.sheet === "base" ? <BaseSheet /> : <ComposedSheet />}
+      </LiveFrame>
+    );
+  }
   return <LiveScreen id={show.live} size={size} />;
 }
 

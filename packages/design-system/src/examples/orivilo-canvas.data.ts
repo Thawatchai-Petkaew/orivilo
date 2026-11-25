@@ -16,6 +16,8 @@ import type {
   NodeContent,
   PortSpec,
 } from "../components/canvas-board/graph";
+import { blockById, nodeForBlock, OUTPUT_PORT } from "../blocks/index";
+import type { Locale } from "../i18n/locale";
 import { type FillParams, fill, type Messages } from "../i18n/messages/index";
 import type { EdgeMeaning, PortKind } from "../tokens/canvas";
 
@@ -28,7 +30,8 @@ export type CopyKey = Leaves<Copy>;
 
 export type ChapterId =
   "brief" | "direction" | "logo" | "colour" | "inUse" | "brandbook" | "system" | "product";
-export type SequenceId = "direction" | "logo" | "type" | "palette" | "inUse" | "book" | "pages";
+export type SequenceId =
+  "direction" | "logo" | "type" | "palette" | "inUse" | "book" | "system" | "pages";
 export type ImageId =
   | "brand-hero"
   | "direction-team"
@@ -224,6 +227,7 @@ export type Show =
   | { piece: PieceId }
   | { book: number }
   | { live: LiveId }
+  | { sheet: "base" | "composed" }
   | { logo: "mark" | "horizontal" | "onInk" }
   | { type: "latin" | "thai" }
   | { palette: "all" | PaletteId };
@@ -264,7 +268,7 @@ export interface ImageRecord {
   check: ImageCheck;
 }
 
-/** One row of a list or a sheet. Which fields a row uses depends on the body's `look`. */
+/** One row of a list. Which fields a row uses depends on the body's `look`. */
 export interface RowRecord {
   id: string;
   name: Text | { axis: AxisId };
@@ -275,14 +279,12 @@ export interface RowRecord {
   colours?: readonly string[]; // a version's swatches, data colour
   pair?: { fg: string; bg: string }; // a contrast pair, data colour
   badge?: CopyKey;
-  story?: string; // a sheet row: the catalog story that names it
 }
 
 export interface PortRecord {
   id: string; // the handle id; unique within its node
   kind: PortKind;
   name: Text;
-  row?: string; // a sheet row's id: the port sits at that row's middle
 }
 export interface ChapterRecord {
   id: ChapterId | "overview";
@@ -383,8 +385,7 @@ function art(
 ): ArtText {
   return { text, size, ink, ...rest };
 }
-const port = (id: string, kind: PortKind, name: Text, row?: string): PortRecord =>
-  row === undefined ? { id, kind, name } : { id, kind, name, row };
+const port = (id: string, kind: PortKind, name: Text): PortRecord => ({ id, kind, name });
 
 // ---- the brand's own lines (data, never copy)
 
@@ -1175,7 +1176,7 @@ export const BOOK: readonly BookPageRecord[] = [
   },
 ];
 
-// ---- the seven preview sequences (6, 3, 2, 6, 8, 12 and 3 pages: 40)
+// ---- the eight preview sequences (6, 3, 2, 6, 8, 12, 2 and 3 pages: 42)
 
 function piecePage(id: PieceId): PreviewPageRecord {
   const piece = PIECES.find((p) => p.id === id);
@@ -1260,6 +1261,14 @@ export const SEQUENCES: readonly SequenceRecord[] = [
     })),
   },
   {
+    id: "system",
+    title: "preview.designSystem",
+    pages: [
+      { show: { sheet: "base" }, caption: "node.base" },
+      { show: { sheet: "composed" }, caption: "node.composed" },
+    ],
+  },
+  {
     id: "pages",
     title: "preview.pages",
     pages: [
@@ -1270,28 +1279,129 @@ export const SEQUENCES: readonly SequenceRecord[] = [
   },
 ];
 
-// ---- the product stage: the sheets and the live frames
+// ---- the design system sheets and the live frames of the product stage
 
-export const SHEETS: { base: readonly RowRecord[]; composed: readonly RowRecord[] } = {
+/** One column of the base sheet: its title, its output port and the catalog entries it shows. */
+export interface BaseColumn {
+  id: "actions" | "inputs" | "display";
+  title: CopyKey;
+  port: CopyKey;
+  /** Catalog names, in the order the column shows them (base-sheet-1); code names, never copy. */
+  entries: readonly string[];
+}
+
+/** One node of the composed sheet: a block of the registry with the answers it was given. */
+export interface StudioNode {
+  id: string;
+  block: string;
+  x: number;
+  y: number;
+  /** The answers by input id: a catalog line or literal data. */
+  answers?: Readonly<Record<string, Text>>;
+  selected?: true;
+}
+/** An edge of the composed sheet, from a node's output to the input `input` of another. */
+export interface StudioEdge {
+  from: string;
+  to: string;
+  input: string;
+  /** `false` hides the label pill: the node toolbar would cover it (C3). */
+  label?: false;
+}
+
+export const SHEETS: {
+  base: readonly BaseColumn[];
+  composed: { nodes: readonly StudioNode[]; edges: readonly StudioEdge[] };
+} = {
   base: [
-    { id: "button", name: d("Button"), story: "base-button" },
-    { id: "badge", name: d("Badge"), story: "base-badge" },
-    { id: "field", name: d("Field, Input"), story: "base-field" },
-    { id: "radio", name: d("RadioGroup"), story: "base-radio-group" },
-    { id: "alert", name: d("Alert"), story: "base-alert" },
-  ],
-  composed: [
-    { id: "card", name: d("Card"), story: "application-card" },
-    { id: "header", name: d("PageHeader"), story: "application-page-header" },
     {
-      id: "form",
-      name: c("node.composedForm"),
-      story: "examples-application-brand-report--form",
+      id: "actions",
+      title: "sheet.actions",
+      port: "port.actions",
+      entries: ["Button", "ToggleGroup", "Tabs", "Breadcrumb", "Kbd", "Avatar", "FeaturedIcon"],
     },
-    { id: "section", name: d("SectionHeader"), story: "application-section-header" },
-    { id: "notice", name: d("Notice, ReadingCard") }, // page-local, no catalog entry
+    {
+      id: "inputs",
+      title: "sheet.inputs",
+      port: "port.inputs",
+      entries: ["Field", "Input", "Select", "Checkbox", "Switch", "Slider", "Textarea"],
+    },
+    {
+      id: "display",
+      title: "sheet.status",
+      port: "port.display",
+      entries: ["Badge", "Tag", "RadioGroup", "Progress", "Alert", "Spinner", "Skeleton"],
+    },
   ],
+  composed: {
+    nodes: [
+      {
+        id: "brief",
+        block: "brief",
+        x: 0,
+        y: 0,
+        answers: {
+          product: { copy: "sheet.answer.product" },
+          goal: { copy: "sheet.answer.goal" },
+        },
+      },
+      {
+        id: "personality",
+        block: "brand-personality",
+        x: 0,
+        y: 400,
+        answers: { traits: { copy: "sheet.answer.traits" } },
+      },
+      { id: "audience", block: "audience", x: 420, y: 0 },
+      {
+        id: "mood",
+        block: "mood-theme",
+        x: 420,
+        y: 460,
+        answers: { feeling: { copy: "sheet.answer.feeling" } },
+        selected: true,
+      },
+      {
+        id: "font",
+        block: "font",
+        x: 840,
+        y: 240,
+        answers: { languages: { data: "th-en" } },
+      },
+    ],
+    edges: [
+      { from: "brief", to: "audience", input: "brief" },
+      { from: "personality", to: "mood", input: "personality" },
+      { from: "audience", to: "mood", input: "audience", label: false },
+      { from: "mood", to: "font", input: "mood" },
+    ],
+  },
 };
+
+/** The composed sheet's board, in the language of `m`: five block nodes and four input edges. */
+export function studioGraph(locale: Locale, m: Messages): Graph {
+  const { nodes, edges } = SHEETS.composed;
+  return {
+    nodes: nodes.map((n): BoardNode => {
+      const block = blockById(n.block);
+      if (!block) throw new RangeError(`orivilo-canvas: no block ${n.block}`);
+      const node = nodeForBlock(block, n.id, { x: n.x, y: n.y }, locale);
+      const answers = Object.fromEntries(
+        Object.entries(n.answers ?? {}).map(([input, text]) => [input, textOf(m, text)]),
+      );
+      return { ...node, selected: n.selected === true, data: { ...node.data, answers } };
+    }),
+    edges: edges.map((e): BoardEdge => ({
+      id: `${e.from}-${e.to}`,
+      type: "orivilo",
+      source: e.from,
+      target: e.to,
+      sourceHandle: OUTPUT_PORT,
+      targetHandle: e.input,
+      data: { meaning: "input", ...(e.label === false ? { label: false as const } : {}) },
+    })),
+  };
+}
 
 export const FRAMES: readonly FrameRecord[] = [
   {
@@ -1912,18 +2022,23 @@ export const NODES: readonly NodeRecord[] = [
     source: `${METHOD} §8; ${BRIEF} §8`,
     body: { kind: "book", part: "use" },
   },
-  // 06 Design system
+  // 06 Design system: two sheets of 1280 x 800, scaled to 540, each opening the "system" sequence.
+  // Both sit at y 96: at 28 the cover's Thai output pill (y 219 to 251) came within 4 world px of
+  // the base's input dot (y 199 to 215); at 96 the dot is at y 267 to 283, 16 clear.
+  // Both sit at y 96, so the Thai name pill of the cover's output (to its right, y 219 to 251) is
+  // 16 world px clear of the base's input dot (y 267 to 283), where 28 left it 4 clear.
   {
     id: "p-base",
     chapter: "system",
     kind: "artifact",
     title: "node.base",
-    width: 300,
+    width: 560,
     x: 3464,
-    y: 28,
-    pad: "text",
+    y: 96,
+    pad: "media",
+    open: { sequence: "system", page: 1 },
     inputs: [port("profile", "profile", c("port.profileIn"))],
-    outputs: SHEETS.base.map((row) => port(row.id, "profile", row.name as Text, row.id)),
+    outputs: SHEETS.base.map((column) => port(column.id, "profile", c(column.port))),
     source: "packages/design-system/src/profiles/source/orivilo.json",
     body: { kind: "sheet", sheet: "base" },
   },
@@ -1932,19 +2047,16 @@ export const NODES: readonly NodeRecord[] = [
     chapter: "system",
     kind: "artifact",
     title: "node.composed",
-    width: 360,
-    x: 3876,
-    y: 28,
-    pad: "text",
-    // Inputs sit on the rows built from the base rows; one output per row.
-    inputs: [
-      port("fromButton", "profile", d("Button"), "form"),
-      port("fromField", "profile", d("Field, Input"), "form"),
-      port("fromRadio", "profile", d("RadioGroup"), "form"),
-      port("fromBadge", "profile", d("Badge"), "notice"),
-      port("fromAlert", "profile", d("Alert"), "notice"),
+    width: 560,
+    x: 4136,
+    y: 96,
+    pad: "media",
+    open: { sequence: "system", page: 2 },
+    inputs: SHEETS.base.map((column) => port(column.id, "profile", c(column.port))),
+    outputs: [
+      port("board", "profile", c("port.board")),
+      port("panels", "profile", c("port.panels")),
     ],
-    outputs: SHEETS.composed.map((row) => port(row.id, "profile", row.name as Text, row.id)),
     source: "packages/design-system/catalog/",
     body: { kind: "sheet", sheet: "composed" },
   },
@@ -1955,7 +2067,7 @@ export const NODES: readonly NodeRecord[] = [
     kind: "artifact",
     title: "node.landing",
     width: 480,
-    x: 4432,
+    x: 4892,
     y: 28,
     pad: "media",
     open: { sequence: "pages", page: 1 },
@@ -1970,7 +2082,7 @@ export const NODES: readonly NodeRecord[] = [
     kind: "artifact",
     title: "node.app",
     width: 480,
-    x: 4432,
+    x: 4892,
     y: 444,
     pad: "media",
     open: { sequence: "pages", page: 2 },
@@ -1985,7 +2097,7 @@ export const NODES: readonly NodeRecord[] = [
     kind: "artifact",
     title: "node.guide",
     width: 480,
-    x: 4432,
+    x: 4892,
     y: 860,
     pad: "media",
     open: { sequence: "pages", page: 3 },
@@ -2012,7 +2124,7 @@ function edge(
   return showLabel ? base : { ...base, label: false };
 }
 
-// 29 input (9 to 13, 15, 17, 19 to 40), 8 reference (1 to 8), 3 derived (14, 16, 18). Edge 18 alone
+// 25 input (9 to 13, 15, 17, 19 to 36), 8 reference (1 to 8), 3 derived (14, 16, 18). Edge 18 alone
 // shows its label pill: the palette was not read from the image.
 export const EDGES: readonly EdgeRecord[] = [
   edge(1, ["b-pos", "onliness"], ["l-idea", "onliness"], "reference"),
@@ -2041,20 +2153,16 @@ export const EDGES: readonly EdgeRecord[] = [
   edge(24, ["t-type", "type"], ["bb-colour", "type"], "input"),
   edge(25, ["u-board", "inUse"], ["bb-use", "inUse"], "input"),
   edge(26, ["bb-cover", "profile"], ["p-base", "profile"], "input"),
-  edge(27, ["p-base", "button"], ["p-pat", "fromButton"], "input"),
-  edge(28, ["p-base", "field"], ["p-pat", "fromField"], "input"),
-  edge(29, ["p-base", "radio"], ["p-pat", "fromRadio"], "input"),
-  edge(30, ["p-base", "badge"], ["p-pat", "fromBadge"], "input"),
-  edge(31, ["p-base", "alert"], ["p-pat", "fromAlert"], "input"),
-  edge(32, ["p-base", "button"], ["p-landing", "parts"], "input"),
-  edge(33, ["p-base", "badge"], ["p-landing", "parts"], "input"),
-  edge(34, ["p-pat", "card"], ["p-landing", "parts"], "input"),
-  edge(35, ["p-pat", "header"], ["p-app", "parts"], "input"),
-  edge(36, ["p-pat", "header"], ["p-guide", "parts"], "input"),
-  edge(37, ["p-pat", "form"], ["p-app", "parts"], "input"),
-  edge(38, ["p-pat", "form"], ["p-guide", "parts"], "input"),
-  edge(39, ["p-pat", "section"], ["p-guide", "parts"], "input"),
-  edge(40, ["p-pat", "notice"], ["p-guide", "parts"], "input"),
+  edge(27, ["p-base", "actions"], ["p-pat", "actions"], "input"),
+  edge(28, ["p-base", "inputs"], ["p-pat", "inputs"], "input"),
+  edge(29, ["p-base", "display"], ["p-pat", "display"], "input"),
+  edge(30, ["p-base", "actions"], ["p-landing", "parts"], "input"),
+  edge(31, ["p-pat", "board"], ["p-landing", "parts"], "input"),
+  edge(32, ["p-pat", "board"], ["p-app", "parts"], "input"),
+  edge(33, ["p-pat", "panels"], ["p-app", "parts"], "input"),
+  edge(34, ["p-base", "inputs"], ["p-app", "parts"], "input"),
+  edge(35, ["p-base", "actions"], ["p-guide", "parts"], "input"),
+  edge(36, ["p-base", "display"], ["p-guide", "parts"], "input"),
 ];
 
 // ---- from records to the board's graph
@@ -2077,8 +2185,7 @@ export function textOf(m: Messages, text: Text | { axis: AxisId }): string {
 }
 
 function portSpec(m: Messages, p: PortRecord): PortSpec {
-  const base = { id: p.id, kind: p.kind, label: textOf(m, p.name) };
-  return p.row === undefined ? base : { ...base, row: p.row };
+  return { id: p.id, kind: p.kind, label: textOf(m, p.name) };
 }
 
 /**

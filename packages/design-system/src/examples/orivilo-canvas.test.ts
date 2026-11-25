@@ -22,6 +22,7 @@ import {
   PIECES,
   SEQUENCES,
   SHEETS,
+  studioGraph,
   type Box,
   type Pt,
   type Quad,
@@ -84,16 +85,16 @@ describe("orivilo canvas data, structure (spec rows 19, 23)", () => {
     expect(new Set(NODES.map((n) => n.id)).size).toBe(31);
   });
 
-  it("has 40 edges: 29 input, 8 reference, 3 derived, and only edge 18 shows its label", () => {
-    expect(EDGES).toHaveLength(40);
-    expect(tally(EDGES, (e) => e.meaning)).toEqual({ input: 29, reference: 8, derived: 3 });
-    expect(EDGES.map((e) => e.n)).toEqual(Array.from({ length: 40 }, (_, i) => i + 1));
+  it("has 36 edges: 25 input, 8 reference, 3 derived, and only edge 18 shows its label", () => {
+    expect(EDGES).toHaveLength(36);
+    expect(tally(EDGES, (e) => e.meaning)).toEqual({ input: 25, reference: 8, derived: 3 });
+    expect(EDGES.map((e) => e.n)).toEqual(Array.from({ length: 36 }, (_, i) => i + 1));
     expect(EDGES.filter((e) => e.label !== false).map((e) => e.n)).toEqual([18]);
-    expect(EDGES.filter((e) => e.label === false)).toHaveLength(39);
+    expect(EDGES.filter((e) => e.label === false)).toHaveLength(35);
   });
 
-  it("has 12 nodes with open and 7 sequences of 6, 3, 2, 6, 8, 12 and 3 pages", () => {
-    expect(NODES.filter((n) => n.open)).toHaveLength(12);
+  it("has 14 nodes with open and 8 sequences of 6, 3, 2, 6, 8, 12, 2 and 3 pages", () => {
+    expect(NODES.filter((n) => n.open)).toHaveLength(14);
     expect(SEQUENCES.map((s) => s.id)).toEqual([
       "direction",
       "logo",
@@ -101,10 +102,11 @@ describe("orivilo canvas data, structure (spec rows 19, 23)", () => {
       "palette",
       "inUse",
       "book",
+      "system",
       "pages",
     ]);
-    expect(SEQUENCES.map((s) => s.pages.length)).toEqual([6, 3, 2, 6, 8, 12, 3]);
-    expect(SEQUENCES.reduce((sum, s) => sum + s.pages.length, 0)).toBe(40);
+    expect(SEQUENCES.map((s) => s.pages.length)).toEqual([6, 3, 2, 6, 8, 12, 2, 3]);
+    expect(SEQUENCES.reduce((sum, s) => sum + s.pages.length, 0)).toBe(42);
   });
 
   it("keeps each open.page inside its sequence, and the book parts at 1, 3, 6 and 10", () => {
@@ -150,13 +152,14 @@ describe("orivilo canvas data, structure (spec rows 19, 23)", () => {
     for (const n of NODES) if (n.id !== "c-demo") expect(n.source, n.id).toBeTruthy();
   });
 
-  // The columns moved right in ORV-290 row 32 so no port name pill nears another node, which grew
-  // the world from 4484 to 4912 wide; at 1440 it still fits at the 0.25 floor (5760 wide).
-  it("fits the world in 4912 x 2260", () => {
+  // The columns moved right in ORV-290 row 32 so no port name pill nears another node (4484 to
+  // 4912 wide); the two 560 wide sheets and the 480 wide product column grow it to 5372 (spec
+  // ORV-309 row 10). At 1440 wide the 0.25 floor frames 5760, so the whole board still fits.
+  it("fits the world in 5372 x 2260", () => {
     for (const n of NODES) {
       expect(n.x, n.id).toBeGreaterThanOrEqual(0);
       expect(n.y, n.id).toBeGreaterThanOrEqual(0);
-      expect(n.x + n.width, n.id).toBeLessThanOrEqual(4912);
+      expect(n.x + n.width, n.id).toBeLessThanOrEqual(5372);
       expect(n.y, n.id).toBeLessThanOrEqual(2260);
     }
   });
@@ -180,15 +183,7 @@ describe("orivilo canvas data, structure (spec rows 19, 23)", () => {
     }
   });
 
-  it("builds the sheets and frames the design lists", () => {
-    expect(SHEETS.base.map((r) => r.id)).toEqual(["button", "badge", "field", "radio", "alert"]);
-    expect(SHEETS.composed.map((r) => r.id)).toEqual([
-      "card",
-      "header",
-      "form",
-      "section",
-      "notice",
-    ]);
+  it("builds the frames and the palette the design lists", () => {
     expect(FRAMES.map((f) => [f.id, f.width, f.height, f.start, f.startAt, f.fade])).toEqual([
       ["landing", 1280, 290, 0, undefined, undefined],
       ["app", 1280, 290, 0, undefined, undefined],
@@ -309,12 +304,174 @@ describe("the product chapter (spec ORV-309 rows 5, 6, 7, 10 and 14)", () => {
   });
 });
 
+/** An intent button in source: `variant="intent"`, `variant={"intent"}`, `variant: "intent"`. */
+const INTENT_BUTTON = /variant\s*[=:]\s*\{?\s*["'`]intent["'`]/g;
+const countIntent = (source: string) => source.match(INTENT_BUTTON)?.length ?? 0;
+
+describe("the design system sheets (spec ORV-309 rows 8, 9, 10 and 14)", () => {
+  const source = readFileSync(resolve(import.meta.dirname, "orivilo-canvas.tsx"), "utf8");
+  const sheetCode = (from: string, to: string) =>
+    source.slice(source.indexOf(from), source.indexOf(to));
+
+  it("shows the 21 catalog entries of base-sheet-1 in three columns of seven, in order", () => {
+    expect(SHEETS.base.map((c) => [c.id, c.entries])).toEqual([
+      ["actions", ["Button", "ToggleGroup", "Tabs", "Breadcrumb", "Kbd", "Avatar", "FeaturedIcon"]],
+      ["inputs", ["Field", "Input", "Select", "Checkbox", "Switch", "Slider", "Textarea"]],
+      ["display", ["Badge", "Tag", "RadioGroup", "Progress", "Alert", "Spinner", "Skeleton"]],
+    ]);
+    expect(SHEETS.base.flatMap((c) => c.entries)).toHaveLength(21);
+  });
+
+  it("names a live instance for every entry, and each name is a catalog entry", () => {
+    const catalog = readFileSync(resolve(import.meta.dirname, "../../catalog/coverage.md"), "utf8");
+    const code = sheetCode("function BaseSheet", "function ComposedSheet");
+    for (const name of SHEETS.base.flatMap((c) => c.entries)) {
+      expect(code, `${name} instance`).toMatch(new RegExp(`\\n    ${name}: `));
+      expect(catalog.toLowerCase(), `${name} in the catalog`).toContain(name.toLowerCase());
+    }
+  });
+
+  it("has no intent button on the base sheet and at most one on the composed sheet", () => {
+    expect(countIntent(sheetCode("function BaseSheet", "function ComposedSheet"))).toBe(0);
+    expect(
+      countIntent(sheetCode("function ComposedSheet", "function SheetBody")),
+    ).toBeLessThanOrEqual(1);
+    // The guard blocks each spelling of the prop, so each one is a red sample.
+    for (const sample of [
+      '<Button variant="intent">',
+      "<Button variant={'intent'}>",
+      "<Button variant={`intent`}>",
+      '{ variant: "intent" }',
+    ]) {
+      expect(countIntent(sample), sample).toBe(1);
+    }
+    expect(countIntent('<Button variant="primary">')).toBe(0);
+  });
+
+  it("builds the composed board: five nodes, four edges, Mood selected, Audience to Mood unlabelled", () => {
+    const { nodes, edges } = SHEETS.composed;
+    expect(nodes.map((n) => n.id)).toEqual(["brief", "personality", "audience", "mood", "font"]);
+    expect(nodes.filter((n) => n.selected).map((n) => n.id)).toEqual(["mood"]);
+    expect(edges.map((e) => `${e.from}>${e.to}`)).toEqual([
+      "brief>audience",
+      "personality>mood",
+      "audience>mood",
+      "mood>font",
+    ]);
+    expect(edges.filter((e) => e.label === false).map((e) => `${e.from}>${e.to}`)).toEqual([
+      "audience>mood",
+    ]);
+  });
+
+  it.each([
+    ["en", en],
+    ["th", th],
+  ] as const)("turns the composed sheet into a graph in %s", (locale, m) => {
+    const g = studioGraph(locale, m);
+    expect(g.nodes).toHaveLength(5);
+    expect(g.edges).toHaveLength(4);
+    expect(g.nodes.filter((n) => n.selected).map((n) => n.id)).toEqual(["mood"]);
+    expect(g.edges.find((e) => e.id === "audience-mood")?.data?.label).toBe(false);
+    expect(g.edges.find((e) => e.id === "brief-audience")?.data?.label).toBeUndefined();
+    expect(studioGraph(locale, m)).toEqual(g);
+  });
+
+  it("wires edges 26 to 36 as the design's chapter wiring table lists them", () => {
+    expect(
+      EDGES.filter((e) => e.n >= 26).map((e) => [
+        e.n,
+        `${e.from.node}:${e.from.port}`,
+        `${e.to.node}:${e.to.port}`,
+        e.meaning,
+      ]),
+    ).toEqual([
+      [26, "bb-cover:profile", "p-base:profile", "input"],
+      [27, "p-base:actions", "p-pat:actions", "input"],
+      [28, "p-base:inputs", "p-pat:inputs", "input"],
+      [29, "p-base:display", "p-pat:display", "input"],
+      [30, "p-base:actions", "p-landing:parts", "input"],
+      [31, "p-pat:board", "p-landing:parts", "input"],
+      [32, "p-pat:board", "p-app:parts", "input"],
+      [33, "p-pat:panels", "p-app:parts", "input"],
+      [34, "p-base:inputs", "p-app:parts", "input"],
+      [35, "p-base:actions", "p-guide:parts", "input"],
+      [36, "p-base:display", "p-guide:parts", "input"],
+    ]);
+  });
+
+  it("makes p-base and p-pat 560 wide result nodes that open the system sequence", () => {
+    const nodes = NODES.filter((n) => n.chapter === "system");
+    expect(nodes.map((n) => [n.id, n.width, n.x, n.y, n.pad, n.open])).toEqual([
+      ["p-base", 560, 3464, 96, "media", { sequence: "system", page: 1 }],
+      ["p-pat", 560, 4136, 96, "media", { sequence: "system", page: 2 }],
+    ]);
+    expect(nodes.map((n) => n.body)).toEqual([
+      { kind: "sheet", sheet: "base" },
+      { kind: "sheet", sheet: "composed" },
+    ]);
+    expect(nodes[0]?.outputs.map((p) => p.id)).toEqual(["actions", "inputs", "display"]);
+    expect(nodes[1]?.inputs.map((p) => p.id)).toEqual(["actions", "inputs", "display"]);
+    expect(nodes[1]?.outputs.map((p) => p.id)).toEqual(["board", "panels"]);
+    expect(SEQUENCES.find((s) => s.id === "system")?.pages.map((p) => p.show)).toEqual([
+      { sheet: "base" },
+      { sheet: "composed" },
+    ]);
+  });
+
+  it("puts the product column at x 4892 and keeps its rows", () => {
+    expect(
+      NODES.filter((n) => n.chapter === "product").map((n) => [n.id, n.x, n.y, n.width]),
+    ).toEqual([
+      ["p-landing", 4892, 28, 480],
+      ["p-app", 4892, expect.any(Number), 480],
+      ["p-guide", 4892, expect.any(Number), 480],
+    ]);
+  });
+
+  it("keeps the 06 and 07 chapters framing the sheets", () => {
+    const system = CHAPTERS.find((c) => c.id === "system");
+    expect(system?.nodes).toEqual(["p-base", "p-pat"]);
+    expect(CHAPTERS.find((c) => c.id === "product")?.nodes).toEqual([
+      "p-base",
+      "p-pat",
+      "p-landing",
+      "p-app",
+      "p-guide",
+    ]);
+  });
+
+  it.each([
+    ["en", en],
+    ["th", th],
+  ] as const)("keeps the same sheet copy keys in %s as in English", (_, m) => {
+    const keys = (o: unknown, prefix = ""): string[] =>
+      typeof o === "object" && o !== null
+        ? Object.entries(o).flatMap(([k, v]) => keys(v, `${prefix}${k}.`))
+        : [prefix];
+    expect(keys(m.orvCanvas.sheet)).toEqual(keys(en.orvCanvas.sheet));
+    expect(keys(m.orvCanvas.port)).toEqual(keys(en.orvCanvas.port));
+    expect(m.orvCanvas.preview.designSystem).toBeTruthy();
+    expect(m.orvCanvas).not.toHaveProperty("part");
+    for (const text of keys(m.orvCanvas.sheet)) expect(text).toBeTruthy();
+  });
+
+  it("says the chat is by rules and keeps the sheet copy plain in both languages", () => {
+    expect(th.orvCanvas.sheet.badge.rules).toBe("ตามกฎ");
+    expect(en.orvCanvas.sheet.field.name).toBe("Project name");
+    expect(th.orvCanvas.sheet.field.name).toBe("ชื่อโปรเจกต์");
+    const all = JSON.stringify([en.orvCanvas.sheet, th.orvCanvas.sheet]);
+    expect(all).not.toContain(MIDDOT);
+    expect(all).not.toContain(EM_DASH);
+    expect(THAI.test(JSON.stringify(en.orvCanvas.sheet))).toBe(false);
+  });
+});
+
 describe("graphOf (spec row 19)", () => {
   it("runs twice with deep-equal results, in both languages", () => {
     for (const m of [th, en]) expect(graphOf(m)).toEqual(graphOf(m));
     const graph = graphOf(th) satisfies Graph;
     expect(graph.nodes).toHaveLength(31);
-    expect(graph.edges).toHaveLength(40);
+    expect(graph.edges).toHaveLength(36);
   });
 
   it("fills title, ports, size, pad, open count, source and row", () => {
@@ -329,20 +486,8 @@ describe("graphOf (spec row 19)", () => {
     expect(board?.position).toEqual({ x: 804, y: 572 });
     expect(g.nodes.find((n) => n.id === "c-demo")?.data.source).toBeUndefined();
     const pat = g.nodes.find((n) => n.id === "p-pat");
-    expect(pat?.data.inputs?.map((p) => p.row)).toEqual([
-      "form",
-      "form",
-      "form",
-      "notice",
-      "notice",
-    ]);
-    expect(pat?.data.outputs?.map((p) => p.row)).toEqual([
-      "card",
-      "header",
-      "form",
-      "section",
-      "notice",
-    ]);
+    expect(pat?.data.inputs?.map((p) => p.id)).toEqual(["actions", "inputs", "display"]);
+    expect(pat?.data.outputs?.map((p) => p.id)).toEqual(["board", "panels"]);
     for (const n of g.nodes) {
       expect(n.data.title, n.id).toBeTruthy();
       expect(n.data.source, n.id).toBe(NODES.find((r) => r.id === n.id)?.source);
@@ -357,7 +502,7 @@ describe("graphOf (spec row 19)", () => {
     expect(e18?.sourceHandle).toBe("palette");
     expect(e18?.targetHandle).toBe("palette");
     expect(e18?.data?.label).toBeUndefined();
-    expect(g.edges.filter((e) => e.data?.label === false)).toHaveLength(39);
+    expect(g.edges.filter((e) => e.data?.label === false)).toHaveLength(35);
   });
 
   it("resolves a row's name in both languages", () => {

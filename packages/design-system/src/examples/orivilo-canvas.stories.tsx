@@ -22,6 +22,7 @@ import {
   PALETTE,
   PIECES,
   SEQUENCES,
+  SHEETS,
   copyOf,
   quadInTile,
   type ImageId,
@@ -36,7 +37,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "A concept prototype (ORV-274): the whole path from a brief to a product on one read-only board, 31 nodes in 8 chapters, with the live catalog parts, the art boards and the brandbook drawn in place, and a preview dialog for each of the 12 results. Sample data and AI images made for this demo; nothing here reads a site or sends anything.",
+          "A concept prototype (ORV-274): the whole path from a brief to a product on one read-only board, 31 nodes in 8 chapters, with the live catalog parts, the art boards, the brandbook, the design system sheets and the product pages drawn in place, and a preview dialog for each of the 14 results. Sample data and AI images made for this demo; nothing here reads a site or sends anything.",
       },
     },
   },
@@ -403,7 +404,7 @@ function expectMarksAreLogos(page: Element) {
 }
 
 /**
- * Row 35: with real Tab presses from before the page, focus visits the board, then its 40 edges,
+ * Row 35: with real Tab presses from before the page, focus visits the board, then its 36 edges,
  * then the 31 nodes in reading order, then the 13 dock buttons, and each kind shows its focus.
  * The order is the one the shared board gives (spec v1.1); no element inside a board takes focus.
  * A real key press needs the browser runner.
@@ -701,8 +702,8 @@ export const Default: Story = {
     for (const id of PRODUCT_NODE_IDS)
       expectLivePage(nodeEl(root, id), id, words, id === "p-landing");
     expect(root.textContent).not.toMatch(HONESTY);
-    // Every one of the 40 preview pages was read (W2 of the spec: 6, 3, 2, 6, 8, 12 and 3).
-    expect([...paged].filter((key) => key.includes(":"))).toHaveLength(40);
+    // Every one of the 42 preview pages was read (W2 of the spec: 6, 3, 2, 6, 8, 12, 2 and 3).
+    expect([...paged].filter((key) => key.includes(":"))).toHaveLength(42);
     for (const el of root.querySelectorAll(
       ".ds-node__body button, .ds-node__body input, .ds-node__body a[href], .ds-node__body [tabindex]",
     )) {
@@ -1356,27 +1357,186 @@ async function expectGuideStart(root: HTMLElement) {
   );
 }
 
+/**
+ * A sheet node (spec ORV-309 rows 8 and 9): its frame is 540 x 337.5 inside the node's media, and
+ * the 1280 x 800 sheet lies whole inside the frame. Sizes are read in board px (rect over zoom).
+ */
+function expectSheetFrame(root: HTMLElement, id: string) {
+  const node = nodeEl(root, id);
+  const media = node.querySelector<HTMLElement>(".ds-node__media");
+  const frame = node.querySelector<HTMLElement>("[data-live-frame]");
+  expect(media, `${id} media`).not.toBeNull();
+  expect(frame, `${id} frame`).not.toBeNull();
+  const zoom = zoomOf(root);
+  const f = (frame as HTMLElement).getBoundingClientRect();
+  const m = (media as HTMLElement).getBoundingClientRect();
+  expect(f.width / zoom, `${id} frame width`).toBeCloseTo(540, 0);
+  expect(f.height / zoom, `${id} frame height`).toBeCloseTo(337.5, 0);
+  for (const [side, inside] of [
+    ["left", f.left >= m.left - 1],
+    ["right", f.right <= m.right + 1],
+    ["top", f.top >= m.top - 1],
+    ["bottom", f.bottom <= m.bottom + 1],
+  ] as const) {
+    expect(inside, `${id} frame ${side} edge is inside its media`).toBe(true);
+  }
+  expect(inertAndHidden(frame as Element), `${id} frame is inert and hidden`).toBe(true);
+  const sheet = (frame as HTMLElement).querySelector<HTMLElement>("[data-sheet]");
+  expect(sheet, `${id} sheet`).not.toBeNull();
+  expect((sheet as HTMLElement).offsetWidth, `${id} sheet width`).toBe(1280);
+  expect((sheet as HTMLElement).offsetHeight, `${id} sheet height`).toBe(800);
+  return { frame: frame as HTMLElement, sheet: sheet as HTMLElement };
+}
+
+/** The sheet's frame is inert: the play lifts it to focus a control, then puts it back. */
+function unlock(frame: HTMLElement) {
+  frame.inert = false;
+  return () => {
+    frame.inert = true;
+  };
+}
+
+/**
+ * The base sheet (row 8, base-sheet-1, C9): the 21 catalog entries in three columns, each a live
+ * instance under its catalog name, all inside the 1280 x 800 sheet, with no intent button.
+ */
+function expectBaseSheet(sheet: HTMLElement, words: Messages) {
+  const names = SHEETS.base.flatMap((column) => column.entries);
+  const items = [...sheet.querySelectorAll<HTMLElement>("[data-catalog]")];
+  expect(
+    items.map((item) => item.dataset.catalog),
+    "the 21 entries, in order",
+  ).toEqual(names);
+  const box = sheet.getBoundingClientRect();
+  for (const item of items) {
+    const name = item.dataset.catalog;
+    expect(item.firstElementChild?.textContent, `${name} is labelled by its catalog name`).toBe(
+      name,
+    );
+    expect(item.children.length, `${name} has a live instance`).toBeGreaterThan(1);
+    const r = item.getBoundingClientRect();
+    expect(r.left, `${name} left`).toBeGreaterThanOrEqual(box.left - 1);
+    expect(r.right, `${name} right`).toBeLessThanOrEqual(box.right + 1);
+    expect(r.top, `${name} top`).toBeGreaterThanOrEqual(box.top - 1);
+    expect(r.bottom, `${name} bottom`).toBeLessThanOrEqual(box.bottom + 1);
+  }
+  expect(sheet.querySelectorAll("[data-column]"), "three columns").toHaveLength(3);
+  expect(sheet.querySelector('.ds-button[data-variant="intent"]'), "no intent button").toBeNull();
+  expect(sheet.textContent, "C9: the command menu key").toContain(
+    words.orvCanvas.sheet.view.command,
+  );
+  expect(sheet.querySelector(".ds-kbd"), "C9: a Kbd").not.toBeNull();
+}
+
+/**
+ * Focus on a sheet field is the border form (ORV-192): its own border turns `focus.ring` on every
+ * side, the outline stays clear so no second line sits beside it, and a 3 px halo touches it. The
+ * ring colour is read beside the field, because an input holds no probe element.
+ */
+async function expectSheetFocus(frame: HTMLElement, sheet: HTMLElement, label: string) {
+  const relock = unlock(frame);
+  const control = within(sheet).getByLabelText(new RegExp(label)) as HTMLElement;
+  const ring = resolvedColor(control.parentElement as HTMLElement, "--ds-focus-ring");
+  control.focus();
+  expect(control.matches(":focus-visible"), "the field takes keyboard focus").toBe(true);
+  await Promise.all(control.getAnimations().map((a) => a.finished));
+  const style = getComputedStyle(control);
+  for (const side of ["Top", "Right", "Bottom", "Left"] as const) {
+    expect(style[`border${side}Color`], `border ${side} is focus.ring`).toBe(ring);
+    expect(parseFloat(style[`border${side}Width`]), `border ${side} width`).toBe(1);
+  }
+  if (style.outlineStyle !== "none") {
+    expect(style.outlineColor, "the outline is transparent").toBe("rgba(0, 0, 0, 0)");
+  }
+  expect(style.boxShadow, "the halo is 3 px").toMatch(/ 0px 0px 0px 3px$/);
+  control.blur();
+  relock();
+}
+
+/** The composed sheet (row 9): a working Studio, a board, an inspector, a chat by rules, a task bar. */
+async function expectComposedSheet(frame: HTMLElement, sheet: HTMLElement, words: Messages) {
+  const board = await waitFor(() => {
+    const el = sheet.querySelector<HTMLElement>(".ds-board");
+    expect(el).not.toBeNull();
+    return el as HTMLElement;
+  });
+  await waitFor(() => expect(board.querySelectorAll(".react-flow__node")).toHaveLength(5));
+  expect(board.querySelectorAll(".react-flow__edge"), "four edges").toHaveLength(4);
+  const selected = board.querySelectorAll<HTMLElement>(".ds-node[data-selected]");
+  expect(selected, "one selected node").toHaveLength(1);
+  expect(board.querySelector(".ds-node-toolbar"), "its toolbar").not.toBeNull();
+  expect(sheet.querySelector(".ds-inspector"), "the inspector").not.toBeNull();
+  // The chat holds one sample exchange, seeded when the sheet mounts, and says how it answers.
+  const basis = await waitFor(() => {
+    const el = sheet.querySelector<HTMLElement>(".ds-chat__basis");
+    expect(el).not.toBeNull();
+    return el as HTMLElement;
+  });
+  expect(basis.textContent).toBe(words.taskBar.basisRules);
+  expect(sheet.querySelectorAll('.ds-button[data-variant="intent"]').length).toBeLessThanOrEqual(1);
+  // C6: the collapsed task bar keeps a space.6 (24) inset above the board's bottom edge, clear of
+  // the attribution link. Measured in the sheet's own px: board px times the frame's scale.
+  const bar = board.querySelector<HTMLElement>(".ds-taskbar");
+  expect(bar, "the task bar").not.toBeNull();
+  expect(
+    (bar as HTMLElement).querySelector("[aria-expanded]")?.getAttribute("aria-expanded"),
+    "the task bar is collapsed",
+  ).toBe("false");
+  const scale = sheet.getBoundingClientRect().width / 1280;
+  const b = board.getBoundingClientRect();
+  const t = (bar as HTMLElement).getBoundingClientRect();
+  expect((b.bottom - t.bottom) / scale, "the task bar's bottom inset").toBeCloseTo(24, 0);
+  const link = board.querySelector<HTMLElement>(".react-flow__attribution a");
+  if (link) {
+    const a = link.getBoundingClientRect();
+    const apart = a.right <= t.left || a.left >= t.right || a.bottom <= t.top || a.top >= t.bottom;
+    expect(apart, "the attribution link is clear of the task bar").toBe(true);
+  }
+  // Selection and focus are two shapes: the node's 1 px outline, the control's line and 3 px halo.
+  const relock = unlock(frame);
+  const control = sheet.querySelector<HTMLElement>(".ds-chat textarea.ds-control");
+  expect(control, "the chat's box").not.toBeNull();
+  const field = control as HTMLElement;
+  const node = getComputedStyle(selected[0] as HTMLElement);
+  const nodeOutline = `${node.outlineStyle} ${node.outlineWidth} ${node.outlineColor}`;
+  const nodeShadow = node.boxShadow;
+  // The chat's box draws the focus of its textarea: the line on the box and the 3 px halo.
+  const box = field.closest<HTMLElement>(".ds-chat__box");
+  expect(box, "the chat's box").not.toBeNull();
+  const ring = resolvedColor((box as HTMLElement).parentElement as HTMLElement, "--ds-focus-ring");
+  field.focus();
+  await Promise.all((box as HTMLElement).getAnimations().map((a) => a.finished));
+  const focus = getComputedStyle(box as HTMLElement);
+  expect(focus.borderTopColor, "the focused box's line is focus.ring").toBe(ring);
+  expect(focus.boxShadow, "the focused box has the 3 px halo").toMatch(/ 0px 0px 0px 3px$/);
+  expect(`${focus.outlineStyle} ${focus.outlineWidth} ${focus.outlineColor}`).not.toBe(nodeOutline);
+  expect(focus.boxShadow).not.toBe(nodeShadow);
+  field.blur();
+  relock();
+}
+
 /** Runs the chapter's checks and returns the mode the base sheet renders in. */
-async function playDesignSystemChapter(root: HTMLElement) {
+async function playDesignSystemChapter(root: HTMLElement, words: Messages) {
   await ready(root);
-  expectChapterInView(root, "system", EN);
-  const base = nodeEl(root, "p-base");
-  expect(within(base).getByRole("button", { name: "Read this page", hidden: true })).toBeDefined();
-  expect(base.querySelector(".ds-badge")).not.toBeNull();
-  expect(base.querySelector("input")).not.toBeNull();
-  expect(base.querySelector('[role="radiogroup"]')).not.toBeNull();
-  expect(base.querySelector('[role="alert"], .ds-alert')).not.toBeNull();
-  const pat = nodeEl(root, "p-pat");
-  expect(pat.querySelectorAll("[data-live-frame]")).toHaveLength(5);
-  for (const sheet of root.querySelectorAll("[data-sheet]")) {
+  expectChapterInView(root, "system", words);
+  // C4: a nested board in a scaled frame fits only when it is in view at mount, so each node is
+  // scrolled into view before it is read; the chapter already frames them, so the view must not move.
+  const view = viewportOf(root)?.style.transform;
+  for (const id of ["p-base", "p-pat"]) nodeEl(root, id).scrollIntoView({ block: "nearest" });
+  await fontsReady();
+  expect(viewportOf(root)?.style.transform, "scrolling into view leaves the board's view").toBe(
+    view,
+  );
+  const base = expectSheetFrame(root, "p-base");
+  const composed = expectSheetFrame(root, "p-pat");
+  expectBaseSheet(base.sheet, words);
+  for (const sheet of [base.sheet, composed.sheet]) {
     expect(sheet.closest("[data-design-profile]")?.getAttribute("data-design-profile")).toBe(
       "orivilo",
     );
   }
   // The probe takes the sheet's own mode, so the colour check holds under the toolbar's light and dark.
-  const sheetMode = (base.querySelector("[data-sheet]") as Element)
-    .closest("[data-mode]")
-    ?.getAttribute("data-mode");
+  const sheetMode = base.sheet.closest("[data-mode]")?.getAttribute("data-mode");
   expect(sheetMode).toMatch(/^(light|dark)$/);
   const probe = document.createElement("div");
   probe.setAttribute("data-mode", sheetMode ?? "");
@@ -1384,18 +1544,21 @@ async function playDesignSystemChapter(root: HTMLElement) {
   document.body.append(probe);
   const primary = getComputedStyle(probe).getPropertyValue("--ds-action-primary");
   probe.remove();
-  const button = base.querySelector(".ds-button") as HTMLElement;
+  const button = base.sheet.querySelector(".ds-button") as HTMLElement;
   expect(getComputedStyle(button).getPropertyValue("--ds-action-primary")).toBe(primary);
   expect(primary).not.toBe("");
+  await expectComposedSheet(composed.frame, composed.sheet, words);
+  // Last, because a focus may move the board's view: the focus line with its halo on a sheet field.
+  await expectSheetFocus(base.frame, base.sheet, words.orvCanvas.sheet.field.name);
   return sheetMode;
 }
 
-/** The design system chapter: the base parts are live, the composed rows sit in the orivilo profile. */
+/** The design system chapter: the base sheet and the composed Studio, live in the orivilo profile. */
 export const DesignSystemChapter: Story = {
   globals: { locale: "en", mode: "light" },
   args: { chapter: "system" },
   play: async ({ canvasElement }) => {
-    expect(await playDesignSystemChapter(canvasElement)).toBe("light");
+    expect(await playDesignSystemChapter(canvasElement, EN)).toBe("light");
   },
 };
 
@@ -1404,8 +1567,49 @@ export const DesignSystemChapterDark: Story = {
   globals: { locale: "en", mode: "dark" },
   args: { chapter: "system" },
   play: async ({ canvasElement }) => {
-    expect(await playDesignSystemChapter(canvasElement)).toBe("dark");
+    expect(await playDesignSystemChapter(canvasElement, EN)).toBe("dark");
   },
+};
+
+/** The same chapter in Thai: every label, answer and the chat's "ตามกฎ" come from the Thai catalog. */
+export const DesignSystemChapterThai: Story = {
+  globals: { locale: "th", mode: "light" },
+  args: { chapter: "system" },
+  play: async ({ canvasElement }) => {
+    expect(await playDesignSystemChapter(canvasElement, TH)).toBe("light");
+  },
+};
+
+/** Page 1 of the design system sequence: the base sheet, whole in the stage. */
+async function playPreviewDesignSystem(words: Messages) {
+  const dialog = await dialogOf(words.orvCanvas.preview.designSystem);
+  expect(countOf(dialog)).toBe("1 / 2");
+  const stage = stageOf(dialog);
+  const frame = await waitFor(() => {
+    const el = stage.querySelector<HTMLElement>("[data-live-frame]");
+    expect(el).not.toBeNull();
+    return el as HTMLElement;
+  });
+  const box = frame.getBoundingClientRect();
+  expect(box.width / box.height).toBeCloseTo(1280 / 800, 1);
+  expectBaseSheet(frame.querySelector("[data-sheet]") as HTMLElement, words);
+  expect(within(dialog).getByText(words.orvCanvas.node.base)).toBeDefined();
+  await userEvent.keyboard("{ArrowRight}");
+  await waitFor(() => expect(countOf(dialog)).toBe("2 / 2"));
+  expect(within(dialog).getByText(words.orvCanvas.node.composed)).toBeDefined();
+  const second = await waitFor(() => {
+    const el = stageOf(dialog).querySelector<HTMLElement>("[data-live-frame]");
+    expect(el?.querySelector('[data-sheet="composed"]')).not.toBeNull();
+    return el as HTMLElement;
+  });
+  await waitFor(() => expect(second.querySelectorAll(".react-flow__node")).toHaveLength(5));
+}
+
+/** The design system sequence: the base sheet, then the composed Studio, at the stage's size. */
+export const PreviewDesignSystem: Story = {
+  globals: { locale: "en" },
+  args: { preview: { sequence: "system", page: 1 } },
+  play: async () => playPreviewDesignSystem(EN),
 };
 
 /** The nested board of the app frame, fitted in its 1280 x 800 box: no empty top, no cut node. */
