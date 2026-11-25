@@ -132,6 +132,12 @@ function expectBand(root: HTMLElement, lang: Locale, present: boolean) {
     expect(column.getBoundingClientRect().width).toBeGreaterThan(
       (band?.getBoundingClientRect().width ?? 0) / 2,
     );
+    // One start edge: the band title starts where the hero title starts (48 at 1280, 24 at 390).
+    const hero = within(root).getByRole("heading", { level: 1 });
+    const bandTitle = band?.querySelector<HTMLElement>("[data-band-title]") as HTMLElement;
+    expect(
+      Math.abs(bandTitle.getBoundingClientRect().left - hero.getBoundingClientRect().left),
+    ).toBeLessThanOrEqual(1);
   }
 }
 
@@ -317,6 +323,20 @@ export const MissingImage: Story = {
     expectBand(root, "en", false);
     expect(root.querySelectorAll("img")).toHaveLength(0);
     expectOneIntent(root, "en");
+  },
+};
+
+/** The same at 390: the band title keeps the page's start edge of 24. */
+export const MissingImageAt390: Story = {
+  args: { photograph: false, width: 390 },
+  play: async ({ canvasElement }) => {
+    const root = pageOf(canvasElement);
+    await ready(root, "en", 3, 2);
+    expectBand(root, "en", false);
+    expect(root.querySelectorAll("img")).toHaveLength(0);
+    const band = root.querySelector<HTMLElement>("[data-band-title]") as HTMLElement;
+    const rootLeft = root.getBoundingClientRect().left;
+    expect(Math.abs(band.getBoundingClientRect().left - rootLeft - 24)).toBeLessThanOrEqual(1);
   },
 };
 

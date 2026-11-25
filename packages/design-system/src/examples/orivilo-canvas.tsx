@@ -118,7 +118,7 @@ import { BusinessBoardScreen } from "./business-board";
 import { ENGLISH_VIEW, THAI_VIEW } from "./business-fixtures";
 import { GuidebookScreen } from "./guidebook";
 import { done } from "./guidebook-fixtures";
-import { OriviloLanding, heroBody, heroGraph } from "./orivilo-landing";
+import { OriviloLanding, TrueHandles, heroBody, heroGraph } from "./orivilo-landing";
 import {
   type ArtText,
   type ArtToken,
@@ -170,6 +170,7 @@ import {
   TYPE_SPECIMEN,
   VIOLET,
   VIOLET_ON_INK,
+  WINDOW_AT,
 } from "./orivilo-canvas.data";
 
 export interface OriviloCanvasProps {
@@ -892,7 +893,11 @@ function BrowserWindow({ design }: { design: Size }) {
   const use = m.orvCanvas.use;
   const words = m.oriviloLanding.board;
   const graph = heroGraph(words, false);
-  const nodes = graph.nodes.map((n) => (n.id === "pos" ? { ...n, selected: true } : n));
+  // The window's own positions (row 3.2); Positioning is the selected node.
+  const nodes = graph.nodes.map((n) => {
+    const [x, y] = WINDOW_AT[n.id] ?? [n.position.x, n.position.y];
+    return { ...n, position: { x, y }, ...(n.id === "pos" ? { selected: true } : {}) };
+  });
   return (
     <div
       {...scope("dark")}
@@ -939,7 +944,9 @@ function BrowserWindow({ design }: { design: Size }) {
                   variant="edit"
                   minimap={false}
                   renderBody={heroBody(words, false)}
-                />
+                >
+                  <TrueHandles />
+                </CanvasBoard>
               </div>
             </div>
           </div>
@@ -1038,7 +1045,12 @@ function PhonePiece({
   );
 }
 
-/** The app icon on a phone home screen (C): the real mark on an ink square under the clock. */
+/**
+ * The app icon on a phone's home screen (C), at a real phone's scale (design row 3.1): the top of a
+ * 390 x 844 screen with its clock and island, a grid of 60 pt icons, and ORIVILO's among them. One
+ * scale fits the 418 wide body to the tile and the tile crops the screen at its bottom, so the icon
+ * is 15% of the screen's width, as on a phone, and the crop carries its legibility.
+ */
 function HomeScreenPiece({
   piece,
   content: c,
@@ -1048,46 +1060,92 @@ function HomeScreenPiece({
   content: Extract<PieceContent, { kind: "icon" }>;
   size: Size;
 }) {
-  const side = Math.round(size.w * c.icon.side);
+  const body: Size = { w: c.screen.w + 2 * c.bezel, h: c.screen.h + 2 * c.bezel };
+  const k = (size.w * (1 - 2 * c.inset)) / body.w;
+  const { grid, app } = c;
+  const slots = Array.from({ length: grid.cols * grid.rows }, (_, i) => ({
+    col: i % grid.cols,
+    row: Math.floor(i / grid.cols),
+  }));
   return (
     <Flood paint={piece.flood} className={TILE} style={{ width: size.w, height: size.h }}>
-      <Flood
-        paint={INK}
-        className="absolute rounded-overlay shadow-overlay"
+      <div
+        className="absolute"
         style={{
-          left: size.w * c.left,
-          top: size.h * c.top,
-          width: size.w * c.width,
-          height: size.h * c.height,
+          left: size.w * c.inset,
+          top: size.w * c.inset,
+          width: body.w,
+          height: body.h,
+          transform: `scale(${k})`,
+          transformOrigin: "0 0",
         }}
       >
         <Flood
-          paint={PAPER}
-          className="absolute rounded-container"
-          style={{ left: c.bezel, top: c.bezel, right: c.bezel, bottom: c.bezel }}
+          paint={INK}
+          className="absolute inset-0 rounded-overlay shadow-overlay"
+          data-home-body=""
         >
-          <div {...scope("light")} className="absolute inset-0 font-body text-text-primary">
-            <span className="absolute text-label-md" style={{ left: c.clock[0], top: c.clock[1] }}>
-              {CLOCK}
-            </span>
-            <div
-              className="absolute flex flex-col items-center gap-2"
-              style={{ left: c.icon.at[0], top: c.icon.at[1], width: side }}
-            >
+          <Flood
+            paint={PAPER}
+            className="absolute overflow-hidden rounded-container"
+            style={{ left: c.bezel, top: c.bezel, width: c.screen.w, height: c.screen.h }}
+            data-home-screen=""
+          >
+            <div {...scope("light")} className="absolute inset-0 font-body text-text-primary">
+              <span
+                className="absolute text-center text-label-md"
+                style={{ left: c.clock.x, top: c.clock.y, width: c.clock.w }}
+              >
+                {CLOCK}
+              </span>
               <Flood
                 paint={INK}
-                className="flex items-center justify-center rounded-container"
-                style={{ width: side, height: side }}
-              >
-                <div {...scope("dark")}>
-                  <Logo kind="mark" height={side * c.icon.mark} decorative />
-                </div>
-              </Flood>
-              <span className="text-label-sm">{BRAND_NAME}</span>
+                className="absolute rounded-round"
+                style={{ left: c.island.x, top: c.island.y, width: c.island.w, height: c.island.h }}
+              />
+              {slots.map(({ col, row }) => {
+                const x = grid.start + col * grid.pitch[0];
+                const y = grid.top + row * grid.pitch[1];
+                if (col !== app.col || row !== app.row) {
+                  return (
+                    <div
+                      key={`${col}-${row}`}
+                      className="absolute overflow-hidden rounded-container"
+                      style={{ left: x, top: y, width: grid.icon, height: grid.icon }}
+                    >
+                      <Skeleton shape="block" className="size-full" />
+                    </div>
+                  );
+                }
+                return (
+                  <div key="app">
+                    <Flood
+                      paint={INK}
+                      className="absolute flex items-center justify-center rounded-container"
+                      style={{ left: x, top: y, width: grid.icon, height: grid.icon }}
+                      data-app-icon=""
+                    >
+                      <div {...scope("dark")}>
+                        <Logo kind="mark" height={grid.icon * app.mark} decorative />
+                      </div>
+                    </Flood>
+                    <span
+                      className="absolute whitespace-nowrap text-center text-label-sm"
+                      style={{
+                        left: x + (grid.icon - grid.pitch[0]) / 2,
+                        top: y + grid.icon + grid.gap,
+                        width: grid.pitch[0],
+                      }}
+                    >
+                      {BRAND_NAME}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
-          </div>
+          </Flood>
         </Flood>
-      </Flood>
+      </div>
     </Flood>
   );
 }
@@ -2632,6 +2690,7 @@ function ComposedSheet() {
     >
       <div className="relative min-w-0 flex-1">
         <CanvasBoard label={m.orvCanvas.sheet.studio} graph={graph} minimap={false}>
+          <TrueHandles />
           {/* C6: a bottom inset of space.6 keeps the board's attribution link clear of the bar. */}
           <TaskBar
             className="bottom-6!"
@@ -3101,9 +3160,10 @@ interface Jump {
  * The padding of a fit: `base` like the board's own fit command, plus the height the dock covers at
  * the bottom, so no node lands under it. xyflow reads a number padding p as
  * floor((V - V / (1 + p)) / 2) per side. A panel inside a live frame belongs to a board that the
- * page draws, not to this one, and covers nothing of it.
+ * page draws, not to this one, and covers nothing of it. `margin` is more clear space above the
+ * dock (a chapter fit keeps its nodes 24 above it).
  */
-function fitPadding(root: Element | null, base: number) {
+function fitPadding(root: Element | null, base: number, margin = 0) {
   const board = root?.closest(".ds-board") ?? root;
   if (!board) return base;
   const rect = board.getBoundingClientRect();
@@ -3119,24 +3179,41 @@ function fitPadding(root: Element | null, base: number) {
   return {
     top: px(side(rect.height)),
     right: px(side(rect.width)),
-    bottom: px(side(rect.height) + Math.ceil(cover)),
+    bottom: px(side(rect.height) + Math.ceil(cover) + margin),
     left: px(side(rect.width)),
   };
 }
 
-/** Frames the chosen chapter once the nodes are measured, with no animation (a jump, not a glide). */
+/** The room a chapter keeps above the dock, in px (F4). */
+const DOCK_MARGIN = 24;
+
+/**
+ * Frames the chosen chapter with no animation (a jump, not a glide), and again whenever what the
+ * frame depends on settles: the size of the board and the measured size of the chapter's nodes
+ * (a font that swaps in, a frame that mounts). A fit that ran on the first measure alone framed a
+ * node's old height, so the final view changed from one open to the next (sign-off F4). The view is
+ * a function of the board's size, the nodes' sizes and the chapter, so it is the same on every open.
+ */
 function ChapterFit({ jump }: { jump: Jump }) {
   const flow = useReactFlow();
   const ready = useNodesInitialized();
   const dom = useStore((s) => s.domNode);
+  const chapter = CHAPTERS.find((c) => c.id === jump.id);
+  const measured = useStore((s) =>
+    (chapter?.nodes ?? [])
+      .map((id) => {
+        const size = s.nodeLookup.get(id)?.measured;
+        return `${size?.width ?? 0}x${size?.height ?? 0}`;
+      })
+      .join(","),
+  );
+  const board = useStore((s) => `${s.width}x${s.height}`);
   const fit = useRef(flow.fitView);
   useEffect(() => {
     fit.current = flow.fitView;
   });
   useEffect(() => {
-    if (!ready) return;
-    const chapter = CHAPTERS.find((c) => c.id === jump.id);
-    if (!chapter) return;
+    if (!ready || !chapter) return;
     const frame = requestAnimationFrame(() => {
       if (jump.id === "overview") {
         void fit.current({ padding: fitPadding(dom, 0.2), duration: 0 });
@@ -3144,13 +3221,14 @@ function ChapterFit({ jump }: { jump: Jump }) {
       }
       void fit.current({
         nodes: chapter.nodes.map((id) => ({ id })),
-        padding: fitPadding(dom, 0.08),
+        padding: fitPadding(dom, 0.08, DOCK_MARGIN),
         maxZoom: 1,
         duration: 0,
       });
     });
     return () => cancelAnimationFrame(frame);
-  }, [ready, jump, dom]);
+    // `jump` carries a counter, so a second click on the same chapter fits again.
+  }, [ready, jump, chapter, dom, measured, board]);
   return null;
 }
 

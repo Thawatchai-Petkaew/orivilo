@@ -230,19 +230,46 @@ function expectNoOverlap(root: Element) {
   }
 }
 
-/** Every node of the chapter lies inside the board and above the dock. */
-function expectChapterInView(root: HTMLElement, id: string, words: Messages) {
+/**
+ * Every node of the chapter lies inside the board and above the dock, `clear` px above it when the
+ * chapter promises a margin (the 07 Product chapter does, F4).
+ */
+function expectChapterInView(root: HTMLElement, id: string, words: Messages, clear = -1) {
   const chapter = CHAPTERS.find((c) => c.id === id);
   if (!chapter) throw new RangeError(`no chapter ${id}`);
   const board = boardOf(root).getBoundingClientRect();
   const dock = dockOf(root, words).closest(".react-flow__panel")?.getBoundingClientRect();
   expect(dock, "the dock").toBeDefined();
+  if (clear >= 0) {
+    // The fit ran on the board's current size, not an earlier one: the chapter fills the board on
+    // one axis (8 / 100 of padding leaves it 0.93 of the width, or of the height above the dock).
+    const rects = chapter.nodes.map((nodeId) => nodeEl(root, nodeId).getBoundingClientRect());
+    const spanX = Math.max(...rects.map((r) => r.right)) - Math.min(...rects.map((r) => r.left));
+    const spanY = Math.max(...rects.map((r) => r.bottom)) - Math.min(...rects.map((r) => r.top));
+    const room = (dock?.top ?? board.bottom) - board.top;
+    expect(
+      spanX >= board.width * 0.8 || spanY >= room * 0.8,
+      `the ${id} chapter fills the board (${Math.round(spanX)} x ${Math.round(spanY)} in ${Math.round(board.width)} x ${Math.round(room)})`,
+    ).toBe(true);
+  }
   for (const nodeId of chapter.nodes) {
     const r = nodeEl(root, nodeId).getBoundingClientRect();
     expect(r.left, `${nodeId} left`).toBeGreaterThanOrEqual(board.left - 1);
     expect(r.right, `${nodeId} right`).toBeLessThanOrEqual(board.right + 1);
     expect(r.top, `${nodeId} top`).toBeGreaterThanOrEqual(board.top - 1);
     expect(r.bottom, `${nodeId} bottom`).toBeLessThanOrEqual((dock?.top ?? board.bottom) + 1);
+  }
+  if (clear >= 0) {
+    const least = Math.min(
+      ...chapter.nodes.map(
+        (nodeId) =>
+          (dock?.top ?? board.bottom) - nodeEl(root, nodeId).getBoundingClientRect().bottom,
+      ),
+    );
+    expect(
+      least,
+      `the lowest ${id} node sits ${clear} px or more above the dock`,
+    ).toBeGreaterThanOrEqual(clear);
   }
 }
 
@@ -1077,6 +1104,53 @@ function radiusOf(scope: Element, className: string) {
 const cornerOf = (el: Element) => getComputedStyle(el).borderTopLeftRadius;
 
 /**
+ * Piece C (row 3.1): one `[data-app-icon]` whose width is 0.15 to 0.17 of the screen's, 19 skeleton
+ * slots, the mark's ring and dot inside the icon's box, no image and no intent button, and a screen
+ * that reads "9:41" and the brand name only. The body is `rounded-overlay`; the screen, the icon
+ * and the slots are `rounded-container`.
+ */
+function expectHomeScreen(icon: HTMLElement, radii: { overlay: string; container: string }) {
+  const apps = icon.querySelectorAll<HTMLElement>("[data-app-icon]");
+  expect(apps, "one app icon").toHaveLength(1);
+  const app = (apps[0] as HTMLElement).getBoundingClientRect();
+  const screenEl = icon.querySelector<HTMLElement>("[data-home-screen]") as HTMLElement;
+  const screen = screenEl.getBoundingClientRect();
+  expect(app.width / screen.width, "the icon over the screen").toBeGreaterThanOrEqual(0.15);
+  expect(app.width / screen.width, "the icon over the screen").toBeLessThanOrEqual(0.17);
+  expect(
+    screenEl.querySelectorAll('.ds-skeleton[data-shape="block"]'),
+    "the other slots",
+  ).toHaveLength(19);
+  expect(
+    screenEl.querySelectorAll(".ds-skeleton-group, [aria-busy]"),
+    "art, not a loading page",
+  ).toHaveLength(0);
+  const own = apps[0] as HTMLElement;
+  for (const part of ["ring", "dot"]) {
+    const r = own.querySelector(`.ds-logo__${part}`)?.getBoundingClientRect();
+    expect(r, `the mark's ${part}`).toBeDefined();
+    expect(r?.left, `${part} left`).toBeGreaterThanOrEqual(app.left - 0.5);
+    expect(r?.right, `${part} right`).toBeLessThanOrEqual(app.right + 0.5);
+    expect(r?.top, `${part} top`).toBeGreaterThanOrEqual(app.top - 0.5);
+    expect(r?.bottom, `${part} bottom`).toBeLessThanOrEqual(app.bottom + 0.5);
+  }
+  expect(icon.querySelectorAll("img, picture, canvas"), "no image").toHaveLength(0);
+  expect(icon.querySelectorAll('[data-variant="intent"]'), "no intent button").toHaveLength(0);
+  const words = [...screenEl.querySelectorAll("*")]
+    .filter((e) => e.children.length === 0 && (e.textContent ?? "").trim() !== "")
+    .map((e) => e.textContent);
+  expect(words, "the screen's words").toEqual([CLOCK, BRAND_NAME]);
+  expect(cornerOf(icon.querySelector("[data-home-body]") as Element), "the body").toBe(
+    radii.overlay,
+  );
+  expect(cornerOf(screenEl), "the screen").toBe(radii.container);
+  expect(cornerOf(own), "the icon").toBe(radii.container);
+  for (const slot of screenEl.querySelectorAll(".ds-skeleton")) {
+    expect(cornerOf(slot.parentElement as Element), "a slot").toBe(radii.container);
+  }
+}
+
+/**
  * The digital pieces of the In use board (spec ORV-309 row 11, C5, C11), read in `board`: the app in
  * a browser with ORIVILO's live board, the landing on a phone, the app icon on a home screen and the
  * link share card. Exactly one intent button, in the phone, in an inert subtree.
@@ -1122,20 +1196,8 @@ async function expectDigitalPieces(board: Element, words: Messages) {
   expect(intents(phone), "the phone holds the one intent button").toHaveLength(1);
   expect(intents(phone)[0]?.closest("[inert]")).not.toBeNull();
 
-  // C: the app icon on a phone home screen.
-  const icon = piece("icon");
-  expect(cornerOf(icon.querySelector(".rounded-overlay") as Element), "home phone body").toBe(
-    overlay,
-  );
-  const rounded = icon.querySelectorAll(".rounded-container");
-  expect(rounded, "the screen and the icon").toHaveLength(2);
-  for (const el of rounded) {
-    expect(cornerOf(el), "screen and icon are rounded-container").toBe(container);
-  }
-  expect(icon.textContent).toContain(CLOCK);
-  expect(icon.textContent).toContain(BRAND_NAME);
-  expect(icon.querySelector('[data-kind="mark"]'), "the real mark").not.toBeNull();
-  expect(intents(icon), "the icon holds no intent button").toHaveLength(0);
+  // C: the app icon on a phone's home screen at true scale (row 3.1).
+  expectHomeScreen(piece("icon"), { overlay, container });
 
   // E: the link share card: the 1.91 : 1 image over the share tagline and the address.
   const share = piece("share");
@@ -1431,6 +1493,8 @@ async function expectPartThree(page: HTMLElement, n: 10 | 11, words: Messages) {
     expect(frames, "three live screens").toHaveLength(3);
     for (const frame of frames) expect(inertAndHidden(frame)).toBe(true);
     expect(field.querySelector("[data-browser]"), "the app in a browser").not.toBeNull();
+    // Row 3.2: the field's window shows the same board with no node over another.
+    expectWindowBoard(field.querySelector("[data-browser]") as HTMLElement, "page 10 window");
     expect(field.querySelector(FOUNDATION), "the guidebook").not.toBeNull();
     expect(intents[0]?.closest("[data-live-frame]"), "the intent is in the landing").toBe(
       frames[0],
@@ -1467,6 +1531,11 @@ async function expectPartThree(page: HTMLElement, n: 10 | 11, words: Messages) {
     expect(Math.abs(got.y - want.y), `placement ${i} y`).toBeLessThanOrEqual(1);
     expect(Math.abs(got.w - want.w), `placement ${i} width`).toBeLessThanOrEqual(1);
     expect(Math.abs(got.h - want.h), `placement ${i} height`).toBeLessThanOrEqual(1);
+  });
+  // Row 3.1: piece C is a home screen at true scale in its 300 x 317 box.
+  expectHomeScreen(page.querySelector<HTMLElement>('[data-piece="icon"]') as HTMLElement, {
+    overlay: radiusOf(page, "rounded-overlay"),
+    container: radiusOf(page, "rounded-container"),
   });
   const phone = page.querySelector<HTMLElement>('[data-piece="phone"]') as HTMLElement;
   expect(intents[0]?.closest('[data-piece="phone"]'), "the intent is in piece B's phone").toBe(
@@ -1731,6 +1800,7 @@ async function expectComposedSheet(frame: HTMLElement, sheet: HTMLElement, words
   });
   await waitFor(() => expect(board.querySelectorAll(".react-flow__node")).toHaveLength(5));
   expect(board.querySelectorAll(".react-flow__edge"), "four edges").toHaveLength(4);
+  await waitFor(() => expectEdgesOnPorts(board, "the composed sheet", 4));
   const selected = board.querySelectorAll<HTMLElement>(".ds-node[data-selected]");
   expect(selected, "one selected node").toHaveLength(1);
   expect(board.querySelector(".ds-node-toolbar"), "its toolbar").not.toBeNull();
@@ -1872,6 +1942,8 @@ async function playPreviewDesignSystem(words: Messages) {
     return el as HTMLElement;
   });
   await waitFor(() => expect(second.querySelectorAll(".react-flow__node")).toHaveLength(5));
+  // F3: the composed sheet's edges start and end on their ports in the dialog too.
+  await waitFor(() => expectEdgesOnPorts(second, "the composed sheet in the preview", 4));
 }
 
 /** The design system sequence: the base sheet, then the composed Studio, at the stage's size. */
@@ -1900,10 +1972,112 @@ function expectAppBoardFitted(frameEl: Element, name: string) {
   expect(Math.min(...tops) - box.top, `${name} has no empty top`).toBeLessThan(box.height * 0.3);
 }
 
+/**
+ * Every edge of every board in `scope` starts and ends on its handle (sign-off F3): each end of an
+ * edge's path lies within 2 px of a handle's box. An edge is drawn to the outer edge of its handle,
+ * so the box and not the centre is the target (the centre is half a handle, about 3 to 5 px, away
+ * at the frame's scale). The ends are read in screen px through the path's own matrix, so a scale
+ * above the board shows as a gap.
+ */
+function expectEdgesOnPorts(scope: Element, name: string, count: number) {
+  const flows = [...scope.querySelectorAll<HTMLElement>(".react-flow")];
+  expect(flows.length, `${name} holds a board`).toBeGreaterThan(0);
+  let checked = 0;
+  for (const flow of flows) {
+    const handles = [...flow.querySelectorAll(".react-flow__handle")].map((h) =>
+      h.getBoundingClientRect(),
+    );
+    for (const edge of flow.querySelectorAll(".react-flow__edge")) {
+      const path = [...edge.querySelectorAll("path")].find((p) => p.getTotalLength() > 0);
+      expect(path, `${name} edge ${edge.getAttribute("data-id")} has a path`).toBeDefined();
+      if (!path) continue;
+      const m = path.getScreenCTM() as DOMMatrix;
+      for (const length of [0, path.getTotalLength()]) {
+        const q = path.getPointAtLength(length);
+        const x = m.a * q.x + m.c * q.y + m.e;
+        const y = m.b * q.x + m.d * q.y + m.f;
+        const gap = Math.min(
+          ...handles.map((r) =>
+            Math.hypot(Math.max(r.left - x, 0, x - r.right), Math.max(r.top - y, 0, y - r.bottom)),
+          ),
+        );
+        expect(
+          gap,
+          `${name} edge ${edge.getAttribute("data-id")} end at ${length}`,
+        ).toBeLessThanOrEqual(2);
+      }
+      checked++;
+    }
+  }
+  expect(checked, `${name} edges checked`).toBe(count);
+}
+
+/**
+ * The window's board (design row 3.2, sign-off F2): no two nodes intersect and every port row lies
+ * inside its node. Boxes are read in the board's own px (a node's transform and size), so a scale or
+ * the tilt of page 10's field does not change them.
+ */
+function expectWindowBoard(browser: HTMLElement, name: string) {
+  const nodes = [...browser.querySelectorAll<HTMLElement>(".react-flow__node")];
+  expect(nodes.map((n) => n.dataset.id).sort(), `${name} nodes`).toEqual([
+    "brief",
+    "colour",
+    "guide",
+    "logo",
+    "pos",
+    "product",
+  ]);
+  const boxes = nodes.map((n) => {
+    const at = /translate\(([-\d.]+)px,\s*([-\d.]+)px\)/.exec(n.style.transform);
+    return {
+      id: n.dataset.id,
+      x: Number(at?.[1]),
+      y: Number(at?.[2]),
+      w: n.offsetWidth,
+      h: n.offsetHeight,
+    };
+  });
+  for (const a of boxes) {
+    for (const b of boxes) {
+      if ((a.id ?? "") >= (b.id ?? "")) continue;
+      const area =
+        Math.max(0, Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x)) *
+        Math.max(0, Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y));
+      expect(area, `${name}: ${a.id} and ${b.id} intersect`).toBe(0);
+    }
+  }
+  for (const node of nodes) {
+    const box = node.getBoundingClientRect();
+    const ports = node.querySelector(".ds-node__ports")?.getBoundingClientRect();
+    expect(ports, `${name}: ${node.dataset.id} has a port row`).toBeDefined();
+    expect(ports?.left, `${name}: ${node.dataset.id} ports left`).toBeGreaterThanOrEqual(
+      box.left - 1,
+    );
+    expect(ports?.right, `${name}: ${node.dataset.id} ports right`).toBeLessThanOrEqual(
+      box.right + 1,
+    );
+    expect(ports?.top, `${name}: ${node.dataset.id} ports top`).toBeGreaterThanOrEqual(box.top - 1);
+    expect(ports?.bottom, `${name}: ${node.dataset.id} ports bottom`).toBeLessThanOrEqual(
+      box.bottom + 1,
+    );
+  }
+}
+
 /** The product chapter's three nodes (spec ORV-309 rows 5 and 7), in the words of one language. */
 async function playProductChapter(root: HTMLElement, words: Messages, lang: "en" | "th") {
+  // F4: at 1440 x 900 the three product nodes sit 16 px or more above the dock. The window is
+  // resized after the board mounted, so the chapter fits again on the new size.
+  await atWindow(1440, 900, () => playProductChapterAt(root, words, lang));
+  // The fit follows the board: a shorter window frames the chapter again, and there the fractional
+  // padding is small (24 px), so the fit's 24 px of margin on top of it is what gives 40.
+  await atWindow(1440, 700, async () => {
+    await waitFor(() => expectChapterInView(root, "product", words, 40));
+  });
+}
+
+async function playProductChapterAt(root: HTMLElement, words: Messages, lang: "en" | "th") {
   await ready(root);
-  expectChapterInView(root, "product", words);
+  await waitFor(() => expectChapterInView(root, "product", words, 16));
   // C4: a nested board in a scaled frame fits only when it is in view at mount, so each node is
   // scrolled into view before it is read. The chapter already frames them: the view must not move.
   const view = viewportOf(root)?.style.transform;
@@ -2066,6 +2240,8 @@ export const PreviewInUseBoard: Story = {
         if (piece?.id === "window") {
           const browser = stage.querySelector<HTMLElement>("[data-browser]") as HTMLElement;
           await waitFor(() => expectAppBoardFitted(browser, "the window page"));
+          expectWindowBoard(browser, "the window page");
+          expectEdgesOnPorts(browser, "the window page", 6);
         }
         await expectPaperBounds(stage, { ink: ALL_SIDES, tiles: true });
       }

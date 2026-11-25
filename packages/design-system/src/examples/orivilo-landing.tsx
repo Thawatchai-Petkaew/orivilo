@@ -1,6 +1,7 @@
 "use client";
 
-import { type ReactNode, useId, useState } from "react";
+import { type HandleType, useStoreApi } from "@xyflow/react";
+import { type ReactNode, useEffect, useId, useState } from "react";
 import { DesignProfileBoundary } from "../boundary/DesignProfileBoundary";
 import { Badge, Button, CanvasBoard, Input, Logo } from "../components/index";
 import type { BoardNode, Graph, PortSpec } from "../components/canvas-board/graph";
@@ -238,6 +239,66 @@ export function heroBody(t: Words, narrow: boolean) {
   };
 }
 
+/**
+ * The scale that the ancestors of `el` put on it, when they only scale (no turn): the product of
+ * the linear parts of every ancestor's `transform`. `null` for a turn, which has no single scale.
+ */
+function ancestorScale(el: Element): number | null {
+  let [a, b, c, d] = [1, 0, 0, 1];
+  for (let node: Element | null = el; node; node = node.parentElement) {
+    const transform = getComputedStyle(node).transform;
+    if (transform === "none") continue;
+    const m = new DOMMatrixReadOnly(transform);
+    [a, b, c, d] = [m.a * a + m.c * b, m.b * a + m.d * b, m.a * c + m.c * d, m.b * c + m.d * d];
+  }
+  const turned = Math.abs(b) > 1e-3 || Math.abs(c) > 1e-3 || Math.abs(a - d) > 1e-3;
+  return turned || !(a > 0) ? null : a;
+}
+
+/**
+ * Keeps the edges of a board on their ports when an ancestor scales the board (spec ORV-309 F3).
+ * React Flow measures a port as `(handle.getBoundingClientRect - node.getBoundingClientRect) / zoom`,
+ * where `zoom` is the board's own viewport zoom, so a CSS scale above the board (a live frame, a
+ * dialog's opening scale, the zoom of the canvas that holds the node) shrinks every port offset by
+ * that scale while the node's size, read from `offsetWidth`, stays whole. This reads each fresh
+ * measure once, divides the port offsets by the scale in force when it was taken, and tells the
+ * edges to draw again. A measure taken without a scale, or under a turn, is left as it is.
+ */
+export function TrueHandles() {
+  const store = useStoreApi();
+  useEffect(() => {
+    const seen = new WeakSet<object>();
+    const settle = () => {
+      const { nodeLookup, domNode } = store.getState();
+      let scale: number | null | undefined;
+      let changed = false;
+      for (const [id, node] of nodeLookup) {
+        const bounds = node.internals.handleBounds;
+        if (!bounds || seen.has(bounds)) continue;
+        if (scale === undefined) scale = domNode ? ancestorScale(domNode) : null;
+        if (scale === null || Math.abs(scale - 1) < 1e-3) {
+          seen.add(bounds);
+          continue;
+        }
+        const factor = scale;
+        const rescale = (list: typeof bounds.source) =>
+          list ? list.map((h) => ({ ...h, x: h.x / factor, y: h.y / factor })) : list;
+        const next: { [K in HandleType]: typeof bounds.source } = {
+          source: rescale(bounds.source),
+          target: rescale(bounds.target),
+        };
+        seen.add(next);
+        nodeLookup.set(id, { ...node, internals: { ...node.internals, handleBounds: next } });
+        changed = true;
+      }
+      if (changed) store.setState({});
+    };
+    settle();
+    return store.subscribe(settle);
+  }, [store]);
+  return null;
+}
+
 function HeroBoard({ narrow }: { narrow: boolean }) {
   const t = useMessages().oriviloLanding.board;
   return (
@@ -249,7 +310,9 @@ function HeroBoard({ narrow }: { narrow: boolean }) {
         chrome={false}
         minimap={false}
         renderBody={heroBody(t, narrow)}
-      />
+      >
+        <TrueHandles />
+      </CanvasBoard>
     </div>
   );
 }
@@ -410,7 +473,7 @@ function Page({ lang, width, photograph }: { lang: Locale; width: number; photog
         className={`mt-28 grid bg-brand-signature ${showPhoto ? "@[960px]:grid-cols-2" : ""}`}
       >
         <div
-          className={`flex flex-col justify-end gap-6 px-6 py-16 @[720px]:px-12 @[960px]:py-24 ${showPhoto ? "" : "mx-auto w-full max-w-[1184px]"}`}
+          className={`flex flex-col justify-end gap-6 py-16 @[960px]:py-24 ${showPhoto ? "px-6 @[720px]:px-12" : "mx-auto w-full max-w-[1184px] px-6 @[720px]:px-0"}`}
         >
           <h2 data-band-title="" className="m-0 font-display text-display-lg text-brand-ink">
             {t.bandTitle}

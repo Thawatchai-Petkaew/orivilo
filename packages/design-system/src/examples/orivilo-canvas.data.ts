@@ -172,15 +172,24 @@ export type PieceContent =
       };
     }
   | {
-      // The app icon on a phone home screen (C): px of the tile or of the tile's width.
+      // The app icon on a phone home screen (C), drawn at a phone's true scale (design row 3.1):
+      // every value is design px of the 390 wide screen, under one scale that fits the tile.
       kind: "icon";
-      left: number; // of the tile width
-      top: number; // of the tile height
-      width: number; // of the tile width
-      height: number; // of the tile height
+      screen: Size;
       bezel: number;
-      clock: Pt;
-      icon: { at: Pt; side: number; mark: number }; // side of the tile width, mark of the side
+      inset: number; // of the tile width: the body's gap to the start, the end and the top
+      clock: { x: number; y: number; w: number };
+      island: Box;
+      grid: {
+        cols: number;
+        rows: number;
+        icon: number;
+        start: number;
+        pitch: Pt;
+        top: number;
+        gap: number;
+      };
+      app: { col: number; row: number; mark: number }; // mark of the icon
     }
   | {
       // The link share card (E): one card centred in the tile, the image at 1.91 : 1.
@@ -742,6 +751,20 @@ export const ADDRESS = "orivilo.vercel.app";
 export const CLOCK = "9:41";
 /** The browser of piece A and of page 10, at its design size. */
 export const BROWSER: Size = { w: 1180, h: 600 };
+/**
+ * Where the window's board puts the six nodes of the landing's graph (design row 3.2, sign-off F2).
+ * The window shows the edit view, where every node has a port row and so stands taller than on the
+ * landing, whose positions made Colour cover Logo's port row. Logo and Colour stack in one column
+ * with a gap of 34, and every other node is centred on the middle of that column (290).
+ */
+export const WINDOW_AT: Readonly<Record<string, Pt>> = {
+  brief: [0, 180],
+  pos: [300, 160],
+  logo: [640, 0],
+  colour: [640, 324],
+  guide: [920, 120],
+  product: [1240, 172],
+};
 
 /** The 24 glyphs of the icon set specimen (page 11), 6 x 4, in reading order: names in `icons.tsx`. */
 export const ICON_SET = [
@@ -866,13 +889,13 @@ export const PIECES: readonly PieceRecord[] = [
     flood: VIOLET,
     content: {
       kind: "icon",
-      left: 0.16,
-      top: 0.14,
-      width: 0.68,
-      height: 1.2,
-      bezel: 8,
-      clock: [20, 14],
-      icon: { at: [20, 52], side: 0.3, mark: 0.62 },
+      screen: { w: 390, h: 844 },
+      bezel: 14,
+      inset: 0.065,
+      clock: { x: 0, y: 14, w: 133 },
+      island: { x: 133, y: 11, w: 124, h: 36 },
+      grid: { cols: 4, rows: 5, icon: 60, start: 24, pitch: [94, 100], top: 72, gap: 6 },
+      app: { col: 1, row: 1, mark: 0.62 },
     },
     caption: "use.icon",
     second: "use.iconSub",
@@ -1225,6 +1248,7 @@ export const BOOK: readonly BookPageRecord[] = [
     ground: PAPER,
     lines: [],
     // Boxes in page px; gutter 12 and the page's side padding 48 (1184 wide, 646 high from y 82).
+    // The bottom row starts or ends on the top row's edges: 360 and 920 (the window), 932 and 1232 (the icon).
     art: {
       kind: "pieces",
       pieces: [
@@ -1232,8 +1256,8 @@ export const BOOK: readonly BookPageRecord[] = [
         { piece: "window", box: { x: 360, y: 82, w: 560, h: 317 } },
         { piece: "icon", box: { x: 932, y: 82, w: 300, h: 317 } },
         { specimen: "icons", box: { x: 360, y: 411, w: 272, h: 317 }, glyphs: ICON_SET },
-        { piece: "card", box: { x: 644, y: 411, w: 288, h: 317 } },
-        { piece: "sign", box: { x: 944, y: 411, w: 288, h: 317 } },
+        { piece: "card", box: { x: 644, y: 411, w: 276, h: 317 } },
+        { piece: "sign", box: { x: 932, y: 411, w: 300, h: 317 } },
       ],
     },
   },

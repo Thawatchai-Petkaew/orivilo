@@ -38,7 +38,9 @@ import {
   quadInTile,
   textOf,
   VIOLET,
+  WINDOW_AT,
 } from "./orivilo-canvas.data";
+import { heroGraph } from "./orivilo-landing";
 
 const th = messagesFor("th");
 const en = messagesFor("en");
@@ -631,9 +633,38 @@ describe("orivilo canvas data, boards and book (spec rows 28, 29, 30)", () => {
       ["window", 360, 82, 560, 317, undefined],
       ["icon", 932, 82, 300, 317, undefined],
       ["icons", 360, 411, 272, 317, undefined],
-      ["card", 644, 411, 288, 317, undefined],
-      ["sign", 944, 411, 288, 317, undefined],
+      ["card", 644, 411, 276, 317, undefined],
+      ["sign", 932, 411, 300, 317, undefined],
     ]);
+  });
+
+  it("starts or ends every bottom-row box of page 11 on an edge of the top row (row 3.3)", () => {
+    const page = BOOK.find((p) => p.n === 11);
+    const list = page?.art?.kind === "pieces" ? page.art.pieces : [];
+    const top = list.filter((p) => p.box.y === 82 && p.box.x >= 360);
+    const bottom = list.filter((p) => p.box.y === 411);
+    expect(top).toHaveLength(2);
+    expect(bottom).toHaveLength(3);
+    const edges = new Set(top.flatMap((p) => [p.box.x, p.box.x + p.box.w]));
+    expect([...edges].sort((a, b) => a - b)).toEqual([360, 920, 932, 1232]);
+    for (const p of bottom) {
+      const hits = [p.box.x, p.box.x + p.box.w].filter((e) => edges.has(e));
+      expect(
+        hits.length,
+        `${"piece" in p ? p.piece : p.specimen} starts or ends on a top edge`,
+      ).toBeGreaterThanOrEqual(1);
+    }
+    // The icon set starts with the window, the card ends with it, the sign spans the icon's edges.
+    expect(bottom.map((p) => [p.box.x, p.box.x + p.box.w])).toEqual([
+      [360, 632],
+      [644, 920],
+      [932, 1232],
+    ]);
+    // Every gutter of the bottom row is 12.
+    const gaps = bottom
+      .slice(1)
+      .map((p, k) => p.box.x - ((bottom[k]?.box.x ?? 0) + (bottom[k]?.box.w ?? 0)));
+    expect(gaps).toEqual([12, 12]);
   });
 
   it("holds the 24 glyphs of the icon set in the design's order, 6 across and 4 down", () => {
@@ -839,7 +870,8 @@ describe("orivilo canvas data, quad helper (spec row 40)", () => {
   const sign = IMAGES.find((i) => i.id === "scene-sign");
   const IMG = { w: 1254, h: 1254 };
   const CELL = { w: 246.4, h: 776 / 3 };
-  const PAGE = { w: 288, h: 317 }; // page 11's card and sign tiles
+  const PAGE_CARD = { w: 276, h: 317 }; // page 11's card tile (row 3.3)
+  const PAGE_SIGN = { w: 300, h: 317 }; // page 11's sign tile (row 3.3)
   const FACES = { card: { w: 350, h: 200 }, sign: { w: 600, h: 300 } };
 
   /** A projective map (row major, 9 values) applied to a point. */
@@ -885,9 +917,9 @@ describe("orivilo canvas data, quad helper (spec row 40)", () => {
   it("maps the face corners onto the card and sign tile quads within 0.01 px", () => {
     for (const [rec, face, tile] of [
       [card, FACES.card, CELL],
-      [card, FACES.card, PAGE],
+      [card, FACES.card, PAGE_CARD],
       [sign, FACES.sign, CELL],
-      [sign, FACES.sign, PAGE],
+      [sign, FACES.sign, PAGE_SIGN],
     ] as const) {
       if (!rec?.quad) throw new Error("no quad");
       const target = quadInTile(rec.quad, tile, IMG);
@@ -917,7 +949,7 @@ describe("orivilo canvas data, quad helper (spec row 40)", () => {
     if (!card?.quad || !sign?.quad) throw new Error("no quad");
     for (const [rec, face, tile] of [
       [card, FACES.card, CELL],
-      [sign, FACES.sign, PAGE],
+      [sign, FACES.sign, PAGE_SIGN],
     ] as const) {
       if (!rec.quad) throw new Error("no quad");
       const css = placeOnQuad(rec.quad, face, tile, IMG);
@@ -944,8 +976,8 @@ describe("orivilo canvas data, quad helper (spec row 40)", () => {
     const W5: [Quad, { w: number; h: number }, number[]][] = [
       [card.quad, CELL, [50.0, 102.69, 181.92, 82.26, 197.44, 159.08, 64.74, 176.41]],
       [sign.quad, CELL, [37.06, 83.55, 208.04, 62.34, 208.04, 184.17, 37.06, 167.62]],
-      [card.quad, PAGE, [54.29, 125.85, 215.96, 100.81, 234.98, 194.96, 72.36, 216.19]],
-      [sign.quad, PAGE, [38.44, 102.39, 247.98, 76.4, 247.98, 225.7, 38.44, 205.42]],
+      [card.quad, PAGE_CARD, [48.29, 125.85, 209.96, 100.81, 228.98, 194.96, 66.36, 216.19]],
+      [sign.quad, PAGE_SIGN, [44.44, 102.39, 253.98, 76.4, 253.98, 225.7, 44.44, 205.42]],
     ];
     for (const [quad, tile, expected] of W5) {
       const got = quadInTile(quad, tile, IMG).flatMap((p) => [...p]);
@@ -1178,9 +1210,11 @@ describe("the In use board and brandbook part 03 (spec ORV-309 rows 11, 12, 13 a
     // the clipped box inside it.
     expect(phone).toMatch(/className="relative rounded-overlay shadow-overlay"/);
     expect(phone).toMatch(/className="absolute overflow-hidden rounded-container"/);
-    expect(home).toMatch(/className="absolute rounded-overlay shadow-overlay"/);
-    expect(home).toMatch(/className="absolute rounded-container"/);
-    expect(home).toMatch(/className="flex items-center justify-center rounded-container"/);
+    expect(home).toMatch(/className="absolute inset-0 rounded-overlay shadow-overlay"/);
+    // The screen and the slots clip, the icon centres its mark; all three are rounded-container.
+    expect(home).toMatch(/className="absolute overflow-hidden rounded-container"/);
+    expect(home).toMatch(/className="absolute flex items-center justify-center rounded-container"/);
+    expect(home).toMatch(/<Skeleton shape="block"/);
     expect(browser).toMatch(/rounded-container border border-border-subtle bg-surface-sunken/);
     expect(browser).toMatch(/rounded-t-media/);
     expect(browser).toMatch(/rounded-control/);
@@ -1276,5 +1310,71 @@ describe("the In use board and brandbook part 03 (spec ORV-309 rows 11, 12, 13 a
   it("keeps the brand's data lines out of the catalog: name, address, clock, browser size", () => {
     expect([BRAND_NAME, ADDRESS, CLOCK]).toEqual(["ORIVILO", "orivilo.vercel.app", "9:41"]);
     expect(BROWSER).toEqual({ w: 1180, h: 600 });
+  });
+});
+
+describe("piece C and the window's board (spec ORV-309 rows 11 and 12, design rows 3.1 and 3.2)", () => {
+  it("draws the home screen at a phone's true scale: 60 on 390, 4 x 5 slots, the app at column 1, row 1", () => {
+    const c = PIECES.find((p) => p.id === "icon")?.content;
+    if (c?.kind !== "icon") throw new Error("no icon piece");
+    expect(c.screen).toEqual({ w: 390, h: 844 });
+    expect(c.bezel).toBe(14);
+    expect(c.inset).toBe(0.065);
+    expect(c.clock).toEqual({ x: 0, y: 14, w: 133 });
+    expect(c.island).toEqual({ x: 133, y: 11, w: 124, h: 36 });
+    expect(c.grid).toEqual({
+      cols: 4,
+      rows: 5,
+      icon: 60,
+      start: 24,
+      pitch: [94, 100],
+      top: 72,
+      gap: 6,
+    });
+    expect(c.app).toEqual({ col: 1, row: 1, mark: 0.62 });
+    // The columns sit at 24, 118, 212 and 306 and the end inset is 24 too; the icon is 15.4%.
+    const columns = [0, 1, 2, 3].map((i) => c.grid.start + i * c.grid.pitch[0]);
+    expect(columns).toEqual([24, 118, 212, 306]);
+    expect(c.screen.w - (306 + c.grid.icon)).toBe(c.grid.start);
+    expect(c.grid.icon / c.screen.w).toBeCloseTo(0.154, 3);
+    // Rows 0 to 3 are whole in the 317 box (row 3 ends at 432, inside the 459 the board tile shows);
+    // row 4 starts at 472 and is clipped.
+    expect(c.grid.top + 3 * c.grid.pitch[1] + c.grid.icon).toBe(432);
+    expect(c.grid.top + 4 * c.grid.pitch[1]).toBe(472);
+    // The scale fits the 418 wide body: 246.4 gives 0.5129, 300 gives 0.6244.
+    const k = (w: number) => (w * (1 - 2 * c.inset)) / (c.screen.w + 2 * c.bezel);
+    expect(k(246.4)).toBeCloseTo(0.5129, 3);
+    expect(k(300)).toBeCloseTo(0.6244, 3);
+  });
+
+  it("gives the window's board its own positions for the six nodes of the landing's graph", () => {
+    const words = messagesFor("en").oriviloLanding.board;
+    const ids = heroGraph(words, false).nodes.map((n) => n.id);
+    expect(Object.keys(WINDOW_AT).sort()).toEqual([...ids].sort());
+    expect(WINDOW_AT).toEqual({
+      brief: [0, 180],
+      pos: [300, 160],
+      logo: [640, 0],
+      colour: [640, 324],
+      guide: [920, 120],
+      product: [1240, 172],
+    });
+    // Logo (290 high in the edit view) and Colour stack in one column with a gap of 32 or more.
+    const [, logoY] = WINDOW_AT["logo"] as Pt;
+    const [, colourY] = WINDOW_AT["colour"] as Pt;
+    expect(WINDOW_AT["logo"]?.[0]).toBe(WINDOW_AT["colour"]?.[0]);
+    expect(colourY - (logoY + 290)).toBeGreaterThanOrEqual(32);
+    // The landing's own hero keeps its positions.
+    const hero = Object.fromEntries(
+      heroGraph(words, false).nodes.map((n) => [n.id, [n.position.x, n.position.y]]),
+    );
+    expect(hero).toEqual({
+      brief: [0, 112],
+      pos: [300, 84],
+      logo: [640, 0],
+      colour: [640, 250],
+      guide: [920, 84],
+      product: [1240, 96],
+    });
   });
 });
