@@ -36,7 +36,7 @@ type Words = Messages["oriviloLanding"]["board"];
  * ORIVILO's own board, from brief to product: six nodes at the wide width, three at the narrow
  * one. The board is a fixed example graph, so it is always there.
  */
-function heroGraph(t: Words, narrow: boolean): Graph {
+export function heroGraph(t: Words, narrow: boolean): Graph {
   const port = (id: string, kind: PortSpec["kind"], label: string): PortSpec => ({
     id,
     kind,
@@ -159,7 +159,7 @@ function heroGraph(t: Words, narrow: boolean): Graph {
 }
 
 /** The bodies of the hero board's nodes, drawn from catalog parts and tokens. */
-function heroBody(t: Words, narrow: boolean) {
+export function heroBody(t: Words, narrow: boolean) {
   return (node: BoardNode): ReactNode => {
     switch (node.id) {
       case "brief":

@@ -17,6 +17,7 @@ import {
 import {
   type CSSProperties,
   type ComponentPropsWithoutRef,
+  type ComponentType,
   type ReactNode,
   createContext,
   startTransition,
@@ -70,11 +71,43 @@ import {
   Textarea,
   ToggleGroup,
   ToggleGroupItem,
+  TopNavigation,
 } from "../components/index";
 import { fixtureTaskJobs, fixtureTaskJobsEn } from "../components/fixtures";
 import type { BoardNode, Graph } from "../components/canvas-board/graph";
 import { cx } from "../components/cx";
-import { ChevronLeftIcon, ChevronRightIcon, CloseIcon } from "../components/icons";
+import {
+  ArtifactIcon,
+  ChatIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  CloseIcon,
+  CompareStepIcon,
+  CopyIcon,
+  CursorIcon,
+  DirectionIcon,
+  DraftStepIcon,
+  EyeIcon,
+  FitIcon,
+  GenerateStepIcon,
+  GroupIcon,
+  HandIcon,
+  type IconProps,
+  InputBlockIcon,
+  KnowledgeIcon,
+  LockIcon,
+  NoteIcon,
+  PlusIcon,
+  ReadStepIcon,
+  RedoIcon,
+  ReferenceIcon,
+  RetryIcon,
+  SearchIcon,
+  SendIcon,
+  TrashIcon,
+  UndoIcon,
+  UploadIcon,
+} from "../components/icons";
 import { DOT_RADIUS, GEOMETRY, RING_STROKE } from "../components/logo/geometry";
 import { formatNumber } from "../i18n/format";
 import { useLocale, useMessages } from "../i18n/LocaleProvider";
@@ -85,32 +118,39 @@ import { BusinessBoardScreen } from "./business-board";
 import { ENGLISH_VIEW, THAI_VIEW } from "./business-fixtures";
 import { GuidebookScreen } from "./guidebook";
 import { done } from "./guidebook-fixtures";
-import { Landing } from "./landing";
-import { OriviloLanding } from "./orivilo-landing";
+import { OriviloLanding, heroBody, heroGraph } from "./orivilo-landing";
 import {
   type ArtText,
   type ArtToken,
   type BoardId,
+  type BookArt,
   type BookPageRecord,
   type BodyRecord,
   type Box,
   type ChapterId,
   type CopyKey,
+  type IconName,
   type ImageId,
   type LiveId,
   type NodeRecord,
   type Paint,
   type PaletteId,
+  type PieceContent,
   type PieceRecord,
+  type Placement,
   type PreviewPageRecord,
   type RowRecord,
   type SequenceId,
   type Size,
   type TypeStyle,
+  ADDRESS,
   BOARDS,
   BOOK,
   BOOK_FRAME,
+  BRAND_NAME,
+  BROWSER,
   CHAPTERS,
+  CLOCK,
   copyOf,
   FRAMES,
   graphOf,
@@ -129,6 +169,7 @@ import {
   TYPE_SAMPLE,
   TYPE_SPECIMEN,
   VIOLET,
+  VIOLET_ON_INK,
 } from "./orivilo-canvas.data";
 
 export interface OriviloCanvasProps {
@@ -812,19 +853,351 @@ function Scene({
   );
 }
 
-/** One piece drawn at a tile size; `onPage` draws the icon full tile, as the book's page 11 does. */
+const ICON_BY_NAME: Record<IconName, ComponentType<IconProps>> = {
+  Cursor: CursorIcon,
+  Hand: HandIcon,
+  Plus: PlusIcon,
+  Search: SearchIcon,
+  Undo: UndoIcon,
+  Redo: RedoIcon,
+  InputBlock: InputBlockIcon,
+  Knowledge: KnowledgeIcon,
+  Artifact: ArtifactIcon,
+  Reference: ReferenceIcon,
+  Direction: DirectionIcon,
+  Note: NoteIcon,
+  ReadStep: ReadStepIcon,
+  DraftStep: DraftStepIcon,
+  CompareStep: CompareStepIcon,
+  GenerateStep: GenerateStepIcon,
+  Eye: EyeIcon,
+  Group: GroupIcon,
+  Chat: ChatIcon,
+  Send: SendIcon,
+  Upload: UploadIcon,
+  Copy: CopyIcon,
+  Trash: TrashIcon,
+  Fit: FitIcon,
+};
+
+const TILE = "relative overflow-hidden rounded-media";
+
+/**
+ * The app in a browser at its design size (A): a tab strip, a toolbar with the address, and below
+ * them ORIVILO's own Studio, the same `TopNavigation` and the same live board the landing shows,
+ * with the Positioning node selected. Drawn from catalog parts; nothing in it is an image.
+ */
+function BrowserWindow({ design }: { design: Size }) {
+  const m = useMessages();
+  const use = m.orvCanvas.use;
+  const words = m.oriviloLanding.board;
+  const graph = heroGraph(words, false);
+  const nodes = graph.nodes.map((n) => (n.id === "pos" ? { ...n, selected: true } : n));
+  return (
+    <div
+      {...scope("dark")}
+      className="flex flex-col overflow-hidden rounded-container border border-border-subtle bg-surface-sunken font-body text-text-primary"
+      style={{ width: design.w, height: design.h }}
+      data-browser=""
+    >
+      <div className="flex h-11 shrink-0 items-end gap-2 px-3">
+        <div className="flex h-9 w-60 items-center gap-2 rounded-t-media bg-surface-canvas px-3">
+          <Logo kind="mark" height={16} decorative />
+          <span className="text-label-sm">{BRAND_NAME}</span>
+          <CloseIcon className="ms-auto size-3.5 text-text-secondary" />
+        </div>
+        <PlusIcon className="mb-2.5 size-4 text-text-secondary" />
+      </div>
+      <div className="flex h-12 shrink-0 items-center gap-4 border-b border-border-subtle bg-surface-canvas px-4">
+        <ChevronLeftIcon className="size-4 text-text-secondary" />
+        <ChevronRightIcon className="size-4 text-text-secondary" />
+        <RetryIcon className="size-4 text-text-secondary" />
+        <div className="flex h-8 flex-1 items-center gap-2 rounded-control bg-surface-sunken px-4">
+          <LockIcon className="size-3.5 text-text-secondary" />
+          <span className="text-body-sm">{ADDRESS}</span>
+        </div>
+      </div>
+      <div className="relative min-h-0 flex-1">
+        <DesignProfileBoundary profile={BRAND_PROFILES[0]} mode="dark">
+          <div className="absolute inset-0 flex flex-col bg-surface-canvas text-text-primary">
+            <TopNavigation
+              name={use.studioName}
+              brand={<Logo kind="horizontal" height={20} decorative />}
+              items={[
+                { label: m.orvCanvas.sheet.view.board, href: "/board" },
+                { label: m.orvCanvas.sheet.view.guidebook, href: "/guidebook" },
+              ]}
+              currentPath="/board"
+              actions={<Avatar name={m.orvCanvas.sheet.owner} size="sm" decorative />}
+              contentClassName="px-5"
+            />
+            <div className="relative min-h-0 flex-1 bg-surface-board">
+              <div className="absolute inset-0">
+                <CanvasBoard
+                  label={words.label}
+                  graph={{ ...graph, nodes }}
+                  variant="edit"
+                  minimap={false}
+                  renderBody={heroBody(words, false)}
+                />
+              </div>
+            </div>
+          </div>
+        </DesignProfileBoundary>
+      </div>
+    </div>
+  );
+}
+
+/** The landing on a phone (B): ink body `rounded-overlay`, screen `rounded-container`, the live page. */
+function PhonePiece({
+  piece,
+  content: c,
+  size,
+  grid,
+}: {
+  piece: PieceRecord;
+  content: Extract<PieceContent, { kind: "phone" }>;
+  size: Size;
+  grid: boolean;
+}) {
+  const locale = useLocale();
+  const m = useMessages();
+  const w = Math.min(size.w * c.width, (size.h * c.fit) / c.ratio);
+  const h = w * c.ratio;
+  const top = grid ? size.h - h - size.h * c.grid.bottom : (size.h - h) * c.place;
+  const bezel = w * c.bezel;
+  const screen = w - 2 * bezel;
+  const k = screen / c.screenWidth; // tile px per design px of the landing
+  const left = (size.w - w) / 2;
+  const flood = grid ? VIOLET : piece.flood;
+  const xs = c.grid.measure.map((x) => left + bezel + x * k);
+  const x0 = at(xs, 0);
+  const x3 = at(xs, 3);
+  return (
+    <Flood paint={flood} className={TILE} style={{ width: size.w, height: size.h }}>
+      <div className="absolute" style={{ left, top }}>
+        <Flood
+          paint={INK}
+          className="relative rounded-overlay shadow-overlay"
+          style={{ width: w, height: h }}
+        >
+          <div
+            className="absolute overflow-hidden rounded-container"
+            style={{ left: bezel, top: bezel, width: screen, height: h - 2 * bezel }}
+          >
+            <LiveFrame outer={{ w: screen, h: h - 2 * bezel }} design={c.screenWidth} mode="dark">
+              <OriviloLanding lang={locale} width={c.screenWidth} photograph={false} />
+            </LiveFrame>
+            {grid ? (
+              <div {...scope("dark")} className="absolute inset-0" data-layout-grid="">
+                {c.grid.lines.map((x) => (
+                  <div
+                    key={x}
+                    className="absolute bottom-0 top-0 border-s border-dashed border-brand-signature"
+                    style={{ left: x * k }}
+                  />
+                ))}
+              </div>
+            ) : null}
+          </div>
+        </Flood>
+      </div>
+      {grid ? (
+        <div {...scope(textMode(flood))} className="absolute inset-0 font-body" data-measure="">
+          <p className="absolute m-0 text-label-md text-text-primary" style={{ left: 24, top: 22 }}>
+            {m.orvCanvas.use.grid}
+          </p>
+          <div
+            className="absolute border-t border-text-primary"
+            style={{ left: x0, width: x3 - x0, top: top - 18 }}
+          />
+          {xs.map((x, i) => (
+            <div
+              key={i}
+              className="absolute border-s border-text-primary"
+              style={{ left: x, top: top - 24, height: 12 }}
+            />
+          ))}
+          {c.grid.measure.slice(1).map((end, i) => {
+            const start = at(c.grid.measure, i);
+            // Centred over its span on one line: the 24 px spans are narrower than their numerals.
+            return (
+              <span
+                key={i}
+                className="absolute -translate-x-1/2 whitespace-nowrap font-mono text-code-md text-text-primary"
+                style={{ left: (at(xs, i) + at(xs, i + 1)) / 2, top: top - 48 }}
+              >
+                {end - start}
+              </span>
+            );
+          })}
+        </div>
+      ) : null}
+    </Flood>
+  );
+}
+
+/** The app icon on a phone home screen (C): the real mark on an ink square under the clock. */
+function HomeScreenPiece({
+  piece,
+  content: c,
+  size,
+}: {
+  piece: PieceRecord;
+  content: Extract<PieceContent, { kind: "icon" }>;
+  size: Size;
+}) {
+  const side = Math.round(size.w * c.icon.side);
+  return (
+    <Flood paint={piece.flood} className={TILE} style={{ width: size.w, height: size.h }}>
+      <Flood
+        paint={INK}
+        className="absolute rounded-overlay shadow-overlay"
+        style={{
+          left: size.w * c.left,
+          top: size.h * c.top,
+          width: size.w * c.width,
+          height: size.h * c.height,
+        }}
+      >
+        <Flood
+          paint={PAPER}
+          className="absolute rounded-container"
+          style={{ left: c.bezel, top: c.bezel, right: c.bezel, bottom: c.bezel }}
+        >
+          <div {...scope("light")} className="absolute inset-0 font-body text-text-primary">
+            <span className="absolute text-label-md" style={{ left: c.clock[0], top: c.clock[1] }}>
+              {CLOCK}
+            </span>
+            <div
+              className="absolute flex flex-col items-center gap-2"
+              style={{ left: c.icon.at[0], top: c.icon.at[1], width: side }}
+            >
+              <Flood
+                paint={INK}
+                className="flex items-center justify-center rounded-container"
+                style={{ width: side, height: side }}
+              >
+                <div {...scope("dark")}>
+                  <Logo kind="mark" height={side * c.icon.mark} decorative />
+                </div>
+              </Flood>
+              <span className="text-label-sm">{BRAND_NAME}</span>
+            </div>
+          </div>
+        </Flood>
+      </Flood>
+    </Flood>
+  );
+}
+
+/** The link share card (E): the image at 1.91 : 1 over the share tagline and the address. */
+function SharePiece({
+  piece,
+  content: c,
+  size,
+}: {
+  piece: PieceRecord;
+  content: Extract<PieceContent, { kind: "share" }>;
+  size: Size;
+}) {
+  const m = useMessages();
+  const card = Math.min(c.card.max, size.w - 2 * c.card.margin);
+  const k = card / c.image.w;
+  return (
+    <Flood paint={piece.flood} className={TILE} style={{ width: size.w, height: size.h }}>
+      <div className="flex h-full items-center justify-center">
+        <div
+          {...scope("light")}
+          className="overflow-hidden rounded-container border border-border-subtle bg-surface-card font-body text-text-primary"
+          style={{ width: card }}
+        >
+          <Flood
+            paint={INK}
+            className="relative overflow-hidden"
+            style={{ width: card, height: c.image.h * k }}
+            data-share-image=""
+          >
+            <div
+              className="relative"
+              style={{
+                width: c.image.w,
+                height: c.image.h,
+                transform: `scale(${k})`,
+                transformOrigin: "0 0",
+              }}
+            >
+              <GiantMark
+                size={c.mark.size}
+                ring={VIOLET}
+                dot={VIOLET_ON_INK}
+                style={{ left: c.mark.at[0], top: c.mark.at[1] }}
+              />
+              <div
+                {...scope("dark")}
+                className="absolute"
+                style={{ left: c.logo.inset, bottom: c.logo.inset }}
+              >
+                <Logo kind="horizontal" height={c.logo.height} decorative />
+              </div>
+            </div>
+          </Flood>
+          <div className="flex flex-col gap-0.5 px-3 py-2.5">
+            <span className="text-label-md">{m.orvCanvas.use.shareTagline}</span>
+            <span className="text-body-xs text-text-secondary">{ADDRESS}</span>
+          </div>
+        </div>
+      </div>
+    </Flood>
+  );
+}
+
+/** The icon set specimen (page 11): the glyphs of `icons.tsx` on a grid of hairlines, 6 across. */
+function IconSet({ glyphs, size }: { glyphs: readonly IconName[]; size: Size }) {
+  const m = useMessages();
+  return (
+    <Flood
+      paint={INK}
+      className={TILE}
+      style={{ width: size.w, height: size.h }}
+      data-specimen="icons"
+    >
+      <div
+        {...scope("dark")}
+        className="flex h-full flex-col justify-between p-6 font-body text-text-primary"
+      >
+        <span className="text-label-md">{m.orvCanvas.use.icons}</span>
+        <div className="grid grid-cols-6 self-center border-s border-t border-border-subtle">
+          {glyphs.map((name) => {
+            const Glyph = ICON_BY_NAME[name];
+            return (
+              <div
+                key={name}
+                data-glyph={name}
+                className="flex size-9 items-center justify-center border-e border-b border-border-subtle"
+              >
+                <Glyph className="size-5" />
+              </div>
+            );
+          })}
+        </div>
+        <span className="text-body-xs text-text-secondary">{m.orvCanvas.use.iconsNote}</span>
+      </div>
+    </Flood>
+  );
+}
+
+/** One piece drawn at a tile size; the variant "grid" is the phone of the book's page 11. */
 function PieceArt({
   piece,
   size,
   variant,
-  onPage = false,
 }: {
   piece: PieceRecord;
   size: Size;
-  variant?: "violet" | "small" | undefined;
-  onPage?: boolean | undefined;
+  variant?: "grid" | undefined;
 }) {
-  const m = useMessages();
   const c = piece.content;
   const tile = "relative overflow-hidden rounded-media";
   const box = { width: size.w, height: size.h };
@@ -864,149 +1237,31 @@ function PieceArt({
           </div>
         </Flood>
       );
-    case "icon": {
-      const full = onPage;
-      const side = full ? Math.min(size.w, size.h) : c.side * Math.min(size.w, size.h);
-      const violetIcon = variant === "violet";
-      const ground: Paint = full && violetIcon ? VIOLET : c.ground;
-      return (
-        <Flood paint={full ? PAPER : piece.flood} className={tile} style={box}>
-          <Flood
-            paint={ground}
-            className={cx(
-              "absolute flex items-center justify-center",
-              full ? "border border-border-subtle" : "shadow-overlay",
-            )}
-            style={{
-              width: side,
-              height: side,
-              left: (size.w - side) / 2,
-              top: (size.h - side) / 2,
-              borderRadius: side * c.radius,
-            }}
-          >
-            <div {...scope("dark")}>
-              <Logo
-                kind="mark"
-                height={side * c.mark}
-                tone={violetIcon ? "one-colour" : "full"}
-                decorative
-              />
-            </div>
-          </Flood>
-        </Flood>
-      );
-    }
-    case "lockup": {
-      const width = c.width * size.w;
-      const height = (width * 150) / 663;
+    case "window": {
+      // The browser is laid from `inset` of the tile width, `span` times as wide as the tile, so it
+      // bleeds off the end and the bottom; the tile clips it.
+      const inset = size.w * c.inset;
+      const width = size.w * c.span;
+      const scale = width / c.design.w;
       return (
         <Flood paint={piece.flood} className={tile} style={box}>
           <div
-            {...scope("dark")}
-            className="absolute text-text-secondary"
-            style={{ width, height, left: (size.w - width) / 2, top: (size.h - height) / 2 }}
+            className="absolute overflow-hidden rounded-container"
+            style={{ left: inset, top: inset }}
           >
-            <svg
-              className="absolute inset-0 overflow-visible"
-              viewBox="0 0 663 150"
-              width={width}
-              height={height}
-              aria-hidden="true"
-              focusable="false"
-              data-guides=""
-            >
-              <g
-                stroke="currentColor"
-                strokeWidth={c.guides.stroke}
-                strokeDasharray={`${c.guides.dash} ${c.guides.dash}`}
-                fill="none"
-              >
-                <line x1={-60} y1={45} x2={723} y2={45} />
-                <line x1={-60} y1={145} x2={723} y2={145} />
-                <rect x={0} y={0} width={150} height={150} />
-                <line x1={190} y1={-30} x2={190} y2={180} />
-                <line x1={662.5} y1={-30} x2={662.5} y2={180} />
-              </g>
-            </svg>
-            <Logo kind="horizontal" height={height} tone="one-colour" decorative />
+            <LiveFrame outer={{ w: width, h: c.design.h * scale }} design={c.design.w} mode="dark">
+              <BrowserWindow design={c.design} />
+            </LiveFrame>
           </div>
         </Flood>
       );
     }
-    case "phone": {
-      const w = size.w * c.width;
-      const h = w * c.ratio;
-      const bezel = w * c.bezel;
-      return (
-        <Flood paint={piece.flood} className={tile} style={box}>
-          <Flood
-            paint={INK}
-            className="absolute shadow-overlay"
-            style={{
-              left: (size.w - w) / 2,
-              top: size.h * c.top,
-              width: w,
-              height: h,
-              borderRadius: w * c.radius,
-            }}
-          >
-            <div
-              className="absolute overflow-hidden"
-              style={{
-                left: bezel,
-                top: bezel,
-                width: w - 2 * bezel,
-                height: h - 2 * bezel,
-                borderRadius: w * c.screenRadius,
-              }}
-            >
-              <LiveFrame
-                outer={{ w: w - 2 * bezel, h: h - 2 * bezel }}
-                design={c.screenWidth}
-                mode="light"
-              >
-                <Landing />
-              </LiveFrame>
-            </div>
-          </Flood>
-        </Flood>
-      );
-    }
-    case "ink": {
-      const small = variant === "small";
-      const lines = c.lines.map((line) =>
-        small && "k" in line.size ? { ...line, size: { k: 0.9 } } : line,
-      );
-      return (
-        <Flood paint={piece.flood} className={tile} style={box}>
-          <GiantMark
-            size={c.mark.size * size.h}
-            ring={c.mark.ring}
-            dot={c.mark.dot}
-            style={{ left: size.w - c.mark.endInset * size.h, top: c.mark.top * size.h }}
-          />
-          {small ? null : (
-            <div {...scope("dark")} className="absolute" style={{ left: 40, top: 36 }}>
-              <Logo kind="horizontal" height={c.lockupSize} decorative />
-            </div>
-          )}
-          <div
-            className="absolute flex flex-col items-start gap-6"
-            style={{ left: 40, bottom: 40 }}
-          >
-            {lines.map((line, i) => (
-              <ArtLine key={i} line={line} />
-            ))}
-            <div {...scope("light")}>
-              <Button variant="intent" size={small ? "md" : c.action.size} tabIndex={-1}>
-                {copyOf(m, c.action.label)}
-              </Button>
-            </div>
-          </div>
-        </Flood>
-      );
-    }
+    case "phone":
+      return <PhonePiece piece={piece} content={c} size={size} grid={variant === "grid"} />;
+    case "icon":
+      return <HomeScreenPiece piece={piece} content={c} size={size} />;
+    case "share":
+      return <SharePiece piece={piece} content={c} size={size} />;
   }
 }
 
@@ -1107,6 +1362,93 @@ function ColumnLines({ lines, from, to }: { lines: readonly ArtText[]; from: num
   );
 }
 
+/** One live screen of page 10's field: a rounded, floating, inert frame at a ratio of its width. */
+function FieldScreen({
+  w,
+  ratio,
+  design,
+  mode,
+  children,
+}: {
+  w: number;
+  ratio: number;
+  design: number;
+  mode: Mode;
+  children: ReactNode;
+}) {
+  return (
+    <div
+      className="overflow-hidden rounded-container shadow-overlay"
+      style={{ width: w, height: w * ratio }}
+    >
+      <LiveFrame outer={{ w, h: w * ratio }} design={design} mode={mode}>
+        {children}
+      </LiveFrame>
+    </div>
+  );
+}
+
+/**
+ * Page 10's art: the three things the prototype shows, the landing, the board and the guidebook, as
+ * live screens in a group turned about its centre on the brand flood. The landing's one intent
+ * button is the page's only lime.
+ */
+function FieldArt({ art, size }: { art: Extract<BookArt, { kind: "field" }>; size: Size }) {
+  const locale = useLocale();
+  const { group, phone, column } = art;
+  const phoneDesign = 390;
+  const ratio = 2.06;
+  return (
+    <Flood
+      paint={art.ground}
+      className="relative overflow-hidden"
+      style={{ width: size.w, height: size.h }}
+      data-field-art=""
+    >
+      <div
+        className="absolute"
+        style={{
+          left: group.x,
+          top: group.y,
+          width: group.w,
+          height: group.h,
+          transform: `rotate(${group.rotate}deg)`,
+          transformOrigin: "50% 50%",
+        }}
+      >
+        <div className="absolute" style={{ left: phone.at[0], top: phone.at[1] }}>
+          <FieldScreen w={phone.width} ratio={ratio} design={phoneDesign} mode="dark">
+            <OriviloLanding lang={locale} width={phoneDesign} photograph={false} />
+          </FieldScreen>
+        </div>
+        <div
+          className="absolute flex flex-col"
+          style={{ left: column.at[0], top: column.at[1], gap: column.gap }}
+        >
+          <FieldScreen
+            w={column.window}
+            ratio={BROWSER.h / BROWSER.w}
+            design={BROWSER.w}
+            mode="dark"
+          >
+            <BrowserWindow design={BROWSER} />
+          </FieldScreen>
+          <FieldScreen w={column.guidebook} ratio={ratio} design={phoneDesign} mode="light">
+            <div style={{ width: phoneDesign }}>
+              <GuidebookScreen
+                access="ready"
+                guidebook={done(locale)}
+                boardHref="#"
+                signInHref="#"
+              />
+            </div>
+          </FieldScreen>
+        </div>
+      </div>
+    </Flood>
+  );
+}
+
 function Opener({ page }: { page: BookPageRecord }) {
   const { inkHalf, size, pad } = BOOK_FRAME;
   const rows: ReactNode[] = [];
@@ -1157,14 +1499,9 @@ function Opener({ page }: { page: BookPageRecord }) {
           ))}
         </div>
       ) : null}
-      {art?.kind === "photo" ? (
+      {art?.kind === "field" ? (
         <div className="absolute" style={{ left: panel.left, top: 0 }}>
-          <Photo
-            id={art.image}
-            size={{ w: panel.width, h: panel.height }}
-            flood={VIOLET}
-            focus={art.focus}
-          />
+          <FieldArt art={art} size={{ w: panel.width, h: panel.height }} />
         </div>
       ) : null}
     </>
@@ -1358,19 +1695,22 @@ function Applications({ page }: { page: BookPageRecord }) {
   if (art?.kind !== "pieces") return null;
   return (
     <>
-      {art.pieces.map((p, i) => (
+      {art.pieces.map((p: Placement, i) => (
         <div
           key={i}
           className="absolute"
           style={{ left: p.box.x, top: p.box.y }}
-          data-piece={p.piece}
+          {...("piece" in p ? { "data-piece": p.piece } : { "data-placement": p.specimen })}
         >
-          <PieceArt
-            piece={pieceOf(p.piece)}
-            size={{ w: p.box.w, h: p.box.h }}
-            variant={p.variant}
-            onPage
-          />
+          {"piece" in p ? (
+            <PieceArt
+              piece={pieceOf(p.piece)}
+              size={{ w: p.box.w, h: p.box.h }}
+              variant={p.variant}
+            />
+          ) : (
+            <IconSet glyphs={p.glyphs} size={{ w: p.box.w, h: p.box.h }} />
+          )}
         </div>
       ))}
     </>

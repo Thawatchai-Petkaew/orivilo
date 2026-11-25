@@ -48,11 +48,11 @@ export type PieceId =
   | "place"
   | "making"
   | "type" // direction board, 5
-  | "hero"
-  | "icon"
-  | "lockup"
+  | "window"
   | "phone"
-  | "ink"
+  | "icon"
+  | "hero"
+  | "share"
   | "card"
   | "sign"; // brand in use board, 7
 export type PaletteId = "violet" | "violetDark" | "ink" | "canvas" | "lime";
@@ -145,24 +145,50 @@ export type PieceContent =
       };
     }
   | { kind: "type"; lines: readonly ArtText[] }
-  | { kind: "icon"; side: number; radius: number; mark: number; ground: Paint }
-  | { kind: "lockup"; width: number; guides: { dash: number; stroke: number } }
   | {
-      kind: "phone";
-      width: number;
-      ratio: number;
-      top: number;
-      radius: number;
-      bezel: number;
-      screenRadius: number;
-      screenWidth: number;
+      // The app in a browser window (A): the browser at `design` px laid from `inset` of the tile
+      // width, `span` times the tile width wide, so it bleeds off the end and the bottom.
+      kind: "window";
+      design: Size;
+      inset: number;
+      span: number;
     }
   | {
-      kind: "ink";
-      mark: { size: number; endInset: number; top: number; ring: Paint; dot: Paint };
-      lockupSize: number;
-      lines: readonly ArtText[];
-      action: { label: CopyKey; size: "lg" | "md" };
+      // The landing on a phone (B). The width is a fraction of the tile width, capped so the phone
+      // is at most `fit` of the tile height; `place` is where the free height above it is split.
+      kind: "phone";
+      width: number;
+      fit: number;
+      ratio: number;
+      place: number;
+      bezel: number; // of the phone width
+      screenWidth: number; // design px of the landing
+      // The page 11 variant "grid": the phone sits `bottom` of the tile height above the tile's
+      // end; two dashed lines at `lines` and a measure at `measure` x positions, in screen design px.
+      grid: {
+        bottom: number;
+        lines: readonly [number, number];
+        measure: readonly [number, number, number, number];
+      };
+    }
+  | {
+      // The app icon on a phone home screen (C): px of the tile or of the tile's width.
+      kind: "icon";
+      left: number; // of the tile width
+      top: number; // of the tile height
+      width: number; // of the tile width
+      height: number; // of the tile height
+      bezel: number;
+      clock: Pt;
+      icon: { at: Pt; side: number; mark: number }; // side of the tile width, mark of the side
+    }
+  | {
+      // The link share card (E): one card centred in the tile, the image at 1.91 : 1.
+      kind: "share";
+      card: { max: number; margin: number };
+      image: Size;
+      mark: { size: number; at: Pt };
+      logo: { height: number; inset: number };
     }
   | { kind: "lines"; lines: readonly ArtText[] }; // the direction board's `line` piece: words on a flood
 export interface PieceRecord {
@@ -205,11 +231,19 @@ export type BookArt =
       ground?: Paint; // an opener's art panel, filling the page to the right of the ink half
     }
   | { kind: "fields"; ratio: readonly number[]; paints: readonly Paint[] }
-  | { kind: "photo"; image: ImageId; focus: Pt }
   | {
-      kind: "pieces";
-      pieces: readonly { piece: PieceId; box: Box; variant?: "violet" | "small" }[];
-    };
+      // Page 10's art: three live screens on a flood, in a group turned about its centre.
+      kind: "field";
+      ground: Paint;
+      group: Box & { rotate: number }; // px of the art panel, degrees
+      phone: { at: Pt; width: number }; // the landing on a phone screen, at a 2.06 ratio
+      column: { at: Pt; gap: number; window: number; guidebook: number }; // widths of the two screens
+    }
+  | { kind: "pieces"; pieces: readonly Placement[] };
+/** One placement of page 11: an In use piece cropped to a box, or the icon set specimen. */
+export type Placement =
+  | { piece: PieceId; box: Box; variant?: "grid" }
+  | { specimen: "icons"; box: Box; glyphs: readonly IconName[] };
 export interface BookPageRecord {
   n: number; // 1 to 12
   part: BookPart;
@@ -702,6 +736,42 @@ export function cellBox(cell: { col: number; row: number; cols: number; rows: nu
   };
 }
 
+/** Data, not copy: the brand name, the production address of ADR 0010 and a home screen clock. */
+export const BRAND_NAME = "ORIVILO";
+export const ADDRESS = "orivilo.vercel.app";
+export const CLOCK = "9:41";
+/** The browser of piece A and of page 10, at its design size. */
+export const BROWSER: Size = { w: 1180, h: 600 };
+
+/** The 24 glyphs of the icon set specimen (page 11), 6 x 4, in reading order: names in `icons.tsx`. */
+export const ICON_SET = [
+  "Cursor",
+  "Hand",
+  "Plus",
+  "Search",
+  "Undo",
+  "Redo",
+  "InputBlock",
+  "Knowledge",
+  "Artifact",
+  "Reference",
+  "Direction",
+  "Note",
+  "ReadStep",
+  "DraftStep",
+  "CompareStep",
+  "GenerateStep",
+  "Eye",
+  "Group",
+  "Chat",
+  "Send",
+  "Upload",
+  "Copy",
+  "Trash",
+  "Fit",
+] as const;
+export type IconName = (typeof ICON_SET)[number];
+
 export const PIECES: readonly PieceRecord[] = [
   {
     id: "people",
@@ -763,69 +833,78 @@ export const PIECES: readonly PieceRecord[] = [
     second: "direction.typeSub",
   },
   {
+    id: "window",
+    board: "inUse",
+    box: cellBox({ col: 0, row: 0, cols: 3, rows: 2 }),
+    flood: VIOLET,
+    content: { kind: "window", design: BROWSER, inset: 0.052, span: 1.31 },
+    caption: "use.window",
+    second: "use.windowSub",
+  },
+  {
+    id: "phone",
+    board: "inUse",
+    box: cellBox({ col: 3, row: 0, cols: 1, rows: 2 }),
+    flood: PAPER,
+    content: {
+      kind: "phone",
+      width: 0.84,
+      fit: 0.8,
+      ratio: 2.06,
+      place: 0.55,
+      bezel: 0.035,
+      screenWidth: 390,
+      grid: { bottom: 0.03, lines: [24, 366], measure: [0, 24, 366, 390] },
+    },
+    caption: "use.phone",
+    second: "use.phoneSub",
+  },
+  {
+    id: "icon",
+    board: "inUse",
+    box: cellBox({ col: 4, row: 0, cols: 1, rows: 1 }),
+    flood: VIOLET,
+    content: {
+      kind: "icon",
+      left: 0.16,
+      top: 0.14,
+      width: 0.68,
+      height: 1.2,
+      bezel: 8,
+      clock: [20, 14],
+      icon: { at: [20, 52], side: 0.3, mark: 0.62 },
+    },
+    caption: "use.icon",
+    second: "use.iconSub",
+  },
+  {
     id: "hero",
     board: "inUse",
-    box: cellBox({ col: 0, row: 0, cols: 2, rows: 2 }),
+    box: cellBox({ col: 4, row: 1, cols: 1, rows: 2 }),
     flood: VIOLET,
     content: { kind: "photo", image: "brand-hero", focus: [50, 34] },
     caption: "use.hero",
     second: "use.heroSub",
   },
   {
-    id: "icon",
+    id: "share",
     board: "inUse",
-    box: cellBox({ col: 2, row: 0, cols: 1, rows: 1 }),
-    flood: VIOLET,
-    content: { kind: "icon", side: 0.52, radius: 0.225, mark: 0.62, ground: INK },
-    caption: "use.icon",
-    second: "use.drawn",
-  },
-  {
-    id: "lockup",
-    board: "inUse",
-    box: cellBox({ col: 3, row: 0, cols: 2, rows: 1 }),
-    flood: VIOLET,
-    content: { kind: "lockup", width: 0.86, guides: { dash: 7, stroke: 1.6 } },
-    caption: "use.lockup",
-    second: "use.drawn",
-  },
-  {
-    id: "phone",
-    board: "inUse",
-    box: cellBox({ col: 2, row: 1, cols: 1, rows: 2 }),
-    flood: VIOLET,
+    box: cellBox({ col: 0, row: 2, cols: 2, rows: 1 }),
+    flood: PAPER,
     content: {
-      kind: "phone",
-      width: 0.84,
-      ratio: 2.06,
-      top: 0.16,
-      radius: 0.15,
-      bezel: 0.035,
-      screenRadius: 0.12,
-      screenWidth: 390,
+      kind: "share",
+      card: { max: 300, margin: 24 },
+      image: { w: 600, h: 315 },
+      mark: { size: 360, at: [236, -8] },
+      logo: { height: 44, inset: 44 },
     },
-    caption: "use.phone",
-    second: "use.phoneSub",
-  },
-  {
-    id: "ink",
-    board: "inUse",
-    box: cellBox({ col: 3, row: 1, cols: 2, rows: 2 }),
-    flood: INK,
-    content: {
-      kind: "ink",
-      mark: { size: 1.12, endInset: 0.62, top: -0.2, ring: VIOLET, dot: VIOLET_ON_INK },
-      lockupSize: 30,
-      lines: [art(d(TAGLINE), { k: 1.2 }, TEXT_ON_DARK, { maxWidth: 330 })],
-      action: { label: "use.start", size: "lg" },
-    },
-    caption: "use.ink",
-    second: "use.inkSub",
+    caption: "use.share",
+    second: "use.shareSub",
   },
   {
     id: "card",
     board: "inUse",
-    box: cellBox({ col: 0, row: 2, cols: 1, rows: 1 }),
+    box: cellBox({ col: 2, row: 2, cols: 1, rows: 1 }),
     flood: VIOLET,
     content: {
       kind: "scene",
@@ -845,7 +924,7 @@ export const PIECES: readonly PieceRecord[] = [
   {
     id: "sign",
     board: "inUse",
-    box: cellBox({ col: 1, row: 2, cols: 1, rows: 1 }),
+    box: cellBox({ col: 3, row: 2, cols: 1, rows: 1 }),
     flood: INK,
     content: {
       kind: "scene",
@@ -874,7 +953,7 @@ export const BOARDS: Readonly<Record<BoardId, BoardRecord>> = {
   },
   inUse: {
     id: "inUse",
-    pieces: ["hero", "icon", "lockup", "phone", "ink", "card", "sign"],
+    pieces: ["window", "phone", "icon", "hero", "share", "card", "sign"],
     badge: "use.badge",
     line: "use.noteShort",
     note: "use.note",
@@ -1130,7 +1209,13 @@ export const BOOK: readonly BookPageRecord[] = [
       { n: "11", name: "wall.applications" },
       { n: "12", name: "wall.open" },
     ]),
-    art: { kind: "photo", image: "brand-hero", focus: [50, 30] },
+    art: {
+      kind: "field",
+      ground: VIOLET,
+      group: { x: 10, y: -40, w: 680, h: 960, rotate: -12 },
+      phone: { at: [40, 150], width: 250 },
+      column: { at: [314, 40], gap: 24, window: 560, guidebook: 250 },
+    },
   },
   {
     n: 11,
@@ -1143,12 +1228,12 @@ export const BOOK: readonly BookPageRecord[] = [
     art: {
       kind: "pieces",
       pieces: [
-        { piece: "phone", box: { x: 48, y: 82, w: 300, h: 638 } },
-        { piece: "sign", box: { x: 360, y: 82, w: 430, h: 313 } },
-        { piece: "card", box: { x: 802, y: 82, w: 430, h: 313 } },
-        { piece: "icon", box: { x: 360, y: 407, w: 150, h: 150 }, variant: "violet" },
-        { piece: "icon", box: { x: 522, y: 407, w: 150, h: 150 } },
-        { piece: "ink", box: { x: 802, y: 407, w: 430, h: 313 }, variant: "small" },
+        { piece: "phone", box: { x: 48, y: 82, w: 300, h: 646 }, variant: "grid" },
+        { piece: "window", box: { x: 360, y: 82, w: 560, h: 317 } },
+        { piece: "icon", box: { x: 932, y: 82, w: 300, h: 317 } },
+        { specimen: "icons", box: { x: 360, y: 411, w: 272, h: 317 }, glyphs: ICON_SET },
+        { piece: "card", box: { x: 644, y: 411, w: 288, h: 317 } },
+        { piece: "sign", box: { x: 944, y: 411, w: 288, h: 317 } },
       ],
     },
   },

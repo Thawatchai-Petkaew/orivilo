@@ -15,9 +15,14 @@ import {
 import { atWindow } from "../testing/window";
 import { OriviloCanvas } from "./orivilo-canvas";
 import {
+  ADDRESS,
+  BRAND_NAME,
   CHAPTERS,
+  CLOCK,
   EDGES,
+  ICON_SET,
   IMAGES,
+  BOOK,
   NODES,
   PALETTE,
   PIECES,
@@ -709,9 +714,17 @@ export const Default: Story = {
     )) {
       expect(el.closest("[inert]"), `${el.tagName} in a body is not focusable`).not.toBeNull();
     }
-    expect(
-      root.querySelectorAll("[data-book-page] :is(button, a[href], input, [tabindex='0'])"),
-    ).toHaveLength(0);
+    // A book page holds no control of its own; page 10's live screens hold controls, all inert.
+    const controls = root.querySelectorAll(
+      "[data-book-page] :is(button, a[href], input, [tabindex='0'])",
+    );
+    for (const el of controls) {
+      expect(
+        el.closest("[data-live-frame]"),
+        `${el.tagName} on a page is in a live screen`,
+      ).not.toBeNull();
+      expect(el.closest("[inert]"), `${el.tagName} on a page is inert`).not.toBeNull();
+    }
     await expectKeyboardOrder(root, words);
   },
 };
@@ -753,6 +766,7 @@ export const InThai: Story = {
       const page = stage.querySelector<HTMLElement>(`[data-book-page="${n}"]`) as HTMLElement;
       expectOneLine(page);
       expectTextInside(page, page.getBoundingClientRect(), `page ${n}`);
+      if (n === 10 || n === 11) await expectPartThree(page, n, TH);
       if (sample.has(n)) {
         for (const line of page.querySelectorAll<HTMLElement>("[data-art-line]")) {
           if (/[฀-๿]/.test(line.textContent ?? "") && (line.textContent ?? "").length < 40) {
@@ -1050,7 +1064,105 @@ const hexToRgb = (hex: string) => {
   return `rgb(${n >> 16}, ${(n >> 8) & 255}, ${n & 255})`;
 };
 
-/** The brand in use chapter: seven pieces, the scenes' faces read back, the live phone and the guides. */
+/** The computed radius of an element that carries only these classes, inside `scope`. */
+function radiusOf(scope: Element, className: string) {
+  const probe = document.createElement("div");
+  probe.className = className;
+  scope.append(probe);
+  const radius = getComputedStyle(probe).borderTopLeftRadius;
+  probe.remove();
+  return radius;
+}
+
+const cornerOf = (el: Element) => getComputedStyle(el).borderTopLeftRadius;
+
+/**
+ * The digital pieces of the In use board (spec ORV-309 row 11, C5, C11), read in `board`: the app in
+ * a browser with ORIVILO's live board, the landing on a phone, the app icon on a home screen and the
+ * link share card. Exactly one intent button, in the phone, in an inert subtree.
+ */
+async function expectDigitalPieces(board: Element, words: Messages) {
+  const overlay = radiusOf(board, "rounded-overlay");
+  const container = radiusOf(board, "rounded-container");
+  expect(overlay, "overlay and container are two radii").not.toBe(container);
+  const piece = (id: string) => {
+    const el = board.querySelector<HTMLElement>(`[data-piece="${id}"]`);
+    if (!el) throw new RangeError(`no piece ${id}`);
+    return el;
+  };
+  const intents = (el: Element) => el.querySelectorAll('.ds-button[data-variant="intent"]');
+  const use = words.orvCanvas.use;
+
+  // A: the app in a browser window. C11: a nested board fits only in view, so scroll it there.
+  const windowPiece = piece("window");
+  windowPiece.scrollIntoView({ block: "nearest" });
+  await fontsReady();
+  const browser = windowPiece.querySelector<HTMLElement>("[data-browser]");
+  expect(browser, "the browser").not.toBeNull();
+  const chrome = browser as HTMLElement;
+  expect(cornerOf(chrome), "the browser is rounded-container").toBe(container);
+  expect(chrome.textContent).toContain(ADDRESS);
+  expect(chrome.textContent).toContain(BRAND_NAME);
+  expect(chrome.textContent, "its navigation").toContain(words.orvCanvas.sheet.view.board);
+  expect(chrome.textContent, "its navigation").toContain(words.orvCanvas.sheet.view.guidebook);
+  await waitFor(() => expectAppBoardFitted(chrome, "the window"));
+  expect(chrome.querySelectorAll(".ds-node[data-selected]"), "one selected node").toHaveLength(1);
+  expect(chrome.querySelector(".ds-node-toolbar"), "its node toolbar").not.toBeNull();
+  expect(intents(windowPiece), "the window holds no intent button").toHaveLength(0);
+  expect(inertAndHidden(windowPiece.querySelector("[data-live-frame]") as Element)).toBe(true);
+
+  // B: the landing on a phone.
+  const phone = piece("phone");
+  const live = phone.querySelector<HTMLElement>("[data-live-frame]") as HTMLElement;
+  expect(inertAndHidden(live)).toBe(true);
+  expect(cornerOf(phone.querySelector(".rounded-overlay") as Element), "the phone's body").toBe(
+    overlay,
+  );
+  expect(cornerOf(live.parentElement as Element), "the phone's screen").toBe(container);
+  expect(intents(phone), "the phone holds the one intent button").toHaveLength(1);
+  expect(intents(phone)[0]?.closest("[inert]")).not.toBeNull();
+
+  // C: the app icon on a phone home screen.
+  const icon = piece("icon");
+  expect(cornerOf(icon.querySelector(".rounded-overlay") as Element), "home phone body").toBe(
+    overlay,
+  );
+  const rounded = icon.querySelectorAll(".rounded-container");
+  expect(rounded, "the screen and the icon").toHaveLength(2);
+  for (const el of rounded) {
+    expect(cornerOf(el), "screen and icon are rounded-container").toBe(container);
+  }
+  expect(icon.textContent).toContain(CLOCK);
+  expect(icon.textContent).toContain(BRAND_NAME);
+  expect(icon.querySelector('[data-kind="mark"]'), "the real mark").not.toBeNull();
+  expect(intents(icon), "the icon holds no intent button").toHaveLength(0);
+
+  // E: the link share card: the 1.91 : 1 image over the share tagline and the address.
+  const share = piece("share");
+  const image = share.querySelector<HTMLElement>("[data-share-image]") as HTMLElement;
+  const img = image.getBoundingClientRect();
+  expect(img.width / img.height, "the share image is 1.91 : 1").toBeCloseTo(600 / 315, 1);
+  expect(image.querySelector('[data-kind="horizontal"]'), "the horizontal logo").not.toBeNull();
+  const giant = image.querySelector('[data-kind="mark"]') as Element;
+  expect(giant, "the giant mark").not.toBeNull();
+  const mark = giant.getBoundingClientRect();
+  expect(mark.bottom, "the ring runs off the bottom").toBeGreaterThan(img.bottom);
+  expect(mark.right, "and stays inside the end").toBeLessThanOrEqual(img.right + 0.5);
+  const card = image.parentElement as HTMLElement;
+  expect(cornerOf(card), "the card is rounded-container").toBe(container);
+  expect(within(card).getByText(use.shareTagline), "the share tagline is the title").toBeDefined();
+  expect(within(card).getByText(ADDRESS), "the address").toBeDefined();
+  expect(card.getBoundingClientRect().bottom).toBeGreaterThan(img.bottom);
+  expect(intents(share), "the share card holds no intent button").toHaveLength(0);
+  // Nothing in the digital pieces is a picture of a page or an app.
+  for (const id of ["window", "phone", "icon", "share"]) {
+    expect(piece(id).querySelectorAll("img, picture, canvas"), `${id} holds no image`).toHaveLength(
+      0,
+    );
+  }
+}
+
+/** The brand in use chapter: seven pieces, the scenes' faces read back, the live screens and their parts. */
 export const InUseChapter: Story = {
   globals: { locale: "en" },
   args: { chapter: "inUse" },
@@ -1061,7 +1173,9 @@ export const InUseChapter: Story = {
       await imagesLoaded(nodeEl(root, "u-board"));
       expectChapterInView(root, "inUse", EN);
       const board = nodeEl(root, "u-board");
-      expect(board.querySelectorAll("[data-piece]")).toHaveLength(7);
+      expect(
+        [...board.querySelectorAll<HTMLElement>("[data-piece]")].map((p) => p.dataset.piece),
+      ).toEqual(["window", "phone", "icon", "hero", "share", "card", "sign"]);
       expectQuadsRead(board);
       expect(expectSceneLockups(board), "both scenes on the board").toBe(2);
       expectMarksAreLogos(board);
@@ -1078,21 +1192,17 @@ export const InUseChapter: Story = {
       expect(hero.children.length, "nothing but the image over the hero").toBe(
         hero.querySelectorAll(":scope > img").length,
       );
-      const phone = board.querySelector<HTMLElement>('[data-piece="phone"]') as HTMLElement;
-      const live = phone.querySelector<HTMLElement>("[data-live-frame]") as HTMLElement;
-      expect(inertAndHidden(live)).toBe(true);
-      expect(live.querySelector(".ds-button")).not.toBeNull();
+      // Every image on the board is a photograph or a scene's lockup (canvas-image-1, row 13).
+      for (const img of board.querySelectorAll("img")) {
+        expect(
+          img.closest("[data-photo]") !== null,
+          `${img.getAttribute("src")} sits in a photograph tile`,
+        ).toBe(true);
+      }
+      await expectDigitalPieces(board, EN);
       const intents = board.querySelectorAll('.ds-button[data-variant="intent"]');
-      expect(intents).toHaveLength(1);
+      expect(intents, "one intent button on the board").toHaveLength(1);
       expect(intents[0]?.closest("[inert]")).not.toBeNull();
-      const lockup = board.querySelector<HTMLElement>("[data-guides]") as HTMLElement;
-      const scope = lockup.closest("[data-mode]") as HTMLElement;
-      expect(scope.getAttribute("data-mode")).toBe("dark");
-      const secondary = resolvedColor(scope, "--ds-text-secondary");
-      const strokes = lockup.querySelector("g") as SVGElement;
-      expect(getComputedStyle(strokes).stroke).toBe(secondary);
-      expect(getComputedStyle(strokes).opacity).toBe("1");
-      expect(getComputedStyle(lockup).opacity).toBe("1");
     }),
 };
 
@@ -1292,6 +1402,167 @@ async function expectPaperBounds(
   }
 }
 
+/** The box of `el` inside `page`, in the page's own 1280 x 800 design px. */
+function designBox(el: Element, page: Element) {
+  const p = page.getBoundingClientRect();
+  const k = p.width / 1280;
+  const r = el.getBoundingClientRect();
+  return { x: (r.left - p.left) / k, y: (r.top - p.top) / k, w: r.width / k, h: r.height / k };
+}
+
+/**
+ * Brandbook part 03 (spec ORV-309 row 12): page 10 holds the ink half and a field of three live
+ * screens at -12 degrees on violet, no image and one intent button, in the landing; page 11 holds six
+ * placements, the phone with its layout grid and measure, the window, the icon, the icon set of 24
+ * glyphs, the card and the sign, and one intent button, in the phone. Nothing is clipped or spills.
+ */
+async function expectPartThree(page: HTMLElement, n: 10 | 11, words: Messages) {
+  const intents = page.querySelectorAll('.ds-button[data-variant="intent"]');
+  expect(intents, `page ${n} holds one intent button`).toHaveLength(1);
+  expect(intents[0]?.closest("[inert]"), `page ${n} intent is inert`).not.toBeNull();
+  if (n === 10) {
+    expect(page.querySelectorAll("img, picture"), "page 10 holds no image").toHaveLength(0);
+    const field = page.querySelector<HTMLElement>("[data-field-art]") as HTMLElement;
+    expect(field, "the field").not.toBeNull();
+    // The three screens, not the live frames nested inside them (the landing holds its own).
+    const frames = [...field.querySelectorAll<HTMLElement>("[data-live-frame]")].filter(
+      (f) => f.parentElement?.closest("[data-live-frame]") === null,
+    );
+    expect(frames, "three live screens").toHaveLength(3);
+    for (const frame of frames) expect(inertAndHidden(frame)).toBe(true);
+    expect(field.querySelector("[data-browser]"), "the app in a browser").not.toBeNull();
+    expect(field.querySelector(FOUNDATION), "the guidebook").not.toBeNull();
+    expect(intents[0]?.closest("[data-live-frame]"), "the intent is in the landing").toBe(
+      frames[0],
+    );
+    const group = field.firstElementChild as HTMLElement;
+    const m = new DOMMatrix(getComputedStyle(group).transform);
+    expect((Math.atan2(m.b, m.a) * 180) / Math.PI, "tilted -12 degrees").toBeCloseTo(-12, 1);
+    // The landing's logo and title stay inside the panel.
+    const panel = field.getBoundingClientRect();
+    const landing = frames[0] as HTMLElement;
+    // The landing's own logo and title: the first of each (a later h1 is its nested guidebook).
+    const own = [
+      landing.querySelector<HTMLElement>("[data-kind='horizontal']"),
+      landing.querySelector<HTMLElement>("h1"),
+    ];
+    for (const el of own as HTMLElement[]) {
+      expect(el, "the landing's logo and title").not.toBeNull();
+      const r = el.getBoundingClientRect();
+      expect(r.left, `${el.tagName} left`).toBeGreaterThanOrEqual(panel.left - 0.5);
+      expect(r.right, `${el.tagName} right`).toBeLessThanOrEqual(panel.right + 0.5);
+      expect(r.top, `${el.tagName} top`).toBeGreaterThanOrEqual(panel.top - 0.5);
+    }
+    return;
+  }
+  const placements = page.querySelectorAll<HTMLElement>("[data-piece], [data-placement]");
+  expect(placements, "six placements").toHaveLength(6);
+  const art = BOOK.find((p) => p.n === 11)?.art;
+  expect(art?.kind).toBe("pieces");
+  const list = art?.kind === "pieces" ? art.pieces : [];
+  placements.forEach((el, i) => {
+    const want = at(list, i).box;
+    const got = designBox(el, page);
+    expect(Math.abs(got.x - want.x), `placement ${i} x`).toBeLessThanOrEqual(1);
+    expect(Math.abs(got.y - want.y), `placement ${i} y`).toBeLessThanOrEqual(1);
+    expect(Math.abs(got.w - want.w), `placement ${i} width`).toBeLessThanOrEqual(1);
+    expect(Math.abs(got.h - want.h), `placement ${i} height`).toBeLessThanOrEqual(1);
+  });
+  const phone = page.querySelector<HTMLElement>('[data-piece="phone"]') as HTMLElement;
+  expect(intents[0]?.closest('[data-piece="phone"]'), "the intent is in piece B's phone").toBe(
+    phone,
+  );
+  // The layout grid: two dashed lines at 24 and 366 of the 390 screen, the measure 24, 342, 24.
+  const live = phone.querySelector<HTMLElement>("[data-live-frame]") as HTMLElement;
+  const screen = live.getBoundingClientRect();
+  const lines = [...phone.querySelectorAll<HTMLElement>("[data-layout-grid] > div")];
+  expect(lines, "two grid lines").toHaveLength(2);
+  const dashed = getComputedStyle(lines[0] as HTMLElement);
+  expect(dashed.borderInlineStartStyle, "dashed").toBe("dashed");
+  expect(dashed.borderInlineStartColor, "brand signature").toBe(
+    resolvedColor(lines[0] as HTMLElement, "--ds-brand-signature"),
+  );
+  const at390 = (x: number) => ((x - screen.left) / screen.width) * 390;
+  expect(at390((lines[0] as HTMLElement).getBoundingClientRect().left)).toBeCloseTo(24, 0);
+  expect(at390((lines[1] as HTMLElement).getBoundingClientRect().left)).toBeCloseTo(366, 0);
+  const measure = phone.querySelector<HTMLElement>("[data-measure]") as HTMLElement;
+  const labels = [...measure.querySelectorAll<HTMLElement>("span")];
+  expect(
+    labels.map((l) => l.textContent),
+    "the measure",
+  ).toEqual(["24", "342", "24"]);
+  const ticks = [...measure.querySelectorAll<HTMLElement>(".border-s")];
+  expect(ticks, "four ticks").toHaveLength(4);
+  [0, 24, 366, 390].forEach((x, i) => {
+    expect(at390((ticks[i] as HTMLElement).getBoundingClientRect().left), `tick ${i}`).toBeCloseTo(
+      x,
+      0,
+    );
+  });
+  const title = within(measure).getByText(words.orvCanvas.use.grid);
+  const tile = phone.getBoundingClientRect();
+  const parts = [title, ...labels];
+  for (const el of parts) {
+    const r = el.getBoundingClientRect();
+    expect(r.left, `${el.textContent} left`).toBeGreaterThanOrEqual(tile.left - 0.5);
+    expect(r.right, `${el.textContent} right`).toBeLessThanOrEqual(tile.right + 0.5);
+    expect(r.top, `${el.textContent} top`).toBeGreaterThanOrEqual(tile.top - 0.5);
+  }
+  const t = title.getBoundingClientRect();
+  for (const label of labels) {
+    const r = label.getBoundingClientRect();
+    const apart = r.left >= t.right || r.right <= t.left || r.top >= t.bottom || r.bottom <= t.top;
+    expect(apart, `"${label.textContent}" is clear of the title`).toBe(true);
+  }
+  // The window crops to the tile: the tab, the address and the navigation show.
+  const crop = page.querySelector<HTMLElement>('[data-piece="window"]') as HTMLElement;
+  const cropBox = crop.firstElementChild?.getBoundingClientRect() as DOMRect;
+  for (const text of [BRAND_NAME, ADDRESS, words.orvCanvas.sheet.view.board]) {
+    const el = within(crop).getAllByText(text)[0] as HTMLElement;
+    const r = el.getBoundingClientRect();
+    expect(r.right, `${text} is inside the window's tile`).toBeLessThanOrEqual(cropBox.right + 0.5);
+    expect(r.bottom, `${text} is inside the window's tile`).toBeLessThanOrEqual(
+      cropBox.bottom + 0.5,
+    );
+  }
+  // The icon set: 24 glyphs, 6 across and 4 down, whole in their cells, in the design's order.
+  const set = page.querySelector<HTMLElement>('[data-placement="icons"]') as HTMLElement;
+  const cells = [...set.querySelectorAll<HTMLElement>("[data-glyph]")];
+  expect(cells.map((c) => c.dataset.glyph)).toEqual([...ICON_SET]);
+  expect(
+    new Set(cells.map((c) => Math.round(c.getBoundingClientRect().top))),
+    "4 rows",
+  ).toHaveProperty("size", 4);
+  expect(
+    new Set(cells.map((c) => Math.round(c.getBoundingClientRect().left))),
+    "6 columns",
+  ).toHaveProperty("size", 6);
+  const setBox = set.getBoundingClientRect();
+  for (const cell of cells) {
+    const c = cell.getBoundingClientRect();
+    const svg = cell.querySelector("svg") as SVGElement;
+    expect(svg, `${cell.dataset.glyph} is drawn`).not.toBeNull();
+    const g = svg.getBoundingClientRect();
+    expect(g.width, `${cell.dataset.glyph} has a size`).toBeGreaterThan(0);
+    expect(g.left, `${cell.dataset.glyph} left`).toBeGreaterThanOrEqual(c.left - 0.5);
+    expect(g.right, `${cell.dataset.glyph} right`).toBeLessThanOrEqual(c.right + 0.5);
+    expect(g.top, `${cell.dataset.glyph} top`).toBeGreaterThanOrEqual(c.top - 0.5);
+    expect(g.bottom, `${cell.dataset.glyph} bottom`).toBeLessThanOrEqual(c.bottom + 0.5);
+    expect(c.right, `${cell.dataset.glyph} cell inside the specimen`).toBeLessThanOrEqual(
+      setBox.right,
+    );
+    expect(c.bottom, `${cell.dataset.glyph} cell inside the specimen`).toBeLessThanOrEqual(
+      setBox.bottom,
+    );
+  }
+  for (const text of [words.orvCanvas.use.icons, words.orvCanvas.use.iconsNote]) {
+    const r = within(set).getByText(text).getBoundingClientRect();
+    expect(r.left, `${text} left`).toBeGreaterThanOrEqual(setBox.left - 0.5);
+    expect(r.right, `${text} right`).toBeLessThanOrEqual(setBox.right + 0.5);
+    expect(r.bottom, `${text} bottom`).toBeLessThanOrEqual(setBox.bottom + 0.5);
+  }
+}
+
 /** Pages 1 to 12 of the book in the open dialog: fill, one-line furniture, marks, the page 11 intent button. */
 async function pageBook(dialog: HTMLElement) {
   // At 1440 by 900 a page fills the stage height (design: the preview's stage).
@@ -1313,12 +1584,10 @@ async function pageBook(dialog: HTMLElement) {
       expectOneLine(page);
       expectOwnStep(page, `page ${n}`);
       expectMarksAreLogos(page);
+      if (n === 10 || n === 11) await expectPartThree(page, n, EN);
       if (n === 11) {
         await imagesLoaded(page);
         expect(expectSceneLockups(page), "the card and the sign on page 11").toBe(2);
-        const intent = page.querySelector('.ds-button[data-variant="intent"]');
-        expect(intent, "page 11 intent button").not.toBeNull();
-        expect(intent?.closest("[inert]")).not.toBeNull();
       }
       if (n < 12) {
         await userEvent.keyboard("{ArrowRight}");
@@ -1764,6 +2033,7 @@ export const PreviewInUseBoard: Story = {
     await expectPaperBounds(stage, { ink: ALL_SIDES, tiles: true });
     expectQuadsRead(stage);
     expectMarksAreLogos(stage);
+    await expectDigitalPieces(stage, EN);
     // One label (honest-1), in the caption and not on the art.
     expect(within(dialog).getAllByText(copyOf(EN, "use.note"))).toHaveLength(1);
     expect(stage.textContent).not.toContain(copyOf(EN, "use.note"));
@@ -1787,6 +2057,15 @@ export const PreviewInUseBoard: Story = {
           await imagesLoaded(stage);
           expectQuadsRead(stage);
           expect(expectSceneLockups(stage), `${piece.id} lockup on its page`).toBe(1);
+        }
+        // One intent button on the whole board, in the phone: its page holds it, no other does.
+        expect(
+          stage.querySelectorAll('.ds-button[data-variant="intent"]'),
+          `${piece?.id} page intent buttons`,
+        ).toHaveLength(piece?.id === "phone" ? 1 : 0);
+        if (piece?.id === "window") {
+          const browser = stage.querySelector<HTMLElement>("[data-browser]") as HTMLElement;
+          await waitFor(() => expectAppBoardFitted(browser, "the window page"));
         }
         await expectPaperBounds(stage, { ink: ALL_SIDES, tiles: true });
       }
@@ -1959,6 +2238,60 @@ export const PreviewAt360: Story = {
   },
 };
 
+/**
+ * Spec ORV-309 rows 11 and 12 at 360: every page of the In use preview and of brandbook part 03
+ * holds its art inside the stage with no sideways scroll, the pieces inside the art.
+ */
+async function expectPagesHoldAt360(dialog: HTMLElement, from: number, count: number) {
+  await atWindow(360, 760, async () => {
+    const stage = stageOf(dialog);
+    for (let n = from; n < from + count; n++) {
+      await waitFor(() => expect(countOf(dialog)).toMatch(new RegExp(`^${n} / `)));
+      await fontsReady();
+      const art = stage.querySelector<HTMLElement>("[data-art-frame]") as HTMLElement;
+      expect(art.scrollWidth, `page ${n}: the frame's scrollWidth`).toBe(art.clientWidth);
+      const frame = art.getBoundingClientRect();
+      expect(frame.right, `page ${n}: inside the stage`).toBeLessThanOrEqual(
+        stage.getBoundingClientRect().right + 0.5,
+      );
+      expect(
+        document.documentElement.scrollWidth,
+        `page ${n}: the document does not scroll sideways`,
+      ).toBe(document.documentElement.clientWidth);
+      for (const piece of art.querySelectorAll<HTMLElement>("[data-piece], [data-placement]")) {
+        const r = piece.getBoundingClientRect();
+        const label = piece.dataset.piece ?? piece.dataset.placement;
+        expect(r.left, `page ${n} ${label} left`).toBeGreaterThanOrEqual(frame.left - 1);
+        expect(r.right, `page ${n} ${label} right`).toBeLessThanOrEqual(frame.right + 1);
+        expect(r.bottom, `page ${n} ${label} bottom`).toBeLessThanOrEqual(frame.bottom + 1);
+      }
+      if (n < from + count - 1) {
+        await userEvent.keyboard("{ArrowRight}");
+      }
+    }
+  });
+}
+
+/** The In use board at 360: all 8 pages (the board, then each piece) hold. */
+export const PreviewInUseBoardAt360: Story = {
+  globals: { locale: "en" },
+  args: { preview: { sequence: "inUse", page: 1 } },
+  play: async () => {
+    const dialog = await dialogOf(EN.orvCanvas.node.inUseBoard);
+    await expectPagesHoldAt360(dialog, 1, 8);
+  },
+};
+
+/** Brandbook part 03 at 360: page 10 (the field) and page 11 (six placements) hold. */
+export const PreviewBrandbookAt360: Story = {
+  globals: { locale: "en" },
+  args: { preview: { sequence: "book", page: 10 } },
+  play: async () => {
+    const dialog = await dialogOf(EN.orvCanvas.preview.book);
+    await expectPagesHoldAt360(dialog, 10, 3);
+  },
+};
+
 const ALL_IMAGES: readonly ImageId[] = IMAGES.map((i) => i.id);
 
 /** Every image missing: flood, id and the catalog line on each photo; the scenes keep the lockup on the face. */
@@ -1995,7 +2328,10 @@ export const MissingImages: Story = {
       const rec = at(sequence?.pages ?? [], n - 1);
       if ("piece" in rec.show) {
         const piece = PIECES.find((p) => p.id === (rec.show as { piece: string }).piece);
-        const image = piece && "image" in piece.content ? piece.content.image : null;
+        const image =
+          piece && (piece.content.kind === "photo" || piece.content.kind === "scene")
+            ? piece.content.image
+            : null;
         if (image) {
           expect(
             within(dialog).getByText(image, { selector: "p" }),

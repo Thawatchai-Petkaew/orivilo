@@ -16,6 +16,7 @@ import {
   EDGES,
   FRAMES,
   graphOf,
+  ICON_SET,
   IMAGES,
   NODES,
   PALETTE,
@@ -26,12 +27,17 @@ import {
   type Box,
   type Pt,
   type Quad,
+  ADDRESS,
+  BRAND_NAME,
+  BROWSER,
+  CLOCK,
   cellBox,
   coverCrop,
   homography,
   placeOnQuad,
   quadInTile,
   textOf,
+  VIOLET,
 } from "./orivilo-canvas.data";
 
 const th = messagesFor("th");
@@ -51,10 +57,7 @@ function tally<T>(items: readonly T[], key: (item: T) => string): Record<string,
 function allArt(): { where: string; line: ArtText }[] {
   const out: { where: string; line: ArtText }[] = [];
   for (const p of PIECES) {
-    const lines =
-      p.content.kind === "type" || p.content.kind === "lines" || p.content.kind === "ink"
-        ? p.content.lines
-        : [];
+    const lines = p.content.kind === "type" || p.content.kind === "lines" ? p.content.lines : [];
     lines.forEach((line, i) => out.push({ where: `piece ${p.id} line ${i}`, line }));
   }
   for (const page of BOOK) {
@@ -520,7 +523,15 @@ describe("orivilo canvas data, boards and book (spec rows 28, 29, 30)", () => {
     expect(boxes("direction")).toHaveLength(5);
     expect(boxes("inUse")).toHaveLength(7);
     expect(BOARDS.direction.pieces).toEqual(["people", "line", "place", "making", "type"]);
-    expect(BOARDS.inUse.pieces).toEqual(["hero", "icon", "lockup", "phone", "ink", "card", "sign"]);
+    expect(BOARDS.inUse.pieces).toEqual([
+      "window",
+      "phone",
+      "icon",
+      "hero",
+      "share",
+      "card",
+      "sign",
+    ]);
   });
 
   for (const board of ["direction", "inUse"] as const) {
@@ -589,6 +600,7 @@ describe("orivilo canvas data, boards and book (spec rows 28, 29, 30)", () => {
       expect(box.x + box.w).toBeLessThanOrEqual(1280);
       expect(box.y + box.h).toBeLessThanOrEqual(800);
     }
+    const name = (p: (typeof list)[number]) => ("piece" in p ? p.piece : p.specimen);
     for (const a of list) {
       for (const b of list) {
         if (a === b) continue;
@@ -597,9 +609,90 @@ describe("orivilo canvas data, boards and book (spec rows 28, 29, 30)", () => {
           b.box.x + b.box.w + 12 <= a.box.x ||
           a.box.y + a.box.h + 12 <= b.box.y ||
           b.box.y + b.box.h + 12 <= a.box.y;
-        expect(apart, `${a.piece} and ${b.piece}`).toBe(true);
+        expect(apart, `${name(a)} and ${name(b)}`).toBe(true);
       }
     }
+  });
+
+  it("places the six placements of page 11 in the design's boxes, the phone with its grid", () => {
+    const page = BOOK.find((p) => p.n === 11);
+    const list = page?.art?.kind === "pieces" ? page.art.pieces : [];
+    expect(
+      list.map((p) => [
+        "piece" in p ? p.piece : p.specimen,
+        p.box.x,
+        p.box.y,
+        p.box.w,
+        p.box.h,
+        "variant" in p ? p.variant : undefined,
+      ]),
+    ).toEqual([
+      ["phone", 48, 82, 300, 646, "grid"],
+      ["window", 360, 82, 560, 317, undefined],
+      ["icon", 932, 82, 300, 317, undefined],
+      ["icons", 360, 411, 272, 317, undefined],
+      ["card", 644, 411, 288, 317, undefined],
+      ["sign", 944, 411, 288, 317, undefined],
+    ]);
+  });
+
+  it("holds the 24 glyphs of the icon set in the design's order, 6 across and 4 down", () => {
+    expect(ICON_SET).toHaveLength(24);
+    expect(ICON_SET.length / 6).toBe(4);
+    expect(ICON_SET.join(" ")).toBe(
+      [
+        "Cursor Hand Plus Search Undo Redo",
+        "InputBlock Knowledge Artifact Reference Direction Note",
+        "ReadStep DraftStep CompareStep GenerateStep Eye Group",
+        "Chat Send Upload Copy Trash Fit",
+      ].join(" "),
+    );
+    expect(new Set(ICON_SET).size).toBe(24);
+    const page = BOOK.find((p) => p.n === 11);
+    const set = page?.art?.kind === "pieces" ? page.art.pieces.find((p) => "specimen" in p) : null;
+    expect(set && "glyphs" in set ? set.glyphs : []).toEqual(ICON_SET);
+  });
+
+  it("draws the phone's layout grid at 24 and 366 of 390, the measure 24, 342, 24", () => {
+    const phone = PIECES.find((p) => p.id === "phone");
+    if (phone?.content.kind !== "phone") throw new Error("no phone");
+    const { lines, measure } = phone.content.grid;
+    expect(phone.content.screenWidth).toBe(390);
+    expect(lines).toEqual([24, 366]);
+    expect(measure).toEqual([0, 24, 366, 390]);
+    expect(measure.slice(1).map((end, i) => end - (measure[i] ?? 0))).toEqual([24, 342, 24]);
+  });
+
+  it("opens page 10 with a field of three live screens at -12 degrees on violet", () => {
+    const art = BOOK.find((p) => p.n === 10)?.art;
+    expect(art?.kind).toBe("field");
+    if (art?.kind !== "field") return;
+    expect(art.ground).toEqual(VIOLET);
+    expect(art.group).toEqual({ x: 10, y: -40, w: 680, h: 960, rotate: -12 });
+    expect(art.phone).toEqual({ at: [40, 150], width: 250 });
+    expect(art.column).toEqual({ at: [314, 40], gap: 24, window: 560, guidebook: 250 });
+  });
+
+  it("gives the In use board the design's seven pieces on the grid, the screens first", () => {
+    const cells = PIECES.filter((p) => p.board === "inUse").map((p) => [p.id, p.box]);
+    expect(cells).toEqual([
+      ["window", cellBox({ col: 0, row: 0, cols: 3, rows: 2 })],
+      ["phone", cellBox({ col: 3, row: 0, cols: 1, rows: 2 })],
+      ["icon", cellBox({ col: 4, row: 0, cols: 1, rows: 1 })],
+      ["hero", cellBox({ col: 4, row: 1, cols: 1, rows: 2 })],
+      ["share", cellBox({ col: 0, row: 2, cols: 2, rows: 1 })],
+      ["card", cellBox({ col: 2, row: 2, cols: 1, rows: 1 })],
+      ["sign", cellBox({ col: 3, row: 2, cols: 1, rows: 1 })],
+    ]);
+    // Cells per piece, from the box: the digital pieces take 11 of the 15, the photograph 2, the
+    // card and the sign 1 each.
+    const count = (box: Box) =>
+      Math.round((box.w + 12) / 258.4) * Math.round((box.h + 12) / (776 / 3 + 12));
+    const take = (ids: string[]) =>
+      PIECES.filter((p) => ids.includes(p.id)).reduce((sum, p) => sum + count(p.box), 0);
+    expect(take(["window", "phone", "icon", "share"])).toBe(11);
+    expect(take(["hero"])).toBe(2);
+    expect(take(["card", "sign"])).toBe(2);
   });
 
   it("holds 12 book pages numbered 1 to 12 in four parts", () => {
@@ -736,7 +829,6 @@ describe("orivilo canvas data, images (spec row 33)", () => {
     for (const p of PIECES) {
       if (p.content.kind === "photo" || p.content.kind === "scene") used.add(p.content.image);
     }
-    for (const page of BOOK) if (page.art?.kind === "photo") used.add(page.art.image);
     for (const n of NODES) if (n.body.kind === "demo") used.add(n.body.image);
     expect([...used].sort()).toEqual([...ids].sort());
   });
@@ -747,7 +839,7 @@ describe("orivilo canvas data, quad helper (spec row 40)", () => {
   const sign = IMAGES.find((i) => i.id === "scene-sign");
   const IMG = { w: 1254, h: 1254 };
   const CELL = { w: 246.4, h: 776 / 3 };
-  const PAGE = { w: 430, h: 313 };
+  const PAGE = { w: 288, h: 317 }; // page 11's card and sign tiles
   const FACES = { card: { w: 350, h: 200 }, sign: { w: 600, h: 300 } };
 
   /** A projective map (row major, 9 values) applied to a point. */
@@ -852,8 +944,8 @@ describe("orivilo canvas data, quad helper (spec row 40)", () => {
     const W5: [Quad, { w: number; h: number }, number[]][] = [
       [card.quad, CELL, [50.0, 102.69, 181.92, 82.26, 197.44, 159.08, 64.74, 176.41]],
       [sign.quad, CELL, [37.06, 83.55, 208.04, 62.34, 208.04, 184.17, 37.06, 167.62]],
-      [card.quad, PAGE, [93.31, 112.21, 312.61, 78.24, 338.41, 205.95, 117.82, 234.76]],
-      [sign.quad, PAGE, [71.81, 80.39, 356.04, 45.13, 356.04, 247.66, 71.81, 220.14]],
+      [card.quad, PAGE, [54.29, 125.85, 215.96, 100.81, 234.98, 194.96, 72.36, 216.19]],
+      [sign.quad, PAGE, [38.44, 102.39, 247.98, 76.4, 247.98, 225.7, 38.44, 205.42]],
     ];
     for (const [quad, tile, expected] of W5) {
       const got = quadInTile(quad, tile, IMG).flatMap((p) => [...p]);
@@ -914,7 +1006,7 @@ describe("orivilo canvas data, art (spec row 41)", () => {
     const out: { where: string; line: ArtText; flood: string }[] = [];
     for (const p of PIECES) {
       const c = p.content;
-      if (c.kind !== "type" && c.kind !== "lines" && c.kind !== "ink") continue;
+      if (c.kind !== "type" && c.kind !== "lines") continue;
       c.lines.forEach((line, i) =>
         out.push({ where: `piece ${p.id} line ${i}`, line, flood: hexOfPaint(p.flood) }),
       );
@@ -1010,4 +1102,179 @@ describe("orivilo canvas data, the scene lockups are images of generated files (
       expect(svg).not.toContain("var(--");
     },
   );
+});
+
+describe("the In use board and brandbook part 03 (spec ORV-309 rows 11, 12, 13 and 14)", () => {
+  const source = readFileSync(resolve(import.meta.dirname, "orivilo-canvas.tsx"), "utf8");
+  const between = (from: string, to: string) => {
+    const a = source.indexOf(from);
+    const b = source.indexOf(to);
+    expect(a, from).toBeGreaterThanOrEqual(0);
+    expect(b, to).toBeGreaterThan(a);
+    return source.slice(a, b);
+  };
+  // The code of the digital pieces (A, B, C, E), the icon set specimen and page 10's field.
+  const pieces = between("const ICON_BY_NAME", "/** A board at 1280 x 800");
+  const field = between("/** One live screen of page 10's field", "function Opener(");
+  const digital = pieces + field;
+
+  /**
+   * Every way a digital piece could show an image of a page or an app, or call a model or an image
+   * service: an img tag, a picture tag, an svg image tag, a next/image Image, a CSS url() or
+   * backgroundImage, a fetch call, a request object, an OpenRouter name, a new Image().
+   */
+  const IMAGE_FORMS: [string, RegExp][] = [
+    ["img tag", /<img\b/],
+    ["picture tag", /<picture\b/],
+    ["svg image tag", /<image\b/],
+    ["next/image Image", /<Image\b/],
+    ["css url()", /\burl\(/],
+    ["backgroundImage style", /\bbackground-?[iI]mage\b/],
+    ["fetch call", /\bfetch\s*\(/],
+    ["XMLHttpRequest", /\bXMLHttpRequest\b/],
+    ["openrouter name", /openrouter/i],
+    ["new Image()", /\bnew\s+Image\s*\(/],
+  ];
+  const imageForm = (text: string) => IMAGE_FORMS.filter(([, re]) => re.test(text)).map(([n]) => n);
+
+  it("draws no image of a page or an app and calls no model or image service (canvas-image-1)", () => {
+    expect(imageForm(digital)).toEqual([]);
+    // Each form is a red sample of the guard.
+    const samples: Record<string, string> = {
+      "img tag": '<img src="/shot.png" />',
+      "picture tag": "<picture><source /></picture>",
+      "svg image tag": '<svg><image href="/shot.png" /></svg>',
+      "next/image Image": '<Image src="/shot.png" alt="" />',
+      "css url()": 'style={{ background: "url(/shot.png)" }}',
+      "backgroundImage style": "style={{ backgroundImage: shot }}",
+      "fetch call": 'await fetch("/api/image")',
+      XMLHttpRequest: "new XMLHttpRequest()",
+      "openrouter name": 'const host = "https://openrouter.ai"',
+      "new Image()": "const shot = new Image()",
+    };
+    expect(Object.keys(samples).sort()).toEqual(IMAGE_FORMS.map(([n]) => n).sort());
+    for (const [name, sample] of Object.entries(samples)) {
+      expect(imageForm(sample), name).toContain(name);
+    }
+  });
+
+  it("holds no intent button in the window, the icon, the share card, the icon set or the field", () => {
+    expect(countIntent(digital)).toBe(0);
+    expect(countIntent(source)).toBeLessThanOrEqual(1);
+  });
+
+  it("draws no raw radius, shadow, colour or font in the digital pieces (C5)", () => {
+    expect(digital).not.toMatch(
+      /\bborderRadius\b|\bboxShadow\b|#[0-9a-fA-F]{3,8}\b|rgba?\(|fontFamily/,
+    );
+    expect(digital).not.toMatch(/rounded-\[|shadow-\[|bg-\[|text-\[|font-\[/);
+  });
+
+  it("gives the phones' bodies rounded-overlay and their screens, the icon and the browser rounded-container (C5)", () => {
+    const phone = between("function PhonePiece", "function HomeScreenPiece");
+    const home = between("function HomeScreenPiece", "function SharePiece");
+    const browser = between("function BrowserWindow", "function PhonePiece");
+    // The body is the ink flood that is `relative rounded-overlay shadow-overlay`; the screen is
+    // the clipped box inside it.
+    expect(phone).toMatch(/className="relative rounded-overlay shadow-overlay"/);
+    expect(phone).toMatch(/className="absolute overflow-hidden rounded-container"/);
+    expect(home).toMatch(/className="absolute rounded-overlay shadow-overlay"/);
+    expect(home).toMatch(/className="absolute rounded-container"/);
+    expect(home).toMatch(/className="flex items-center justify-center rounded-container"/);
+    expect(browser).toMatch(/rounded-container border border-border-subtle bg-surface-sunken/);
+    expect(browser).toMatch(/rounded-t-media/);
+    expect(browser).toMatch(/rounded-control/);
+  });
+
+  it("builds the window from the Studio's own parts: TopNavigation and the live CanvasBoard", () => {
+    const browser = between("function BrowserWindow", "function PhonePiece");
+    expect(browser).toMatch(/<TopNavigation\b/);
+    expect(browser).toMatch(/<CanvasBoard\b/);
+    expect(browser).toMatch(/heroGraph\(/);
+    expect(browser).toMatch(/heroBody\(/);
+    expect(browser).toMatch(/n\.id === "pos"/); // the Positioning node is the selected one
+    expect(browser).toMatch(/<Avatar\b/);
+    expect(browser).toMatch(/<Logo kind="mark"/);
+    expect(browser).toMatch(/<Logo kind="horizontal"/);
+  });
+
+  it("shows page 10's landing and the board of the field and the guidebook, in three screens", () => {
+    expect(field.match(/<FieldScreen\b/g)).toHaveLength(3);
+    expect(field).toMatch(/<OriviloLanding\b/);
+    expect(field).toMatch(/<BrowserWindow\b/);
+    expect(field).toMatch(/<GuidebookScreen\b/);
+  });
+
+  it("keeps the English and Thai In use keys the same, with the lockup and ink tiles' keys gone", () => {
+    const keys = (m: typeof en) => Object.keys(m.orvCanvas.use).sort();
+    expect(keys(th)).toEqual(keys(en));
+    for (const key of [
+      "window",
+      "windowSub",
+      "icon",
+      "iconSub",
+      "share",
+      "shareSub",
+      "shareTagline",
+      "studioName",
+      "grid",
+      "icons",
+      "iconsNote",
+    ]) {
+      expect(en.orvCanvas.use, key).toHaveProperty(key);
+      expect(th.orvCanvas.use, key).toHaveProperty(key);
+    }
+    for (const key of ["lockup", "ink", "inkSub", "start"]) {
+      expect(en.orvCanvas.use, key).not.toHaveProperty(key);
+      expect(th.orvCanvas.use, key).not.toHaveProperty(key);
+    }
+  });
+
+  it("words the captions and the notes as the design's copy table gives them", () => {
+    const e = en.orvCanvas.use;
+    const t = th.orvCanvas.use;
+    expect([e.window, e.windowSub]).toEqual([
+      "The app in a browser",
+      "Mockup: the real board screen with ORIVILO's own example board.",
+    ]);
+    expect([e.icon, e.iconSub]).toEqual(["App icon on a home screen", "Drawn with the real mark."]);
+    expect([e.share, e.shareSub]).toEqual(["Link share card", "Drawn from the logo geometry."]);
+    expect([e.studioName, e.grid, e.icons, e.iconsNote]).toEqual([
+      "Studio",
+      "Layout at 390",
+      "Icons",
+      "Lucide, stroke 2.4 on a 24 grid",
+    ]);
+    expect([t.window, t.windowSub]).toEqual([
+      "แอปในเบราว์เซอร์",
+      "ม็อกอัป: หน้ากระดานจริง กับกระดานตัวอย่างของ ORIVILO เอง",
+    ]);
+    expect([t.icon, t.iconSub]).toEqual(["ไอคอนแอปบนหน้าจอโฮม", "วาดด้วยโลโก้จริง"]);
+    expect([t.share, t.shareSub]).toEqual(["การ์ดเมื่อแชร์ลิงก์", "วาดจากโครงสร้างของโลโก้"]);
+    expect([t.studioName, t.grid, t.icons, t.iconsNote]).toEqual([
+      "สตูดิโอ",
+      "เลย์เอาต์ที่ 390",
+      "ไอคอน",
+      "Lucide เส้นหนา 2.4 บนกริด 24",
+    ]);
+    for (const line of [...Object.values(e), ...Object.values(t)]) {
+      expect(line).not.toContain(MIDDOT);
+      expect(line).not.toContain(EM_DASH);
+    }
+  });
+
+  it("gives every In use piece a caption and a second line that exist in both languages", () => {
+    for (const piece of PIECES.filter((p) => p.board === "inUse")) {
+      for (const key of [piece.caption, piece.second]) {
+        const [, leaf] = key.split(".");
+        expect(en.orvCanvas.use, key).toHaveProperty(leaf ?? "");
+        expect(th.orvCanvas.use, key).toHaveProperty(leaf ?? "");
+      }
+    }
+  });
+
+  it("keeps the brand's data lines out of the catalog: name, address, clock, browser size", () => {
+    expect([BRAND_NAME, ADDRESS, CLOCK]).toEqual(["ORIVILO", "orivilo.vercel.app", "9:41"]);
+    expect(BROWSER).toEqual({ w: 1180, h: 600 });
+  });
 });
