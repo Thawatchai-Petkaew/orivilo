@@ -652,7 +652,8 @@ export const Default: Story = {
       (h) => !h.closest("[data-live-frame], [data-art-frame]"),
     );
     expect(outside).toHaveLength(1);
-    for (const img of root.querySelectorAll("img")) {
+    // The photographs are the image records; the scene lockups (ORV-308) are files of their own.
+    for (const img of root.querySelectorAll<HTMLImageElement>("img:not([data-lockup])")) {
       const record = IMAGES.find((i) => img.src.endsWith(i.file));
       expect(record, img.src).toBeDefined();
       expect(img.naturalWidth, img.src).toBe(record?.width);
@@ -1021,6 +1022,7 @@ export const InUseChapter: Story = {
       const board = nodeEl(root, "u-board");
       expect(board.querySelectorAll("[data-piece]")).toHaveLength(7);
       expectQuadsRead(board);
+      expect(expectSceneLockups(board), "both scenes on the board").toBe(2);
       expectMarksAreLogos(board);
       // One label per board (honest-1): the node's meta line says Mockups once, the art says nothing.
       expect(
@@ -1052,6 +1054,38 @@ export const InUseChapter: Story = {
       expect(getComputedStyle(lockup).opacity).toBe("1");
     }),
 };
+
+/**
+ * ORV-308 rows 1 and 3: the face of each scene in `scope` holds the lockup as an image of the generated
+ * file, at the size and tone of the record, and no inline svg (real Chrome draws a stroked inline svg
+ * wrongly under the face's perspective matrix). Returns how many scene faces it read.
+ */
+function expectSceneLockups(scope: Element): number {
+  let read = 0;
+  for (const piece of PIECES) {
+    if (piece.content.kind !== "scene") continue;
+    const content = piece.content;
+    const tile = scope.querySelector<HTMLElement>(`[data-photo="${content.image}"]`);
+    if (!tile) continue;
+    const face = tile.querySelector<HTMLElement>("[data-face]");
+    if (!face) throw new RangeError(`${piece.id} has no face`);
+    expect(face.querySelectorAll("svg"), `${piece.id} face holds no inline svg`).toHaveLength(0);
+    const images = face.querySelectorAll<HTMLImageElement>("img");
+    expect(images, `${piece.id} face holds the lockup image`).toHaveLength(1);
+    const img = images[0] as HTMLImageElement;
+    expect(new URL(img.src).pathname, `${piece.id} lockup file`).toBe(content.lockup.file);
+    expect(img.getAttribute("alt"), `${piece.id} lockup is decorative`).toBe("");
+    const width = content.lockup.width * content.face.w;
+    const style = getComputedStyle(img);
+    expect(parseFloat(style.width), `${piece.id} lockup width`).toBeCloseTo(width, 1);
+    expect(parseFloat(style.height), `${piece.id} lockup height`).toBeCloseTo(
+      (width * 150) / 663,
+      1,
+    );
+    read++;
+  }
+  return read;
+}
 
 /** Each scene's four markers lie within 1 px of the measured corners through the cover crop. */
 function expectQuadsRead(scope: Element) {
@@ -1239,6 +1273,8 @@ async function pageBook(dialog: HTMLElement) {
       expectOwnStep(page, `page ${n}`);
       expectMarksAreLogos(page);
       if (n === 11) {
+        await imagesLoaded(page);
+        expect(expectSceneLockups(page), "the card and the sign on page 11").toBe(2);
         const intent = page.querySelector('.ds-button[data-variant="intent"]');
         expect(intent, "page 11 intent button").not.toBeNull();
         expect(intent?.closest("[inert]")).not.toBeNull();
@@ -1437,6 +1473,7 @@ export const PreviewInUseBoard: Story = {
         if (piece?.content.kind === "scene") {
           await imagesLoaded(stage);
           expectQuadsRead(stage);
+          expect(expectSceneLockups(stage), `${piece.id} lockup on its page`).toBe(1);
         }
         await expectPaperBounds(stage, { ink: ALL_SIDES, tiles: true });
       }
@@ -1614,7 +1651,12 @@ export const MissingImages: Story = {
   play: async ({ canvasElement }) => {
     const root = canvasElement;
     await ready(root);
-    expect(root.querySelectorAll("img")).toHaveLength(0);
+    // The only images left are the two scene lockups, each on its face (they are files of their own,
+    // not the missing photographs): the fallback keeps the lockup on the face as an image.
+    expect(
+      root.querySelectorAll("img:not([data-face] > img[data-lockup])"),
+      "no photograph",
+    ).toHaveLength(0);
     const tiles = root.querySelectorAll<HTMLElement>("[data-photo]");
     expect(tiles.length).toBeGreaterThan(0);
     for (const tile of tiles) {
@@ -1625,8 +1667,8 @@ export const MissingImages: Story = {
     for (const piece of PIECES.filter((p) => p.content.kind === "scene")) {
       const tile = nodeEl(root, "u-board").querySelector(`[data-piece="${piece.id}"]`);
       expect(tile?.querySelector("polygon"), `${piece.id} polygon`).not.toBeNull();
-      expect(tile?.querySelector(".ds-logo"), `${piece.id} lockup`).not.toBeNull();
     }
+    expect(expectSceneLockups(nodeEl(root, "u-board")), "both lockups on the faces").toBe(2);
     const dialog = await openNode(root, "u-board", EN.orvCanvas.node.inUseBoard);
     await expectPaperBounds(stageOf(dialog), { ink: ALL_SIDES, tiles: true });
     const sequence = SEQUENCES.find((s) => s.id === ("inUse" satisfies SequenceId));

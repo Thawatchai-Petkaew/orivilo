@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import type { Graph } from "../components/canvas-board/graph";
 import { contrastRatio } from "../foundations/contrast";
+import { SCENE_LOCKUPS } from "../components/logo/assets";
 import { messagesFor } from "../i18n/messages/index";
 import { tokens } from "../tokens/index";
 import {
@@ -738,4 +739,44 @@ describe("orivilo canvas data, art (spec row 41)", () => {
       });
     }
   });
+});
+
+describe("orivilo canvas data, the scene lockups are images of generated files (ORV-308, rows 1 and 3)", () => {
+  const scenes = PIECES.flatMap((p) =>
+    p.content.kind === "scene" ? [{ id: p.id, ...p.content }] : [],
+  );
+
+  it("has a generated lockup for the card and the sign, and no other scene", () => {
+    expect(scenes.map((s) => s.id)).toEqual(["card", "sign"]);
+    expect(SCENE_LOCKUPS.map((l) => l.id)).toEqual(["card", "sign"]);
+  });
+
+  it.each(scenes)(
+    "$id: the file, the width, the tone and the mode follow the scene record",
+    (scene) => {
+      const generated = SCENE_LOCKUPS.find((l) => l.id === scene.id);
+      expect(generated, `${scene.id} lockup`).toBeDefined();
+      expect(generated?.width).toBeCloseTo(scene.lockup.width * scene.face.w, 9);
+      expect(generated?.tone).toBe(scene.lockup.tone);
+      expect(generated?.mode).toBe(scene.lockup.mode);
+      expect(scene.lockup.file).toBe(`/orv-274/${generated?.path.split("/").pop()}`);
+    },
+  );
+
+  it.each(scenes)(
+    "$id: the committed file is the lockup at the record's size and tone",
+    (scene) => {
+      const file = resolve(STATIC, scene.lockup.file.replace("/orv-274/", ""));
+      expect(existsSync(file)).toBe(true);
+      const svg = readFileSync(file, "utf8");
+      const width = scene.lockup.width * scene.face.w;
+      expect(svg).toMatch(/^<svg [^>]*data-kind="horizontal"/);
+      expect(svg).toContain(`data-tone="${scene.lockup.tone}"`);
+      expect(Number(/ width="([\d.]+)"/.exec(svg)?.[1])).toBeCloseTo(width, 1);
+      expect(Number(/ height="([\d.]+)"/.exec(svg)?.[1])).toBeCloseTo((width * 150) / 663, 1);
+      // The colours sit inside the file: an image does not read the page's custom properties.
+      expect(svg).toContain("<style>");
+      expect(svg).not.toContain("var(--");
+    },
+  );
 });
