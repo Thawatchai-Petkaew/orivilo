@@ -3282,7 +3282,7 @@ function coverOf(pane: Element): number {
  * store holds then, and the board's own `fitViewOptions` prop (a new object on each render) puts
  * its all-nodes options there, so a chapter fit lost to the board's own in some opens and not in
  * others (sign-off F4, the survey of c20cb1b). It runs again whenever what the view depends on
- * settles: the measured size of the chapter's nodes, the size of the pane and the fonts. The view
+ * settles: the measured size of the chapter's nodes, the size of the pane, the fonts and the dock's own box. The view
  * is a function of those and the chapter, so it is the same on every open.
  */
 function ChapterFit({ jump }: { jump: Jump }) {
@@ -3312,6 +3312,17 @@ function ChapterFit({ jump }: { jump: Jump }) {
     document.fonts.addEventListener("loadingdone", again);
     return () => document.fonts.removeEventListener("loadingdone", again);
   }, []);
+  // The dock and the task bar set how much of the pane's bottom the chapter must clear: fit again
+  // when their own boxes change, so a late change of either never leaves a stale view.
+  const [cover, setCover] = useState(0);
+  useEffect(() => {
+    if (!dom || !ready) return;
+    const observer = new ResizeObserver(() => setCover((n) => n + 1));
+    for (const furniture of dom.querySelectorAll(".react-flow__panel.bottom, .ds-taskbar")) {
+      if (furniture.closest("[data-live-frame]") === null) observer.observe(furniture);
+    }
+    return () => observer.disconnect();
+  }, [dom, ready]);
   // `setViewport` does nothing before the pane's zoom handler exists.
   const initialized = flow.viewportInitialized;
   const instance = useRef(flow);
@@ -3335,7 +3346,7 @@ function ChapterFit({ jump }: { jump: Jump }) {
     });
     return () => cancelAnimationFrame(frame);
     // `jump` carries a counter, so a second click on the same chapter fits again.
-  }, [ready, initialized, jump, chapter, dom, ids, measured, pane, fonts]);
+  }, [ready, initialized, jump, chapter, dom, ids, measured, pane, fonts, cover]);
   return null;
 }
 
@@ -3439,7 +3450,13 @@ export function OriviloCanvas({
           className="min-h-0"
           style={{ height: "max(640px, calc(var(--story-fill, 0px) - 8rem))" }}
         >
+          {/* The recipe rule `.ds-board:has(.ds-taskbar)` (recipes.css) matches any task bar below the
+              board, so the one nested in the composed sheet of p-pat would lift this board's dock and
+              status line by 74 px. This board has no task bar of its own: `--_lift` is cancelled
+              here (the nested board sets its own on itself, so its controls keep their lift). Scoping
+              the recipe to a board's own task bar is a follow-up (ORV-309 review r2, R2-1). */}
           <CanvasBoard
+            className="[--_lift:0px]!"
             variant="present"
             chrome={false}
             minimap={false}

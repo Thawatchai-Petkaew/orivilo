@@ -231,6 +231,36 @@ function expectNoOverlap(root: Element) {
 }
 
 /**
+ * The canvas's own bottom furniture sits where it sits on a board with no task bar (spec ORV-309,
+ * review r2 R2-1): the dock 16 px above the board's bottom edge, the status line 16 px above the
+ * dock. The task bar nested in the composed sheet of `p-pat` belongs to its own board and lifts
+ * nothing here. Read from the boxes, with the live frames mounted.
+ */
+function expectBottomFurniture(root: HTMLElement, words: Messages) {
+  const boardEl = boardOf(root);
+  const board = boardEl.getBoundingClientRect();
+  const dock = dockOf(root, words).closest<HTMLElement>(".react-flow__panel");
+  expect(dock, "the dock").not.toBeNull();
+  const dockBox = (dock as HTMLElement).getBoundingClientRect();
+  expect(getComputedStyle(dock as HTMLElement).marginBlockEnd, "the dock's bottom margin").toBe(
+    "16px",
+  );
+  // The 16 px margin sits inside the board's own border.
+  expect(board.bottom - dockBox.bottom, "the dock's gap to the board's bottom edge").toBeCloseTo(
+    16 + parseFloat(getComputedStyle(boardEl).borderBottomWidth),
+    0,
+  );
+  const status = [...boardOf(root).querySelectorAll<HTMLElement>(".ds-board__status")].find(
+    (el) => el.closest("[data-live-frame]") === null,
+  );
+  expect(status, "the status line").toBeDefined();
+  expect(
+    dockBox.top - (status as HTMLElement).getBoundingClientRect().bottom,
+    "the status line's gap to the dock's top edge",
+  ).toBeCloseTo(16, 0);
+}
+
+/**
  * Every node of the chapter lies inside the board, its bottom `clear` px (16 or more) above the
  * dock's top (spec ORV-309 C12). Every chapter story asserts it, on a direct open, not only the
  * product chapter.
@@ -238,6 +268,7 @@ function expectNoOverlap(root: Element) {
 function expectChapterInView(root: HTMLElement, id: string, words: Messages, clear = 16) {
   const chapter = CHAPTERS.find((c) => c.id === id);
   if (!chapter) throw new RangeError(`no chapter ${id}`);
+  expectBottomFurniture(root, words);
   const board = boardOf(root).getBoundingClientRect();
   const dock = dockOf(root, words).closest(".react-flow__panel")?.getBoundingClientRect();
   expect(dock, "the dock").toBeDefined();
@@ -609,6 +640,7 @@ export const Default: Story = {
     ).toBeDefined();
     expectNoOverlap(root);
     await expectPortPillsApart(root);
+    expectBottomFurniture(root, words);
 
     // Row 31 (C10): each point numeral of the demo reads at label-sm (13, weight 500, line height
     // 1) and sits in the middle of its 22 px disc, in the dark scope the disc is drawn in.
