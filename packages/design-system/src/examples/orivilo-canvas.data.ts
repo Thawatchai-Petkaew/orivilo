@@ -132,7 +132,14 @@ export type PieceContent =
       image: ImageId;
       face: Size; // the flat face the lockup is laid on, in face units
       surface: Paint; // the polygon of the missing state
-      lockup: { width: number; tone: "full" | "one-colour"; mode: "light" | "dark" };
+      // The lockup is laid on the face as an image of the generated file (ORV-308), whose colours
+      // are inside it; `tone` and `mode` say which file that is and the test reads them back.
+      lockup: {
+        width: number;
+        tone: "full" | "one-colour";
+        mode: "light" | "dark";
+        file: `/orv-274/scene-lockup-${"card" | "sign"}.svg`;
+      };
     }
   | { kind: "type"; lines: readonly ArtText[] }
   | { kind: "icon"; side: number; radius: number; mark: number; ground: Paint }
@@ -824,7 +831,12 @@ export const PIECES: readonly PieceRecord[] = [
       image: "scene-card",
       face: { w: 350, h: 200 },
       surface: { token: "surface.card", mode: "light" },
-      lockup: { width: 0.56, tone: "full", mode: "light" },
+      lockup: {
+        width: 0.56,
+        tone: "full",
+        mode: "light",
+        file: "/orv-274/scene-lockup-card.svg",
+      },
     },
     caption: "use.card",
     second: "use.sceneSub",
@@ -839,7 +851,12 @@ export const PIECES: readonly PieceRecord[] = [
       image: "scene-sign",
       face: { w: 600, h: 300 },
       surface: VIOLET,
-      lockup: { width: 0.65, tone: "one-colour", mode: "dark" },
+      lockup: {
+        width: 0.65,
+        tone: "one-colour",
+        mode: "dark",
+        file: "/orv-274/scene-lockup-sign.svg",
+      },
     },
     caption: "use.sign",
     second: "use.sceneSub",

@@ -1,7 +1,8 @@
 /**
  * The Logo's generated files (ORV-118 slice B, rules `logo-icon-1` and `logo-asset-1`, spec rows 17
  * to 21): the favicon SVG, the two app icon PNGs, the Storybook brand image and the Storybook tab
- * icon (ORV-274, the favicon's bytes again). Each case regenerates
+ * icon (ORV-274, the favicon's bytes again), then the two scene lockups of the prototype canvas
+ * (ORV-308). Each case regenerates
  * the files in memory from the drawing and the token source and never writes a file. Row 21 is the
  * freshness case: the committed bytes must equal a fresh render, and a changed token value or a
  * changed drawing number must make exactly the files that read it stale.
@@ -25,7 +26,9 @@ const ICON_32 = "apps/web/app/icon2.png";
 const ICON_180 = "apps/web/app/apple-icon.png";
 const STORYBOOK = "packages/design-system/.storybook/static/orivilo-logo.svg";
 const STORYBOOK_FAVICON = "packages/design-system/.storybook/static/favicon.svg";
-const ALL = [ICON_SVG, ICON_32, ICON_180, STORYBOOK, STORYBOOK_FAVICON];
+const SCENE_CARD = "packages/design-system/.storybook/static/orv-274/scene-lockup-card.svg";
+const SCENE_SIGN = "packages/design-system/.storybook/static/orv-274/scene-lockup-sign.svg";
+const ALL = [ICON_SVG, ICON_32, ICON_180, STORYBOOK, STORYBOOK_FAVICON, SCENE_CARD, SCENE_SIGN];
 
 const COMMAND = "pnpm --filter @orivilo/design-system logo-assets";
 
@@ -220,6 +223,43 @@ describe("the Storybook tab icon (ORV-274)", () => {
   });
 });
 
+describe("the scene lockups of the prototype canvas (ORV-308, row 3)", () => {
+  it("draws the card lockup in the full tone with the light colours, the dot in its own colour", () => {
+    const svg = text(byPath(base, SCENE_CARD));
+    expect(svg).toMatch(/^<svg [^>]*data-kind="horizontal"/);
+    expect(svg).toContain('data-tone="full"');
+    expect(svg).toContain('data-form="master"');
+    const { light, dark } = styleOf(svg);
+    expect(dark).toBeUndefined();
+    expect(rulesOf(light)).toEqual({
+      ".ds-logo__ring,.ds-logo__strokes": "stroke:#16151D",
+      ".ds-logo__fills": "fill:#16151D",
+      ".ds-logo__dot": "fill:#7A22C7",
+    });
+  });
+
+  it("draws the sign lockup in one colour with the dark colours, the dot as ink", () => {
+    const svg = text(byPath(base, SCENE_SIGN));
+    expect(svg).toContain('data-tone="one-colour"');
+    const { light, dark } = styleOf(svg);
+    expect(dark).toBeUndefined();
+    expect(rulesOf(light)).toEqual({
+      ".ds-logo__ring,.ds-logo__strokes": "stroke:#F2F1EC",
+      ".ds-logo__fills": "fill:#F2F1EC",
+      ".ds-logo__dot": "fill:#F2F1EC",
+    });
+  });
+
+  it(
+    "changes exactly the card lockup when the light value of brand.signature changes",
+    async () => {
+      const files = await logoAssetFiles(setWith("signature", "light", "#112233"));
+      expect(stale(files, base)).toEqual([SCENE_CARD]);
+    },
+    HEAVY_TIMEOUT,
+  );
+});
+
 describe("the Storybook brand reads the generated image (row 22)", () => {
   const source = (file: string): string =>
     readFileSync(path.join(REPO_ROOT, "packages/design-system/.storybook", file), "utf8");
@@ -241,7 +281,7 @@ describe("the Storybook brand reads the generated image (row 22)", () => {
 
 describe("the committed assets are fresh (row 21)", () => {
   it(
-    "generates the five files, in order, with equal bytes on two generations",
+    "generates the seven files, in order, with equal bytes on two generations",
     async () => {
       expect(base.map((f) => f.path)).toEqual(ALL);
       const again = await logoAssetFiles();
@@ -285,7 +325,7 @@ describe("the committed assets are fresh (row 21)", () => {
   );
 
   it(
-    "changes all five when the dot radius the drawing reads changes",
+    "changes all seven when the dot radius the drawing reads changes",
     async () => {
       const radii = DOT_RADIUS as Record<LogoForm, number>;
       const saved = { ...radii };
@@ -301,7 +341,7 @@ describe("the committed assets are fresh (row 21)", () => {
   );
 
   it(
-    "changes all five when the geometry changes",
+    "changes all seven when the geometry changes",
     async () => {
       const moved: Geometry = {
         ...GEOMETRY,

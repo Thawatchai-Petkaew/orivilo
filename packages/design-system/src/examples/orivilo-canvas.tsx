@@ -767,14 +767,18 @@ function Scene({
           transformOrigin: "0 0",
         }}
       >
-        <div {...scope(lockup.mode)}>
-          <Logo
-            kind="horizontal"
-            height={(lockupWidth * 150) / 663}
-            tone={lockup.tone}
-            decorative
-          />
-        </div>
+        {/* An image of the generated lockup, not the inline Logo: real Chrome draws stroked SVG wrongly
+            under this perspective matrix (ORV-308). Its colours are inside the file. Decorative. */}
+        <img
+          src={lockup.file}
+          width={lockupWidth}
+          height={(lockupWidth * 150) / 663}
+          alt=""
+          data-lockup=""
+          data-tone={lockup.tone}
+          className="block"
+          style={{ width: lockupWidth, height: (lockupWidth * 150) / 663 }}
+        />
         {corners.map(([x, y], i) => (
           <span
             key={i}
