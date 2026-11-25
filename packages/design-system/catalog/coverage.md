@@ -117,6 +117,7 @@ Commands and shortcuts for the set: `commands/canvas.yaml` (checked by `check-co
 | Workspace settings form                                          | base        | stable | examples-base-settings-form              |
 | Decision log overview (bento)                                    | application | stable | examples-application-decision-log        |
 | Landing page                                                     | marketing   | draft  | examples-marketing-landing-page          |
+| ORIVILO landing, dark, English and Thai (ORV-309)                | marketing   | draft  | examples-marketing-orivilo-landing       |
 | Reference screen (handoff §19)                                   | application | stable | examples-application-workspace-reference |
 | Tokens and type specimen: Inter, Anuphan, Sarabun, IBM Plex Mono | foundation  | stable | foundations-typography                   |
 | Members (agent, ORV-37)                                          | application | draft  | examples-application-members-agent       |

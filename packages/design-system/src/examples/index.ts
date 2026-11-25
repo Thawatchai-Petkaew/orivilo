@@ -17,6 +17,7 @@ export { DECISIONS, type Decision, DecisionLog, type DecisionLogProps } from "./
 export { GuidebookScreen, type GuidebookScreenProps } from "./guidebook";
 export { Landing } from "./landing";
 export { OriviloCanvas, type OriviloCanvasProps } from "./orivilo-canvas";
+export { OriviloLanding, type OriviloLandingProps } from "./orivilo-landing";
 export { SettingsForm, type SettingsFormProps } from "./settings-form";
 export {
   PROJECTS,
