@@ -13,6 +13,8 @@ import {
   BOOK,
   BOOK_FRAME,
   CHAPTERS,
+  chapterViewport,
+  DOCK_MARGIN,
   EDGES,
   FRAMES,
   graphOf,
@@ -21,6 +23,7 @@ import {
   NODES,
   PALETTE,
   PIECES,
+  phoneView,
   SEQUENCES,
   SHEETS,
   studioGraph,
@@ -37,6 +40,8 @@ import {
   placeOnQuad,
   quadInTile,
   textOf,
+  VIEW_PAD,
+  VIEW_ZOOM,
   VIOLET,
   WINDOW_AT,
 } from "./orivilo-canvas.data";
@@ -301,7 +306,7 @@ describe("the product chapter (spec ORV-309 rows 5, 6, 7, 10 and 14)", () => {
       "ข้อมูลตัวอย่าง",
     ]);
     expect(en.orvCanvas.use.phoneSub).toBe(
-      "Mockup: ORIVILO's own landing at 390, in English and Thai.",
+      "Mockup: ORIVILO's own landing at 390, live, on an AI phone picture.",
     );
     expect(en.orvCanvas.product.landingNote).toBe(
       "ORIVILO's own landing page, in English and Thai.",
@@ -689,9 +694,26 @@ describe("orivilo canvas data, boards and book (spec rows 28, 29, 30)", () => {
     if (phone?.content.kind !== "phone") throw new Error("no phone");
     const { lines, measure } = phone.content.grid;
     expect(phone.content.screenWidth).toBe(390);
+    expect(phone.content.status).toBe(54);
+    expect(phone.content.image).toBe("scene-phone");
     expect(lines).toEqual([24, 366]);
     expect(measure).toEqual([0, 24, 366, 390]);
     expect(measure.slice(1).map((end, i) => end - (measure[i] ?? 0))).toEqual([24, 342, 24]);
+  });
+
+  it("gives page 11 its own second line, the other eleven pages the plain book line (design row 4.5)", () => {
+    expect(BOOK.find((p) => p.n === 11)?.second).toBe("preview.bookSubUse");
+    expect(BOOK.filter((p) => p.second !== undefined).map((p) => p.n)).toEqual([11]);
+    const book = SEQUENCES.find((q) => q.id === "book");
+    expect(book?.pages.map((pg) => pg.second)).toEqual(
+      Array.from({ length: 12 }, (_, i) => (i === 10 ? "preview.bookSubUse" : "preview.bookSub")),
+    );
+    expect(en.orvCanvas.preview.bookSubUse).toBe(
+      "ORIVILO brand guidelines v1.5. Mockups: real screens and the logo on AI pictures.",
+    );
+    expect(th.orvCanvas.preview.bookSubUse).toBe(
+      "แนวทางแบรนด์ ORIVILO v1.5 ม็อกอัป: หน้าจอและโลโก้จริงบนภาพที่สร้างด้วย AI",
+    );
   });
 
   it("opens page 10 with a field of three live screens at -12 degrees on violet", () => {
@@ -746,6 +768,7 @@ describe("orivilo canvas data, images (spec row 33)", () => {
     "direction-place",
     "scene-card",
     "scene-sign",
+    "scene-phone",
   ];
   const TREATMENT: Record<string, string> = {
     "brand-hero": "photo",
@@ -755,6 +778,7 @@ describe("orivilo canvas data, images (spec row 33)", () => {
     "direction-place": "paper",
     "scene-card": "photo",
     "scene-sign": "photo",
+    "scene-phone": "photo",
   };
 
   /** The pixel size from the RIFF header of a WebP: a VP8, VP8L or VP8X chunk. */
@@ -791,7 +815,7 @@ describe("orivilo canvas data, images (spec row 33)", () => {
     });
   }
 
-  it("holds exactly the 7 ids", () => {
+  it("holds exactly the 8 ids", () => {
     expect(IMAGES.map((i) => i.id).sort()).toEqual([...ids].sort());
   });
 
@@ -832,10 +856,20 @@ describe("orivilo canvas data, images (spec row 33)", () => {
       } else {
         expect(rec.check.noMarks).toBe(true);
         expect(rec.reference).toBeUndefined();
-        const constraints = rec.prompt.split("\n").find((l) => l.startsWith("Constraints:"));
-        expect(constraints, "Constraints line").toBeDefined();
-        expect(constraints).toContain("No");
-        expect(constraints).toContain("logos");
+        const lines = rec.prompt.split("\n");
+        if (id === "scene-phone") {
+          // The phone prompt (a byte copy of the designer's v1) bans marks on its Avoid line.
+          const avoid = lines.find((l) => l.startsWith("Avoid:"));
+          expect(avoid, "Avoid line").toBeDefined();
+          expect(avoid).toContain("no logo");
+          expect(avoid).toContain("no brand mark");
+          expect(avoid).toContain("no text");
+        } else {
+          const constraints = lines.find((l) => l.startsWith("Constraints:"));
+          expect(constraints, "Constraints line").toBeDefined();
+          expect(constraints).toContain("No");
+          expect(constraints).toContain("logos");
+        }
       }
     });
   }
@@ -855,10 +889,33 @@ describe("orivilo canvas data, images (spec row 33)", () => {
     }
   });
 
+  it("gives the phone picture its device record: the boxes the design measured, in image px (row 4.1)", () => {
+    const rec = IMAGES.find((i) => i.id === "scene-phone");
+    expect(IMAGES.filter((i) => i.device).map((i) => i.id)).toEqual(["scene-phone"]);
+    expect(rec?.quad).toBeUndefined();
+    expect([rec?.width, rec?.height]).toEqual([800, 1600]);
+    expect(rec?.device).toEqual({
+      body: { x: 76, y: 119, w: 648, h: 1346 },
+      screen: { x: 95, y: 138, w: 611, h: 1313 },
+      radius: 80,
+      island: { x: 332, y: 157, w: 137, h: 35 },
+    });
+    expect(rec?.generatedOn).toBe("2026-11-25");
+    // The screen sits inside the body, and the pill is centred on the screen within 0.5 px.
+    const d = rec?.device;
+    if (!d) throw new Error("no device");
+    expect(d.screen.x).toBeGreaterThan(d.body.x);
+    expect(d.screen.x + d.screen.w).toBeLessThan(d.body.x + d.body.w);
+    expect(d.island.x + d.island.w / 2).toBeCloseTo(d.screen.x + d.screen.w / 2, 0);
+  });
+
   it("uses every image in a piece, a page or c-demo", () => {
     const used = new Set<string>();
     for (const p of PIECES) {
-      if (p.content.kind === "photo" || p.content.kind === "scene") used.add(p.content.image);
+      const c = p.content;
+      if (c.kind === "photo" || c.kind === "scene" || c.kind === "phone" || c.kind === "icon") {
+        used.add(c.image);
+      }
     }
     for (const n of NODES) if (n.body.kind === "demo") used.add(n.body.image);
     expect([...used].sort()).toEqual([...ids].sort());
@@ -1148,7 +1205,10 @@ describe("the In use board and brandbook part 03 (spec ORV-309 rows 11, 12, 13 a
   // The code of the digital pieces (A, B, C, E), the icon set specimen and page 10's field.
   const pieces = between("const ICON_BY_NAME", "/** A board at 1280 x 800");
   const field = between("/** One live screen of page 10's field", "function Opener(");
-  const digital = pieces + field;
+  // The phone picture's own drawing (row 4.2) holds the one `img` and the one inline corner of the
+  // digital pieces; the screens laid on it are held to the same guards as the rest.
+  const scene = between("function PhoneScene", "function PhonePiece");
+  const digital = pieces.replace(scene, "") + field;
 
   /**
    * Every way a digital piece could show an image of a page or an app, or call a model or an image
@@ -1192,7 +1252,27 @@ describe("the In use board and brandbook part 03 (spec ORV-309 rows 11, 12, 13 a
 
   it("holds no intent button in the window, the icon, the share card, the icon set or the field", () => {
     expect(countIntent(digital)).toBe(0);
+    expect(countIntent(scene)).toBe(0);
     expect(countIntent(source)).toBeLessThanOrEqual(1);
+  });
+
+  it("holds the one phone picture in PhoneScene and no image inside the live screens (design row 4.4)", () => {
+    // PhoneScene: one img, its src from the record, its corner from the record, no other image form.
+    expect(scene.match(/<img\b/g)).toHaveLength(1);
+    expect(scene).toMatch(/src=\{record\.file\}/);
+    expect(scene.match(/borderRadius/g)).toHaveLength(1);
+    expect(scene).toMatch(/borderRadius: view\.radius/);
+    expect(scene).toMatch(/maxWidth: "none"/);
+    expect(scene).toMatch(/data-phone-screen=""/);
+    expect(scene).toMatch(/data-island=""/);
+    expect(scene).toMatch(/missing\.has\(image\)/);
+    expect(imageForm(scene.replace(/<img\b/, ""))).toEqual([]);
+    // Only a scale and a translate: the picture is a straight-on view.
+    expect(scene).not.toMatch(/perspective|matrix3d|rotate/);
+    // The screens: the landing and the home screen draw no picture of their own.
+    const screens = between("function PhonePiece", "function SharePiece");
+    expect(imageForm(screens)).toEqual([]);
+    expect(screens.match(/<PhoneScene\b/g)).toHaveLength(2);
   });
 
   it("draws no raw radius, shadow, colour or font in the digital pieces (C5)", () => {
@@ -1202,16 +1282,14 @@ describe("the In use board and brandbook part 03 (spec ORV-309 rows 11, 12, 13 a
     expect(digital).not.toMatch(/rounded-\[|shadow-\[|bg-\[|text-\[|font-\[/);
   });
 
-  it("gives the phones' bodies rounded-overlay and their screens, the icon and the browser rounded-container (C5)", () => {
+  it("gives the pill rounded-round and the icon, its slots and the browser rounded-container, no shadow on the phones (C5)", () => {
     const phone = between("function PhonePiece", "function HomeScreenPiece");
     const home = between("function HomeScreenPiece", "function SharePiece");
-    const browser = between("function BrowserWindow", "function PhonePiece");
-    // The body is the ink flood that is `relative rounded-overlay shadow-overlay`; the screen is
-    // the clipped box inside it.
-    expect(phone).toMatch(/className="relative rounded-overlay shadow-overlay"/);
-    expect(phone).toMatch(/className="absolute overflow-hidden rounded-container"/);
-    expect(home).toMatch(/className="absolute inset-0 rounded-overlay shadow-overlay"/);
-    // The screen and the slots clip, the icon centres its mark; all three are rounded-container.
+    const browser = between("function BrowserWindow", "function PhoneScene");
+    // The body is the picture: no overlay radius and no shadow token on a phone.
+    expect(scene).toMatch(/className="absolute rounded-round"/);
+    expect(phone + home + scene).not.toMatch(/rounded-overlay|shadow-overlay|shadow-/);
+    // The slots clip, the icon centres its mark; both are rounded-container.
     expect(home).toMatch(/className="absolute overflow-hidden rounded-container"/);
     expect(home).toMatch(/className="absolute flex items-center justify-center rounded-container"/);
     expect(home).toMatch(/<Skeleton shape="block"/);
@@ -1221,7 +1299,7 @@ describe("the In use board and brandbook part 03 (spec ORV-309 rows 11, 12, 13 a
   });
 
   it("builds the window from the Studio's own parts: TopNavigation and the live CanvasBoard", () => {
-    const browser = between("function BrowserWindow", "function PhonePiece");
+    const browser = between("function BrowserWindow", "function PhoneScene");
     expect(browser).toMatch(/<TopNavigation\b/);
     expect(browser).toMatch(/<CanvasBoard\b/);
     expect(browser).toMatch(/heroGraph\(/);
@@ -1271,7 +1349,10 @@ describe("the In use board and brandbook part 03 (spec ORV-309 rows 11, 12, 13 a
       "The app in a browser",
       "Mockup: the real board screen with ORIVILO's own example board.",
     ]);
-    expect([e.icon, e.iconSub]).toEqual(["App icon on a home screen", "Drawn with the real mark."]);
+    expect([e.icon, e.iconSub]).toEqual([
+      "App icon on a home screen",
+      "Mockup: a drawn home screen with the real mark, on an AI phone picture.",
+    ]);
     expect([e.share, e.shareSub]).toEqual(["Link share card", "Drawn from the logo geometry."]);
     expect([e.studioName, e.grid, e.icons, e.iconsNote]).toEqual([
       "Studio",
@@ -1283,7 +1364,10 @@ describe("the In use board and brandbook part 03 (spec ORV-309 rows 11, 12, 13 a
       "แอปในเบราว์เซอร์",
       "ม็อกอัป: หน้ากระดานจริง กับกระดานตัวอย่างของ ORIVILO เอง",
     ]);
-    expect([t.icon, t.iconSub]).toEqual(["ไอคอนแอปบนหน้าจอโฮม", "วาดด้วยโลโก้จริง"]);
+    expect([t.icon, t.iconSub]).toEqual([
+      "ไอคอนแอปบนหน้าจอโฮม",
+      "ม็อกอัป: หน้าจอโฮมที่วาดขึ้นพร้อมโลโก้จริง วางบนภาพโทรศัพท์ที่สร้างด้วย AI",
+    ]);
     expect([t.share, t.shareSub]).toEqual(["การ์ดเมื่อแชร์ลิงก์", "วาดจากโครงสร้างของโลโก้"]);
     expect([t.studioName, t.grid, t.icons, t.iconsNote]).toEqual([
       "สตูดิโอ",
@@ -1317,11 +1401,10 @@ describe("piece C and the window's board (spec ORV-309 rows 11 and 12, design ro
   it("draws the home screen at a phone's true scale: 60 on 390, 4 x 5 slots, the app at column 1, row 1", () => {
     const c = PIECES.find((p) => p.id === "icon")?.content;
     if (c?.kind !== "icon") throw new Error("no icon piece");
-    expect(c.screen).toEqual({ w: 390, h: 844 });
-    expect(c.bezel).toBe(14);
+    expect(c.image).toBe("scene-phone");
     expect(c.inset).toBe(0.065);
-    expect(c.clock).toEqual({ x: 0, y: 14, w: 133 });
-    expect(c.island).toEqual({ x: 133, y: 11, w: 124, h: 36 });
+    // The old drawing fields leave: the body, the screen, the clock and the pill come from the record.
+    for (const gone of ["screen", "bezel", "clock", "island"]) expect(c).not.toHaveProperty(gone);
     expect(c.grid).toEqual({
       cols: 4,
       rows: 5,
@@ -1335,16 +1418,89 @@ describe("piece C and the window's board (spec ORV-309 rows 11 and 12, design ro
     // The columns sit at 24, 118, 212 and 306 and the end inset is 24 too; the icon is 15.4%.
     const columns = [0, 1, 2, 3].map((i) => c.grid.start + i * c.grid.pitch[0]);
     expect(columns).toEqual([24, 118, 212, 306]);
-    expect(c.screen.w - (306 + c.grid.icon)).toBe(c.grid.start);
-    expect(c.grid.icon / c.screen.w).toBeCloseTo(0.154, 3);
-    // Rows 0 to 3 are whole in the 317 box (row 3 ends at 432, inside the 459 the board tile shows);
-    // row 4 starts at 472 and is clipped.
+    expect(390 - (306 + c.grid.icon)).toBe(c.grid.start);
+    expect(c.grid.icon / 390).toBeCloseTo(0.154, 3);
+    // Rows 0 to 3 are whole (row 3 ends at 432); row 4 starts at 472 and is clipped.
     expect(c.grid.top + 3 * c.grid.pitch[1] + c.grid.icon).toBe(432);
     expect(c.grid.top + 4 * c.grid.pitch[1]).toBe(472);
-    // The scale fits the 418 wide body: 246.4 gives 0.5129, 300 gives 0.6244.
-    const k = (w: number) => (w * (1 - 2 * c.inset)) / (c.screen.w + 2 * c.bezel);
-    expect(k(246.4)).toBeCloseTo(0.5129, 3);
-    expect(k(300)).toBeCloseTo(0.6244, 3);
+  });
+
+  it("places the phone picture and its screen in each tile as the design's table does (row 4.2)", () => {
+    const rec = IMAGES.find((i) => i.id === "scene-phone");
+    if (!rec?.device) throw new Error("no device");
+    const img = { w: rec.width, h: rec.height };
+    const near = (a: number, b: number) => expect(a).toBeCloseTo(b, 1);
+    const inset = { inset: 0.065 } as const;
+    const rows = [
+      {
+        name: "B board",
+        tile: { w: 246.4, h: 529.33 },
+        crop: "whole",
+        s: 0.33083,
+        at: [-9.13, 0],
+        screen: [22.3, 45.65, 202.14, 434.38],
+        corner: 26.5,
+        k: 0.5183,
+      },
+      {
+        name: "C board",
+        tile: { w: 246.4, h: 258.67 },
+        crop: inset,
+        s: 0.33082,
+        at: [-9.13, -23.35],
+        screen: [22.3, 22.3, 202.14, 434.36],
+        corner: 26.5,
+        k: 0.5183,
+      },
+      {
+        name: "B page 11",
+        tile: { w: 300, h: 646 },
+        crop: "whole",
+        s: 0.40375,
+        at: [-11.5, 0],
+        screen: [26.86, 55.72, 246.69, 530.12],
+        corner: 32.3,
+        k: 0.6325,
+      },
+      {
+        name: "C page 11",
+        tile: { w: 300, h: 317 },
+        crop: inset,
+        s: 0.40278,
+        at: [-11.11, -28.43],
+        screen: [27.15, 27.15, 246.1, 528.85],
+        corner: 32.2,
+        k: 0.631,
+      },
+    ] as const;
+    for (const row of rows) {
+      const v = phoneView(row.tile, img, rec.device, row.crop);
+      expect(v.s, row.name).toBeCloseTo(row.s, 3);
+      near(v.picture.x, row.at[0]);
+      near(v.picture.y, row.at[1]);
+      near(v.screen.x, row.screen[0]);
+      near(v.screen.y, row.screen[1]);
+      near(v.screen.w, row.screen[2]);
+      near(v.screen.h, row.screen[3]);
+      near(v.radius, row.corner);
+      expect(v.k, row.name).toBeCloseTo(row.k, 3);
+      // The picture covers its tile, so no violet seam shows at an edge.
+      expect(v.picture.x, row.name).toBeLessThanOrEqual(0.01);
+      expect(v.picture.y, row.name).toBeLessThanOrEqual(0.01);
+      expect(v.picture.x + v.picture.w, row.name).toBeGreaterThanOrEqual(row.tile.w - 0.01);
+      expect(v.picture.y + v.picture.h, row.name).toBeGreaterThanOrEqual(row.tile.h - 0.01);
+    }
+    // The design box is 390 wide, 838.1 high, and the pill sits at 151.3, 12.1, 87.4 x 22.3.
+    const b = phoneView({ w: 246.4, h: 529.33 }, img, rec.device, "whole");
+    expect(b.design.w).toBe(390);
+    near(b.design.h, 838.1);
+    const pill = [b.island.x, b.island.y, b.island.w, b.island.h].map(
+      (n) => Math.round(n * 10) / 10,
+    );
+    expect(pill).toEqual([151.3, 12.1, 87.4, 22.3]);
+    // The two board phones are one device at one scale.
+    const c = phoneView({ w: 246.4, h: 258.67 }, img, rec.device, inset);
+    expect(c.s).toBeCloseTo(b.s, 3);
   });
 
   it("gives the window's board its own positions for the six nodes of the landing's graph", () => {
@@ -1376,5 +1532,93 @@ describe("piece C and the window's board (spec ORV-309 rows 11 and 12, design ro
       guide: [920, 84],
       product: [1240, 96],
     });
+  });
+});
+
+describe("the chapter camera, a pure function of the chapter and the board (spec ORV-309 C12)", () => {
+  const board = { w: 1440, h: 900 - 64 };
+  const cover = 96; // the dock and the task bar, from the pane's bottom
+  const bounds = { x: 1500, y: 320, w: 900, h: 560 };
+  const view = (b = bounds, size = board, c = cover, pad: number = VIEW_PAD.chapter) =>
+    chapterViewport(b, size, c, pad, DOCK_MARGIN);
+  /** Where the bounds land on the board under a view. */
+  const landed = (v: ReturnType<typeof view>, b = bounds) => ({
+    left: b.x * v.zoom + v.x,
+    top: b.y * v.zoom + v.y,
+    right: (b.x + b.w) * v.zoom + v.x,
+    bottom: (b.y + b.h) * v.zoom + v.y,
+  });
+
+  it("is the same view for the same chapter and board, and holds the zoom between 0.25 and 1", () => {
+    expect(view()).toEqual(view());
+    expect([VIEW_ZOOM.min, VIEW_ZOOM.max]).toEqual([0.25, 1]);
+    expect(view({ x: 0, y: 0, w: 100, h: 80 }).zoom).toBe(1); // a small chapter is never magnified
+    expect(view({ x: 0, y: 0, w: 90000, h: 70000 }).zoom).toBe(0.25); // a huge one stops at the floor
+  });
+
+  it("puts the whole chapter inside the board, its bottom DOCK_MARGIN or more above the dock", () => {
+    expect(DOCK_MARGIN).toBeGreaterThanOrEqual(16);
+    const sizes = [
+      { w: 1440, h: 836 },
+      { w: 1024, h: 600 },
+      { w: 390, h: 700 },
+    ];
+    const chapters = [bounds, { x: 0, y: 0, w: 1200, h: 900 }, { x: -300, y: 40, w: 700, h: 300 }];
+    for (const size of sizes) {
+      for (const b of chapters) {
+        const l = landed(view(b, size), b);
+        const dockTop = size.h - cover;
+        expect(l.left, `${size.w} left`).toBeGreaterThanOrEqual(0);
+        expect(l.top, `${size.w} top`).toBeGreaterThanOrEqual(0);
+        expect(l.right, `${size.w} right`).toBeLessThanOrEqual(size.w);
+        expect(l.bottom, `${size.w} bottom`).toBeLessThanOrEqual(dockTop - 16);
+      }
+    }
+  });
+
+  it("centres the chapter in the room above the dock, inside the side and top padding", () => {
+    const l = landed(view());
+    const pad = VIEW_PAD.chapter;
+    const side = Math.floor((board.w - board.w / (1 + pad)) / 2);
+    expect(l.left - 0).toBeGreaterThanOrEqual(side - 1);
+    expect(board.w - l.right).toBeGreaterThanOrEqual(side - 1);
+    const above = l.top;
+    const below = board.h - cover - DOCK_MARGIN - l.bottom;
+    expect(above).toBeGreaterThanOrEqual(0);
+    expect(below).toBeGreaterThanOrEqual(-0.001);
+  });
+
+  it("gives the numbers of the design: 8 and 20 of 100 padding, the room above the dock, the centring", () => {
+    expect(VIEW_PAD).toEqual({ chapter: 0.08, overview: 0.2 });
+    // 1440 x 836, dock 96: side padding 53, top 30, room 1334 x 656 (836 - 60 - 96 - 24).
+    const tall = view({ x: 1000, y: 200, w: 2000, h: 1000 });
+    expect(tall.zoom).toBeCloseTo(0.656, 3); // the height limits: 656 / 1000
+    expect(tall.x).toBeCloseTo(53 + (1334 - 2000 * 0.656) / 2 - 1000 * 0.656, 1);
+    expect(tall.y).toBeCloseTo(30 - 200 * 0.656, 1);
+    // A wide, low chapter is limited by the width and centred in the room's height.
+    const wide = view({ x: 0, y: 0, w: 2000, h: 400 });
+    expect(wide.zoom).toBeCloseTo(1334 / 2000, 3);
+    expect(wide.x).toBeCloseTo(53, 1);
+    expect(wide.y).toBeCloseTo(30 + (656 - 400 * (1334 / 2000)) / 2, 1);
+    // The overview pads 20 of 100: side 120, top 69, room 1200 x 578.
+    const all = view({ x: 0, y: 0, w: 3000, h: 1200 }, board, cover, VIEW_PAD.overview);
+    expect(all.zoom).toBeCloseTo(0.4, 3);
+    expect(all.x).toBeCloseTo(120, 1);
+    expect(all.y).toBeCloseTo(69 + (578 - 480) / 2, 1);
+  });
+
+  it("takes the dock's height off the room: a taller dock lowers nothing, it shrinks or lifts the view", () => {
+    const low = landed(view(bounds, board, 40));
+    const high = landed(view(bounds, board, 160));
+    expect(high.bottom).toBeLessThan(low.bottom + 0.001);
+    expect(high.bottom).toBeLessThanOrEqual(board.h - 160 - DOCK_MARGIN);
+  });
+
+  it("frames the overview with the wider padding and a chapter with the narrower one", () => {
+    expect(VIEW_PAD.overview).toBeGreaterThan(VIEW_PAD.chapter);
+    const wide = { x: 0, y: 0, w: 3000, h: 1200 };
+    expect(view(wide, board, cover, VIEW_PAD.overview).zoom).toBeLessThan(
+      view(wide, board, cover, VIEW_PAD.chapter).zoom,
+    );
   });
 });

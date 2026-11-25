@@ -39,7 +39,8 @@ export type ImageId =
   | "direction-making"
   | "direction-place"
   | "scene-card"
-  | "scene-sign";
+  | "scene-sign"
+  | "scene-phone";
 export type LiveId = "landing" | "app" | "guide";
 export type BoardId = "direction" | "inUse";
 export type PieceId =
@@ -154,32 +155,24 @@ export type PieceContent =
       span: number;
     }
   | {
-      // The landing on a phone (B). The width is a fraction of the tile width, capped so the phone
-      // is at most `fit` of the tile height; `place` is where the free height above it is split.
+      // The landing on the phone picture (B), whole (design row 4.3). `status` is the height of the
+      // status row, in design px, above the landing. The page 11 variant "grid" draws two dashed
+      // lines at `lines` and a measure at `measure` x positions, in design px of the screen.
       kind: "phone";
-      width: number;
-      fit: number;
-      ratio: number;
-      place: number;
-      bezel: number; // of the phone width
-      screenWidth: number; // design px of the landing
-      // The page 11 variant "grid": the phone sits `bottom` of the tile height above the tile's
-      // end; two dashed lines at `lines` and a measure at `measure` x positions, in screen design px.
+      image: ImageId;
+      screenWidth: number;
+      status: number;
       grid: {
-        bottom: number;
         lines: readonly [number, number];
         measure: readonly [number, number, number, number];
       };
     }
   | {
-      // The app icon on a phone home screen (C), drawn at a phone's true scale (design row 3.1):
-      // every value is design px of the 390 wide screen, under one scale that fits the tile.
+      // The app icon on a phone home screen (C), drawn at a phone's true scale (design rows 3.1 and
+      // 4.4) on the upper part of the same picture: every value is design px of the 390 wide screen.
       kind: "icon";
-      screen: Size;
-      bezel: number;
+      image: ImageId;
       inset: number; // of the tile width: the body's gap to the start, the end and the top
-      clock: { x: number; y: number; w: number };
-      island: Box;
       grid: {
         cols: number;
         rows: number;
@@ -263,6 +256,7 @@ export interface BookPageRecord {
   lines: readonly ArtText[]; // every line on the page, in reading order
   art?: BookArt;
   swatches?: readonly PaletteId[]; // page 7 reads PALETTE: data colour inline (gap 3)
+  second?: CopyKey; // the preview caption's second line, `preview.bookSub` unless set
 }
 
 export type Show =
@@ -295,6 +289,13 @@ export interface ImageCheck {
   checkedBy: string;
   checkedOn: string; // YYYY-MM-DD
 }
+/** A phone in a picture, measured in image px: the frame, the display, its corner and the camera pill. */
+export interface Device {
+  body: Box;
+  screen: Box;
+  radius: number;
+  island: Box;
+}
 export interface ImageRecord {
   id: ImageId;
   file: `/orv-274/${ImageId}.webp`;
@@ -304,6 +305,7 @@ export interface ImageRecord {
   height: number;
   treatment: Treatment;
   quad?: Quad; // the two scenes only: measured corners, percent of the image
+  device?: Device; // the phone picture only: measured boxes in image px (design row 4.1)
   reference?: string; // brand-hero only: the mark image passed to Codex
   generatedWith: string;
   generatedOn: string;
@@ -452,6 +454,7 @@ export const PALETTE: readonly { id: PaletteId; hex: string; name: CopyKey; role
 
 const MADE_WITH = "Codex CLI, built-in image generation";
 const MADE_ON = "2026-11-17";
+const PHONE_MADE_ON = "2026-11-25";
 const TERMS = "https://openai.com/policies/terms-of-use/";
 const LICENCE = "AI image made with Codex from the prompt beside it; for this demo only";
 const CHECKED_BY = "main session, ORV-274 comment 10653";
@@ -664,6 +667,42 @@ Avoid: mockup-template look, glossy reflections, a second blank surface, clutter
     termsUrl: TERMS,
     check: check("A blank violet panel on a near-black wall in a dark entrance"),
   },
+  {
+    // A blank phone, made for this story (ORV-309 row 4.1): the live screen is laid on its display by
+    // code, so it is a straight-on view and a plain scale and translate place a screen on it.
+    id: "scene-phone",
+    file: "/orv-274/scene-phone.webp",
+    promptFile: "scene-phone.prompt.md",
+    prompt: `Use case: product-mockup
+Asset type: Blank device scene for a brand guideline. A live app screen is placed on the phone's display afterwards by code, so the display must be an empty, flat, straight-on rectangle.
+Primary request: A photorealistic studio product photograph of one modern flagship smartphone standing perfectly upright, seen exactly straight on from the front, with its display switched off, in front of a seamless saturated violet backdrop.
+Scene/backdrop: A seamless studio backdrop in one saturated violet, close to #7A22C7, with a very soft, slightly darker falloff toward the corners. Nothing else in the scene. No table edge, no horizon line, no props.
+Subject: One smartphone in the proportions of a current large flagship phone (about 1 wide to 2.05 tall). A slim brushed dark titanium frame with softly rounded corners is visible as a thin band around the whole front. Uniform, very thin black bezel of equal width on all four sides. The display is one large rounded rectangle, switched off, a flat even matte near-black (#16151D), completely empty, with no reflection, no glare streak, no highlight and no content. At the top centre of the display, a small black pill-shaped camera cutout. Thin side buttons just visible on the left and right edges of the frame.
+Style/medium: Photorealistic high-end product photography, the look of a premium device mockup. Crisp edges, real metal and glass materials.
+Composition/framing: Tall portrait image, aspect ratio about 1:2. The phone is centred horizontally and vertically, perfectly vertical, no tilt, no rotation, no perspective: its edges are parallel to the image edges. The whole phone is inside the frame. The phone takes about 78% of the image width and about 84% of the image height, leaving an even violet margin on every side. Orthographic, straight-on view, as shot with a long lens from the front.
+Lighting/mood: Soft, even studio light. A soft, short contact-free shadow on the backdrop directly behind and slightly below the phone so it reads as a real object floating a few centimetres in front of the wall. A fine, subtle highlight along the metal frame only. Calm, precise, modern.
+Color palette: Violet #7A22C7 backdrop; near-black #16151D display and bezel; dark titanium grey frame. No other colours.
+Materials/textures: Brushed titanium frame, matte black glass.
+Text (verbatim): none
+Constraints: The display stays completely blank and uniformly dark from edge to edge. The image is fully opaque and fills every pixel to all four edges. The phone front is perfectly flat to the camera.
+Avoid: no text, no letters, no numbers, no logo, no brand mark, no icons, no user interface, no wallpaper, no clock, no reflections on the display, no hand, no stand, no table, no second device, no watermark, no border.`,
+    width: 800,
+    height: 1600,
+    treatment: "photo",
+    device: {
+      body: { x: 76, y: 119, w: 648, h: 1346 },
+      screen: { x: 95, y: 138, w: 611, h: 1313 },
+      radius: 80,
+      island: { x: 332, y: 157, w: 137, h: 35 },
+    },
+    generatedWith: MADE_WITH,
+    generatedOn: PHONE_MADE_ON,
+    termsUrl: TERMS,
+    check: {
+      ...check("A blank phone standing upright on a violet backdrop, its display off"),
+      checkedOn: PHONE_MADE_ON,
+    },
+  },
 ];
 
 // ---- the scene quad helper (gap 22)
@@ -728,6 +767,102 @@ export function homography(face: Size, to: Quad): readonly number[] {
 export function placeOnQuad(quad: Quad, face: Size, tile: Size, image: Size): string {
   const [a, b, cc, dd, e, f, g, h] = homography(face, quadInTile(quad, tile, image));
   return `matrix3d(${[a, dd, 0, g, b, e, 0, h, 0, 0, 1, 0, cc, f, 0, 1].join(", ")})`;
+}
+
+// ---- the phone picture (design rows 4.1 and 4.2)
+
+/** How the phone picture sits in a tile: the whole picture covering it, or the upper part of the phone. */
+export type PhoneCrop = "whole" | { inset: number };
+export interface PhoneView {
+  s: number; // tile px per image px
+  picture: Box; // the picture in the tile
+  screen: Box; // the display in the tile
+  radius: number; // the display's corner in tile px
+  k: number; // tile px per design px of the 390 wide screen
+  design: Size; // the screen's own box in design px, 390 wide
+  island: Box; // the camera pill in design px of the screen
+}
+
+/**
+ * Where the phone picture and its display sit in a tile (row 4.2). `whole` covers the tile, centred.
+ * `{ inset }` puts the body's start, end and top edges at `inset` of the tile width from the tile's
+ * edges and lets the phone run off the bottom. Only a scale and a translate: the picture is a
+ * straight-on view, so no quad is needed.
+ */
+export function phoneView(tile: Size, image: Size, device: Device, crop: PhoneCrop): PhoneView {
+  const { body, screen, radius, island } = device;
+  let s: number;
+  let dx: number;
+  let dy: number;
+  if (crop === "whole") {
+    ({ s, dx, dy } = coverCrop(tile, image));
+  } else {
+    const m = tile.w * crop.inset;
+    s = (tile.w - 2 * m) / body.w;
+    dx = m - body.x * s;
+    dy = m - body.y * s;
+  }
+  const k = (screen.w * s) / 390;
+  const per = screen.w / 390; // image px per design px
+  return {
+    s,
+    picture: { x: dx, y: dy, w: image.w * s, h: image.h * s },
+    screen: { x: dx + screen.x * s, y: dy + screen.y * s, w: screen.w * s, h: screen.h * s },
+    radius: radius * s,
+    k,
+    design: { w: 390, h: screen.h / per },
+    island: {
+      x: (island.x - screen.x) / per,
+      y: (island.y - screen.y) / per,
+      w: island.w / per,
+      h: island.h / per,
+    },
+  };
+}
+
+// ---- the chapter camera (C12)
+
+/** The zoom a chapter view may take: the board's own minimum, and one to one at most. */
+export const VIEW_ZOOM = { min: 0.25, max: 1 } as const;
+/** The padding of a chapter view: a fraction of the board, as xyflow's own fit reads it. */
+export const VIEW_PAD = { chapter: 0.08, overview: 0.2 } as const;
+/** The room a chapter keeps above the dock, in px (F4). */
+export const DOCK_MARGIN = 24;
+
+export interface View {
+  x: number;
+  y: number;
+  zoom: number;
+}
+
+/**
+ * The view of a chapter (spec C12): where the viewport sits so that `bounds`, the box of the
+ * chapter's nodes in flow px, is centred in the board less its padding, less `cover` px at the
+ * bottom (the dock) and `clear` px more above that. A pure function of its arguments, so one
+ * chapter at one board size has one view, however the board came to it. `pad` is read as xyflow
+ * reads a number padding: a fraction of the board, `floor((v - v / (1 + pad)) / 2)` px per side.
+ */
+export function chapterViewport(
+  bounds: Box,
+  board: Size,
+  cover: number,
+  pad: number,
+  clear: number,
+): View {
+  const side = (v: number) => Math.floor((v - v / (1 + pad)) / 2);
+  const left = side(board.w);
+  const top = side(board.h);
+  const room: Size = {
+    w: board.w - 2 * left,
+    h: board.h - 2 * top - Math.ceil(cover) - clear,
+  };
+  const fits = Math.min(room.w / bounds.w, room.h / bounds.h);
+  const zoom = Math.min(VIEW_ZOOM.max, Math.max(VIEW_ZOOM.min, fits));
+  return {
+    x: left + (room.w - bounds.w * zoom) / 2 - bounds.x * zoom,
+    y: top + (room.h - bounds.h * zoom) / 2 - bounds.y * zoom,
+    zoom,
+  };
 }
 
 // ---- the two boards (12 pieces)
@@ -868,16 +1003,13 @@ export const PIECES: readonly PieceRecord[] = [
     id: "phone",
     board: "inUse",
     box: cellBox({ col: 3, row: 0, cols: 1, rows: 2 }),
-    flood: PAPER,
+    flood: VIOLET,
     content: {
       kind: "phone",
-      width: 0.84,
-      fit: 0.8,
-      ratio: 2.06,
-      place: 0.55,
-      bezel: 0.035,
+      image: "scene-phone",
       screenWidth: 390,
-      grid: { bottom: 0.03, lines: [24, 366], measure: [0, 24, 366, 390] },
+      status: 54,
+      grid: { lines: [24, 366], measure: [0, 24, 366, 390] },
     },
     caption: "use.phone",
     second: "use.phoneSub",
@@ -889,11 +1021,8 @@ export const PIECES: readonly PieceRecord[] = [
     flood: VIOLET,
     content: {
       kind: "icon",
-      screen: { w: 390, h: 844 },
-      bezel: 14,
+      image: "scene-phone",
       inset: 0.065,
-      clock: { x: 0, y: 14, w: 133 },
-      island: { x: 133, y: 11, w: 124, h: 36 },
       grid: { cols: 4, rows: 5, icon: 60, start: 24, pitch: [94, 100], top: 72, gap: 6 },
       app: { col: 1, row: 1, mark: 0.62 },
     },
@@ -1247,6 +1376,7 @@ export const BOOK: readonly BookPageRecord[] = [
     layout: "applications",
     ground: PAPER,
     lines: [],
+    second: "preview.bookSubUse", // the phone picture and the two scenes are AI pictures (row 4.5)
     // Boxes in page px; gutter 12 and the page's side padding 48 (1184 wide, 646 high from y 82).
     // The bottom row starts or ends on the top row's edges: 360 and 920 (the window), 932 and 1232 (the icon).
     art: {
@@ -1366,7 +1496,7 @@ export const SEQUENCES: readonly SequenceRecord[] = [
     pages: BOOK_CAPTIONS.map((caption, i) => ({
       show: { book: i + 1 },
       caption,
-      second: "preview.bookSub",
+      second: BOOK.find((p) => p.n === i + 1)?.second ?? "preview.bookSub",
     })),
   },
   {

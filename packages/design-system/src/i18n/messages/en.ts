@@ -1141,6 +1141,8 @@ export const en: Messages = {
       thai: "Thai: Anuphan and Sarabun",
       thaiNote: "Thai headings loopless, Thai body looped",
       bookSub: "ORIVILO brand guidelines v1.5",
+      bookSubUse:
+        "ORIVILO brand guidelines v1.5. Mockups: real screens and the logo on AI pictures.",
       aiImage: "AI image",
     },
     role: {
@@ -1223,6 +1225,7 @@ export const en: Messages = {
         "scene-card":
           "A blank white business card on a violet desk, with a second card half under it and a pencil",
         "scene-sign": "A blank violet wall panel on a near-black wall in a dark entrance",
+        "scene-phone": "A blank phone standing upright on a violet backdrop, its display off",
       },
     },
     use: {
@@ -1231,7 +1234,7 @@ export const en: Messages = {
       window: "The app in a browser",
       windowSub: "Mockup: the real board screen with ORIVILO's own example board.",
       icon: "App icon on a home screen",
-      iconSub: "Drawn with the real mark.",
+      iconSub: "Mockup: a drawn home screen with the real mark, on an AI phone picture.",
       share: "Link share card",
       shareSub: "Drawn from the logo geometry.",
       shareTagline: "Give your ideas a world.",
@@ -1245,7 +1248,7 @@ export const en: Messages = {
       hero: "Brand photograph",
       heroSub: "AI image; the mark on the sweatshirt was generated from the real mark and checked",
       phone: "Landing on a phone",
-      phoneSub: "Mockup: ORIVILO's own landing at 390, in English and Thai.",
+      phoneSub: "Mockup: ORIVILO's own landing at 390, live, on an AI phone picture.",
       sign: "Sign",
       sceneSub: "Mockup: AI scene, the logo laid on",
     },

@@ -136,6 +136,8 @@ import {
   type Paint,
   type PaletteId,
   type PieceContent,
+  type PhoneCrop,
+  type PhoneView,
   type PieceRecord,
   type Placement,
   type PreviewPageRecord,
@@ -150,8 +152,10 @@ import {
   BRAND_NAME,
   BROWSER,
   CHAPTERS,
+  chapterViewport,
   CLOCK,
   copyOf,
+  DOCK_MARGIN,
   FRAMES,
   graphOf,
   IMAGES,
@@ -160,6 +164,7 @@ import {
   PALETTE,
   PAPER,
   PIECES,
+  phoneView,
   placeOnQuad,
   quadInTile,
   SEQUENCES,
@@ -169,6 +174,7 @@ import {
   TYPE_SAMPLE,
   TYPE_SPECIMEN,
   VIOLET,
+  VIEW_PAD,
   VIOLET_ON_INK,
   WINDOW_AT,
 } from "./orivilo-canvas.data";
@@ -956,7 +962,133 @@ function BrowserWindow({ design }: { design: Size }) {
   );
 }
 
-/** The landing on a phone (B): ink body `rounded-overlay`, screen `rounded-container`, the live page. */
+/**
+ * The one device (design rows 4.1 and 4.2): the phone picture in a tile, and the live screen laid on
+ * its display. The picture is a straight-on view, so the screen is a box under one scale and one
+ * translate: `[data-phone-screen]` at the display's place, its corner the picture's own (image
+ * geometry from the record, not a UI radius), and inside it a design box 390 wide under `scale(k)`.
+ * The pill is drawn again above the live screen so one surface runs edge to edge. With the picture
+ * missing the tile shows its flood and the missing label only: a screen without its device would be
+ * a drawn phone again. `over` draws above the picture in tile px, for the page 11 measure.
+ */
+function PhoneScene({
+  piece,
+  image,
+  size,
+  crop,
+  mode,
+  screen,
+  lines,
+  over,
+}: {
+  piece: PieceRecord;
+  image: ImageId;
+  size: Size;
+  crop: PhoneCrop;
+  /** The mode the status row reads in: the mode of the screen's own ground. */
+  mode: Mode;
+  screen: (view: PhoneView) => ReactNode;
+  /** Dashed layout lines over the display, at x of the 390 wide screen (page 11 only). */
+  lines?: readonly number[] | undefined;
+  over?: ((view: PhoneView) => ReactNode) | undefined;
+}) {
+  const m = useMessages();
+  const { missing, fail } = useContext(PageContext);
+  const record = imageOf(image);
+  if (!record.device) throw new RangeError(`orivilo-canvas: image ${image} has no device`);
+  const view = phoneView(size, { w: record.width, h: record.height }, record.device, crop);
+  const { picture, island } = view;
+  // The display's box and its corner, which come from the record: one place, used by the screen and
+  // by the lines that clip with it.
+  const display: CSSProperties = {
+    left: view.screen.x,
+    top: view.screen.y,
+    width: view.screen.w,
+    height: view.screen.h,
+    borderRadius: view.radius,
+  };
+  return (
+    <Flood
+      paint={piece.flood}
+      className={TILE}
+      style={{ width: size.w, height: size.h }}
+      data-photo={image}
+    >
+      {missing.has(image) ? (
+        <MissingLabel id={image} paint={piece.flood} />
+      ) : (
+        <>
+          <img
+            src={record.file}
+            width={record.width}
+            height={record.height}
+            alt={copyOf(m, `image.alt.${image}` as CopyKey)}
+            loading="lazy"
+            decoding="async"
+            className="absolute"
+            style={{
+              left: picture.x,
+              top: picture.y,
+              width: picture.w,
+              height: picture.h,
+              maxWidth: "none",
+            }}
+            onError={() => fail(image)}
+          />
+          <div className="absolute overflow-hidden" data-phone-screen="" style={display}>
+            <div
+              className="relative"
+              style={{
+                width: view.design.w,
+                height: view.design.h,
+                transform: `scale(${view.k})`,
+                transformOrigin: "0 0",
+              }}
+            >
+              {screen(view)}
+              <span
+                {...scope(mode)}
+                className="absolute flex items-center justify-center font-body text-label-md text-text-primary"
+                data-clock=""
+                style={{ left: 0, top: island.y, width: island.x, height: island.h }}
+              >
+                {CLOCK}
+              </span>
+              <Flood
+                paint={INK}
+                className="absolute rounded-round"
+                data-island=""
+                style={{ left: island.x, top: island.y, width: island.w, height: island.h }}
+              />
+            </div>
+          </div>
+          {lines ? (
+            <div
+              {...scope("dark")}
+              className="absolute overflow-hidden"
+              data-layout-grid=""
+              style={display}
+            >
+              {lines.map((x) => (
+                <div
+                  key={x}
+                  className="absolute bottom-0 top-0 border-s border-dashed border-brand-signature"
+                  style={{ left: x * view.k }}
+                />
+              ))}
+            </div>
+          ) : null}
+          {over?.(view)}
+        </>
+      )}
+    </Flood>
+  );
+}
+
+/**
+ * The landing on a phone (B): the picture whole, the live page on its display below a status row.
+ * Page 11's variant "grid" adds the layout grid over the display and the measure above the phone.
+ */
 function PhonePiece({
   piece,
   content: c,
@@ -970,86 +1102,83 @@ function PhonePiece({
 }) {
   const locale = useLocale();
   const m = useMessages();
-  const w = Math.min(size.w * c.width, (size.h * c.fit) / c.ratio);
-  const h = w * c.ratio;
-  const top = grid ? size.h - h - size.h * c.grid.bottom : (size.h - h) * c.place;
-  const bezel = w * c.bezel;
-  const screen = w - 2 * bezel;
-  const k = screen / c.screenWidth; // tile px per design px of the landing
-  const left = (size.w - w) / 2;
-  const flood = grid ? VIOLET : piece.flood;
-  const xs = c.grid.measure.map((x) => left + bezel + x * k);
-  const x0 = at(xs, 0);
-  const x3 = at(xs, 3);
   return (
-    <Flood paint={flood} className={TILE} style={{ width: size.w, height: size.h }}>
-      <div className="absolute" style={{ left, top }}>
-        <Flood
-          paint={INK}
-          className="relative rounded-overlay shadow-overlay"
-          style={{ width: w, height: h }}
+    <PhoneScene
+      piece={piece}
+      image={c.image}
+      size={size}
+      crop="whole"
+      mode="dark"
+      lines={grid ? c.grid.lines : undefined}
+      screen={(view) => (
+        <LiveFrame
+          outer={{ w: c.screenWidth, h: view.design.h }}
+          design={c.screenWidth}
+          mode="dark"
         >
-          <div
-            className="absolute overflow-hidden rounded-container"
-            style={{ left: bezel, top: bezel, width: screen, height: h - 2 * bezel }}
-          >
-            <LiveFrame outer={{ w: screen, h: h - 2 * bezel }} design={c.screenWidth} mode="dark">
-              <OriviloLanding lang={locale} width={c.screenWidth} photograph={false} />
-            </LiveFrame>
-            {grid ? (
-              <div {...scope("dark")} className="absolute inset-0" data-layout-grid="">
-                {c.grid.lines.map((x) => (
-                  <div
-                    key={x}
-                    className="absolute bottom-0 top-0 border-s border-dashed border-brand-signature"
-                    style={{ left: x * k }}
-                  />
-                ))}
-              </div>
-            ) : null}
+          <div style={{ paddingTop: c.status }}>
+            <OriviloLanding lang={locale} width={c.screenWidth} photograph={false} />
           </div>
-        </Flood>
-      </div>
-      {grid ? (
-        <div {...scope(textMode(flood))} className="absolute inset-0 font-body" data-measure="">
-          <p className="absolute m-0 text-label-md text-text-primary" style={{ left: 24, top: 22 }}>
-            {m.orvCanvas.use.grid}
-          </p>
-          <div
-            className="absolute border-t border-text-primary"
-            style={{ left: x0, width: x3 - x0, top: top - 18 }}
-          />
-          {xs.map((x, i) => (
-            <div
-              key={i}
-              className="absolute border-s border-text-primary"
-              style={{ left: x, top: top - 24, height: 12 }}
-            />
-          ))}
-          {c.grid.measure.slice(1).map((end, i) => {
-            const start = at(c.grid.measure, i);
-            // Centred over its span on one line: the 24 px spans are narrower than their numerals.
-            return (
-              <span
-                key={i}
-                className="absolute -translate-x-1/2 whitespace-nowrap font-mono text-code-md text-text-primary"
-                style={{ left: (at(xs, i) + at(xs, i + 1)) / 2, top: top - 48 }}
-              >
-                {end - start}
-              </span>
-            );
-          })}
-        </div>
-      ) : null}
-    </Flood>
+        </LiveFrame>
+      )}
+      over={
+        grid
+          ? (view) => {
+              const xs = c.grid.measure.map((x) => view.screen.x + x * view.k);
+              const x0 = at(xs, 0);
+              const x3 = at(xs, 3);
+              const top = view.screen.y;
+              return (
+                <>
+                  <div
+                    {...scope(textMode(piece.flood))}
+                    className="absolute inset-0 font-body"
+                    data-measure=""
+                  >
+                    <div
+                      className="absolute border-t border-text-primary"
+                      style={{ left: x0, width: x3 - x0, top: top - 18 }}
+                    />
+                    {xs.map((x, i) => (
+                      <div
+                        key={i}
+                        className="absolute border-s border-text-primary"
+                        style={{ left: x, top: top - 24, height: 12 }}
+                      />
+                    ))}
+                    {c.grid.measure.slice(1).map((end, i) => {
+                      const start = at(c.grid.measure, i);
+                      // Centred over its span on one line: the 24 px spans are narrower than their numerals.
+                      return (
+                        <span
+                          key={i}
+                          className="absolute -translate-x-1/2 whitespace-nowrap font-mono text-code-md text-text-primary"
+                          style={{ left: (at(xs, i) + at(xs, i + 1)) / 2, top: top - 48 }}
+                        >
+                          {end - start}
+                        </span>
+                      );
+                    })}
+                    <p
+                      className="absolute m-0 text-label-md text-text-primary"
+                      style={{ left: 24, bottom: 16 }}
+                    >
+                      {m.orvCanvas.use.grid}
+                    </p>
+                  </div>
+                </>
+              );
+            }
+          : undefined
+      }
+    />
   );
 }
 
 /**
- * The app icon on a phone's home screen (C), at a real phone's scale (design row 3.1): the top of a
- * 390 x 844 screen with its clock and island, a grid of 60 pt icons, and ORIVILO's among them. One
- * scale fits the 418 wide body to the tile and the tile crops the screen at its bottom, so the icon
- * is 15% of the screen's width, as on a phone, and the crop carries its legibility.
+ * The app icon on a phone's home screen (C), at a real phone's scale (design rows 3.1 and 4.4): the
+ * upper part of the phone picture, and on its display a grid of 60 pt icons with ORIVILO's among
+ * them. The icon is 15% of the screen's width, as on a phone, and the crop carries its legibility.
  */
 function HomeScreenPiece({
   piece,
@@ -1060,93 +1189,64 @@ function HomeScreenPiece({
   content: Extract<PieceContent, { kind: "icon" }>;
   size: Size;
 }) {
-  const body: Size = { w: c.screen.w + 2 * c.bezel, h: c.screen.h + 2 * c.bezel };
-  const k = (size.w * (1 - 2 * c.inset)) / body.w;
   const { grid, app } = c;
   const slots = Array.from({ length: grid.cols * grid.rows }, (_, i) => ({
     col: i % grid.cols,
     row: Math.floor(i / grid.cols),
   }));
   return (
-    <Flood paint={piece.flood} className={TILE} style={{ width: size.w, height: size.h }}>
-      <div
-        className="absolute"
-        style={{
-          left: size.w * c.inset,
-          top: size.w * c.inset,
-          width: body.w,
-          height: body.h,
-          transform: `scale(${k})`,
-          transformOrigin: "0 0",
-        }}
-      >
-        <Flood
-          paint={INK}
-          className="absolute inset-0 rounded-overlay shadow-overlay"
-          data-home-body=""
-        >
-          <Flood
-            paint={PAPER}
-            className="absolute overflow-hidden rounded-container"
-            style={{ left: c.bezel, top: c.bezel, width: c.screen.w, height: c.screen.h }}
-            data-home-screen=""
-          >
-            <div {...scope("light")} className="absolute inset-0 font-body text-text-primary">
-              <span
-                className="absolute text-center text-label-md"
-                style={{ left: c.clock.x, top: c.clock.y, width: c.clock.w }}
-              >
-                {CLOCK}
-              </span>
-              <Flood
-                paint={INK}
-                className="absolute rounded-round"
-                style={{ left: c.island.x, top: c.island.y, width: c.island.w, height: c.island.h }}
-              />
-              {slots.map(({ col, row }) => {
-                const x = grid.start + col * grid.pitch[0];
-                const y = grid.top + row * grid.pitch[1];
-                if (col !== app.col || row !== app.row) {
-                  return (
-                    <div
-                      key={`${col}-${row}`}
-                      className="absolute overflow-hidden rounded-container"
-                      style={{ left: x, top: y, width: grid.icon, height: grid.icon }}
-                    >
-                      <Skeleton shape="block" className="size-full" />
-                    </div>
-                  );
-                }
+    <PhoneScene
+      piece={piece}
+      image={c.image}
+      size={size}
+      crop={{ inset: c.inset }}
+      mode="light"
+      screen={() => (
+        <Flood paint={PAPER} className="absolute inset-0" data-home-screen="">
+          <div {...scope("light")} className="absolute inset-0 font-body text-text-primary">
+            {slots.map(({ col, row }) => {
+              const x = grid.start + col * grid.pitch[0];
+              const y = grid.top + row * grid.pitch[1];
+              if (col !== app.col || row !== app.row) {
                 return (
-                  <div key="app">
-                    <Flood
-                      paint={INK}
-                      className="absolute flex items-center justify-center rounded-container"
-                      style={{ left: x, top: y, width: grid.icon, height: grid.icon }}
-                      data-app-icon=""
-                    >
-                      <div {...scope("dark")}>
-                        <Logo kind="mark" height={grid.icon * app.mark} decorative />
-                      </div>
-                    </Flood>
-                    <span
-                      className="absolute whitespace-nowrap text-center text-label-sm"
-                      style={{
-                        left: x + (grid.icon - grid.pitch[0]) / 2,
-                        top: y + grid.icon + grid.gap,
-                        width: grid.pitch[0],
-                      }}
-                    >
-                      {BRAND_NAME}
-                    </span>
+                  <div
+                    key={`${col}-${row}`}
+                    className="absolute overflow-hidden rounded-container"
+                    style={{ left: x, top: y, width: grid.icon, height: grid.icon }}
+                  >
+                    <Skeleton shape="block" className="size-full" />
                   </div>
                 );
-              })}
-            </div>
-          </Flood>
+              }
+              return (
+                <div key="app">
+                  <Flood
+                    paint={INK}
+                    className="absolute flex items-center justify-center rounded-container"
+                    style={{ left: x, top: y, width: grid.icon, height: grid.icon }}
+                    data-app-icon=""
+                  >
+                    <div {...scope("dark")}>
+                      <Logo kind="mark" height={grid.icon * app.mark} decorative />
+                    </div>
+                  </Flood>
+                  <span
+                    className="absolute whitespace-nowrap text-center text-label-sm"
+                    style={{
+                      left: x + (grid.icon - grid.pitch[0]) / 2,
+                      top: y + grid.icon + grid.gap,
+                      width: grid.pitch[0],
+                    }}
+                  >
+                    {BRAND_NAME}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
         </Flood>
-      </div>
-    </Flood>
+      )}
+    />
   );
 }
 
@@ -3011,7 +3111,11 @@ function Preview({
   };
   const piece = "piece" in rec.show ? pieceOf(rec.show.piece) : null;
   const photoId =
-    piece && (piece.content.kind === "photo" || piece.content.kind === "scene")
+    piece &&
+    (piece.content.kind === "photo" ||
+      piece.content.kind === "scene" ||
+      piece.content.kind === "phone" ||
+      piece.content.kind === "icon")
       ? piece.content.image
       : null;
   const missingNow = photoId !== null && ctx.missing.has(photoId);
@@ -3157,78 +3261,81 @@ interface Jump {
 }
 
 /**
- * The padding of a fit: `base` like the board's own fit command, plus the height the dock covers at
- * the bottom, so no node lands under it. xyflow reads a number padding p as
- * floor((V - V / (1 + p)) / 2) per side. A panel inside a live frame belongs to a board that the
- * page draws, not to this one, and covers nothing of it. `margin` is more clear space above the
- * dock (a chapter fit keeps its nodes 24 above it).
+ * The height the board's own bottom furniture covers: the dock and the task bar, from the pane's
+ * bottom to the top of the highest. A panel inside a live frame belongs to a board that the page
+ * draws, not to this one, and covers nothing of it.
  */
-function fitPadding(root: Element | null, base: number, margin = 0) {
-  const board = root?.closest(".ds-board") ?? root;
-  if (!board) return base;
-  const rect = board.getBoundingClientRect();
-  const side = (v: number) => Math.floor((v - v / (1 + base)) / 2);
-  const cover = Math.max(
+function coverOf(pane: Element): number {
+  const bottom = pane.getBoundingClientRect().bottom;
+  return Math.max(
     0,
-    ...Array.from(board.querySelectorAll(".react-flow__panel.bottom, .ds-taskbar"))
-      // The boards of the landing and the app, drawn live on the product stage, have panels of their own.
+    ...Array.from(pane.querySelectorAll(".react-flow__panel.bottom, .ds-taskbar"))
       .filter((o) => o.closest("[data-live-frame]") === null)
-      .map((o) => rect.bottom - o.getBoundingClientRect().top),
+      .map((o) => bottom - o.getBoundingClientRect().top),
   );
-  const px = (n: number): `${number}px` => `${n}px`;
-  return {
-    top: px(side(rect.height)),
-    right: px(side(rect.width)),
-    bottom: px(side(rect.height) + Math.ceil(cover) + margin),
-    left: px(side(rect.width)),
-  };
 }
 
-/** The room a chapter keeps above the dock, in px (F4). */
-const DOCK_MARGIN = 24;
-
 /**
- * Frames the chosen chapter with no animation (a jump, not a glide), and again whenever what the
- * frame depends on settles: the size of the board and the measured size of the chapter's nodes
- * (a font that swaps in, a frame that mounts). A fit that ran on the first measure alone framed a
- * node's old height, so the final view changed from one open to the next (sign-off F4). The view is
- * a function of the board's size, the nodes' sizes and the chapter, so it is the same on every open.
+ * Frames the chosen chapter with no animation (a jump, not a glide). The view is computed here,
+ * from the chapter's measured boxes and the pane's size, and set with `setViewport`, never with
+ * `fitView`: xyflow queues a fit and runs it on the next node update with whatever fit options the
+ * store holds then, and the board's own `fitViewOptions` prop (a new object on each render) puts
+ * its all-nodes options there, so a chapter fit lost to the board's own in some opens and not in
+ * others (sign-off F4, the survey of c20cb1b). It runs again whenever what the view depends on
+ * settles: the measured size of the chapter's nodes, the size of the pane and the fonts. The view
+ * is a function of those and the chapter, so it is the same on every open.
  */
 function ChapterFit({ jump }: { jump: Jump }) {
   const flow = useReactFlow();
   const ready = useNodesInitialized();
   const dom = useStore((s) => s.domNode);
   const chapter = CHAPTERS.find((c) => c.id === jump.id);
+  // The overview frames the whole board.
+  const ids = useMemo(
+    () => (jump.id === "overview" ? NODES.map((n) => n.id) : (chapter?.nodes ?? [])),
+    [jump.id, chapter],
+  );
   const measured = useStore((s) =>
-    (chapter?.nodes ?? [])
+    ids
       .map((id) => {
         const size = s.nodeLookup.get(id)?.measured;
         return `${size?.width ?? 0}x${size?.height ?? 0}`;
       })
       .join(","),
   );
-  const board = useStore((s) => `${s.width}x${s.height}`);
-  const fit = useRef(flow.fitView);
+  const pane = useStore((s) => `${s.width}x${s.height}`);
+  // A font that swaps in changes a node's lines and the dock's buttons: fit again once it has.
+  const [fonts, setFonts] = useState(0);
   useEffect(() => {
-    fit.current = flow.fitView;
+    const again = () => setFonts((n) => n + 1);
+    void document.fonts.ready.then(again);
+    document.fonts.addEventListener("loadingdone", again);
+    return () => document.fonts.removeEventListener("loadingdone", again);
+  }, []);
+  // `setViewport` does nothing before the pane's zoom handler exists.
+  const initialized = flow.viewportInitialized;
+  const instance = useRef(flow);
+  useEffect(() => {
+    instance.current = flow;
   });
   useEffect(() => {
-    if (!ready || !chapter) return;
+    if (!ready || !initialized || !chapter || !dom) return;
     const frame = requestAnimationFrame(() => {
-      if (jump.id === "overview") {
-        void fit.current({ padding: fitPadding(dom, 0.2), duration: 0 });
-        return;
-      }
-      void fit.current({
-        nodes: chapter.nodes.map((id) => ({ id })),
-        padding: fitPadding(dom, 0.08, DOCK_MARGIN),
-        maxZoom: 1,
-        duration: 0,
-      });
+      const { x, y, width, height } = instance.current.getNodesBounds([...ids]);
+      void instance.current.setViewport(
+        chapterViewport(
+          { x, y, w: width, h: height },
+          { w: dom.clientWidth, h: dom.clientHeight },
+          coverOf(dom),
+          jump.id === "overview" ? VIEW_PAD.overview : VIEW_PAD.chapter,
+          DOCK_MARGIN,
+        ),
+        { duration: 0 },
+      );
     });
     return () => cancelAnimationFrame(frame);
     // `jump` carries a counter, so a second click on the same chapter fits again.
-  }, [ready, jump, chapter, dom, measured, board]);
+  }, [ready, initialized, jump, chapter, dom, ids, measured, pane, fonts]);
   return null;
 }
 
