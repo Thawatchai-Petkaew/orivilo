@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, waitFor, within } from "storybook/test";
 import type { Locale } from "../i18n/locale";
 import { messagesFor } from "../i18n/messages/index";
-import { expectNoGlyphClip } from "../testing/visual-asserts";
+import { expectEdgesOnPorts, expectNoGlyphClip } from "../testing/visual-asserts";
 import { ENGLISH_VIEW, THAI_VIEW } from "./business-fixtures";
 import { OriviloLanding } from "./orivilo-landing";
 
@@ -151,6 +151,9 @@ async function playWide(canvasElement: HTMLElement, lang: Locale) {
   expect(boundary?.getAttribute("data-design-profile")).toBe("orivilo");
   expectSectionsInOrder(root);
   await ready(root, lang, 6, 6);
+  // Sign-off F3-R1: the hero board's six edges and the work section's eighteen, which sit in a live
+  // frame at 0.357 scale, all end on their ports.
+  await waitFor(() => expectEdgesOnPorts(root, "the landing", 24));
   expectOneIntent(root, lang);
   expectNoClaims(root);
   expect(within(root).getAllByRole("heading", { level: 1 })).toHaveLength(1);

@@ -118,7 +118,8 @@ import { BusinessBoardScreen } from "./business-board";
 import { ENGLISH_VIEW, THAI_VIEW } from "./business-fixtures";
 import { GuidebookScreen } from "./guidebook";
 import { done } from "./guidebook-fixtures";
-import { OriviloLanding, TrueHandles, heroBody, heroGraph } from "./orivilo-landing";
+import { OriviloLanding, heroBody, heroGraph } from "./orivilo-landing";
+import { TrueHandles } from "./true-handles";
 import {
   type ArtText,
   type ArtToken,

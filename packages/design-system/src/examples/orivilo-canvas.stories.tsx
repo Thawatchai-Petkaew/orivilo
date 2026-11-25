@@ -4,6 +4,7 @@ import { messagesFor, type Messages } from "../i18n/messages/index";
 import {
   expectFocusBorderForm,
   expectEdgeColour,
+  expectEdgesOnPorts,
   expectLabelInkWhole,
   expectNoGlyphClip,
   expectPortPillsClear,
@@ -1475,6 +1476,7 @@ export const BrandbookChapter: Story = {
         `first page of part ${i}`,
       ).not.toBeNull();
     });
+    await waitFor(() => expectEdgesOnPorts(nodeEl(root, "bb-use"), "the bb-use face", 8));
     const dialog = await openNode(root, "bb-cover", EN.orvCanvas.preview.book);
     await pageBook(dialog);
     await closeToOpener(root, "bb-cover");
@@ -1627,6 +1629,9 @@ async function expectPartThree(page: HTMLElement, n: 10 | 11, words: Messages) {
     expect(field.querySelector("[data-browser]"), "the app in a browser").not.toBeNull();
     // Row 3.2: the field's window shows the same board with no node over another.
     expectWindowBoard(field.querySelector("[data-browser]") as HTMLElement, "page 10 window");
+    // Sign-off F3-R2: the field is turned -12 degrees, and the window's six edges and the phone's
+    // two still end on their ports.
+    await waitFor(() => expectEdgesOnPorts(field, "page 10's turned field", 8));
     expect(field.querySelector(FOUNDATION), "the guidebook").not.toBeNull();
     expect(intents[0]?.closest("[data-live-frame]"), "the intent is in the landing").toBe(
       frames[0],
@@ -2137,46 +2142,6 @@ function expectAppBoardFitted(frameEl: Element, name: string) {
 }
 
 /**
- * Every edge of every board in `scope` starts and ends on its handle (sign-off F3): each end of an
- * edge's path lies within 2 px of a handle's box. An edge is drawn to the outer edge of its handle,
- * so the box and not the centre is the target (the centre is half a handle, about 3 to 5 px, away
- * at the frame's scale). The ends are read in screen px through the path's own matrix, so a scale
- * above the board shows as a gap.
- */
-function expectEdgesOnPorts(scope: Element, name: string, count: number) {
-  const flows = [...scope.querySelectorAll<HTMLElement>(".react-flow")];
-  expect(flows.length, `${name} holds a board`).toBeGreaterThan(0);
-  let checked = 0;
-  for (const flow of flows) {
-    const handles = [...flow.querySelectorAll(".react-flow__handle")].map((h) =>
-      h.getBoundingClientRect(),
-    );
-    for (const edge of flow.querySelectorAll(".react-flow__edge")) {
-      const path = [...edge.querySelectorAll("path")].find((p) => p.getTotalLength() > 0);
-      expect(path, `${name} edge ${edge.getAttribute("data-id")} has a path`).toBeDefined();
-      if (!path) continue;
-      const m = path.getScreenCTM() as DOMMatrix;
-      for (const length of [0, path.getTotalLength()]) {
-        const q = path.getPointAtLength(length);
-        const x = m.a * q.x + m.c * q.y + m.e;
-        const y = m.b * q.x + m.d * q.y + m.f;
-        const gap = Math.min(
-          ...handles.map((r) =>
-            Math.hypot(Math.max(r.left - x, 0, x - r.right), Math.max(r.top - y, 0, y - r.bottom)),
-          ),
-        );
-        expect(
-          gap,
-          `${name} edge ${edge.getAttribute("data-id")} end at ${length}`,
-        ).toBeLessThanOrEqual(2);
-      }
-      checked++;
-    }
-  }
-  expect(checked, `${name} edges checked`).toBe(count);
-}
-
-/**
  * The window's board (design row 3.2, sign-off F2): no two nodes intersect and every port row lies
  * inside its node. Boxes are read in the board's own px (a node's transform and size), so a scale or
  * the tilt of page 10's field does not change them.
@@ -2289,6 +2254,9 @@ async function playProductChapterAt(root: HTMLElement, words: Messages, lang: "e
   const screen = inner?.querySelector<HTMLElement>('div[style*="height: 800px"]');
   expect(screen?.offsetHeight, "the app frame is 800 tall").toBe(800);
   await waitFor(() => expectAppBoardFitted(app, "p-app"));
+  // Sign-off F3-R1: the board screen in a scaled face draws its edges from the ports, not the corners.
+  await waitFor(() => expectEdgesOnPorts(nodeEl(root, "p-app"), "the p-app face", 18));
+  await waitFor(() => expectEdgesOnPorts(nodeEl(root, "p-landing"), "the p-landing face", 24));
   await expectGuideStart(root);
 }
 
@@ -2520,11 +2488,13 @@ async function playPreviewProductPages(canvasElement: HTMLElement, words: Messag
   // The app fills its 1280 x 800 box scaled to the stage, whole.
   const app = stage.querySelector<HTMLElement>("[data-live-frame]") as HTMLElement;
   await waitFor(() => expectAppBoardFitted(app, "page 2"));
+  await waitFor(() => expectEdgesOnPorts(stage, "product page 2", 18));
   const box = app.getBoundingClientRect();
   expect(box.width / box.height).toBeCloseTo(1280 / 800, 1);
   await userEvent.keyboard("{ArrowLeft}");
   await waitFor(() => expect(countOf(dialog)).toBe("1 / 3"));
   await waitFor(() => expectLivePage(stage, "page 1", words, true));
+  await waitFor(() => expectEdgesOnPorts(stage, "product page 1", 24));
   expect(within(dialog).getByText(words.orvCanvas.node.landing)).toBeDefined();
   expect(within(dialog).getByText(words.orvCanvas.product.landingNote)).toBeDefined();
 }
