@@ -2,7 +2,7 @@
 issue: ORV-308 (https://tpetkaew.atlassian.net/browse/ORV-308)
 lane: S (a fix, no risk flag; the `Logo` component's public API does not change)
 mode: POC mode short spec (`.claude/skills/ovl/SKILL.md`, section "POC mode")
-version: 1.0
+version: 1.1
 ---
 
 # ORV-308: the logo on the prototype canvas scenes is garbled in real Chrome
@@ -68,7 +68,7 @@ added. Test names are suggested; how the image is produced (a generated file or 
 | # | Given | When | User sees | Data effect | Check |
 | --- | --- | --- | --- | --- | --- |
 | 1 | The canvas story, the "04 In use" board and brandbook page 11, both scene images present | The card and the sign scenes render | On both scenes the lockup inside the perspective face is drawn as an image of the real logo drawing, not as inline stroked SVG. The placement is unchanged: the quad, the face size, the lockup width and the tone of the table above | None. No stored data; the scene records in `orivilo-canvas.data.ts` keep their values | DOM read: each `[data-face]` of the two scenes holds an `img` of the lockup and no `svg`; `orivilo-canvas.test.ts` or the story play asserts it, with the lockup size of "Worked examples" |
-| 2 | Real Google Chrome with GPU rendering, the built Storybook of the PR head | The walker opens the card and the sign at 100% zoom and at the overview zoom, on the board and on brandbook page 11 | The real mark and the full word "orivilo" on the card and on the sign, in all four views | None | Real Chrome walk, section "How row 2 is walked" |
+| 2 | Real Google Chrome with GPU rendering, the built Storybook of the PR head | The walker opens the card and the sign at 100% zoom and at the overview zoom, on the board and on brandbook page 11 | At 100% zoom, on the board and on brandbook page 11: the real mark and the full word "orivilo" on the card and on the sign, with no missing or merged letter. At the overview zoom, where the lockup is too small for letters in any renderer: the mark and the word shape on the card and on the sign, with no blob and no extra dark mass, and the real Chrome capture matches the headless Chromium capture of the same view | None | Real Chrome walk, section "How row 2 is walked" |
 | 3 | The PR head | The tests run | No UI | The image comes from the same drawing function (`logoSvg` in `drawing.ts`) and the same token colours as the `Logo` component, never drawn by hand. A test fails when a scene face holds an inline logo SVG again | `orivilo-canvas.test.ts` (or the story play): a scene face with an inline `svg` fails it; when the image is a committed file, `assets.test.ts` fails on a stale file |
 | 4 | The stories `MissingImages`, `Default` (English) and `InThai` (Thai) | They run | The missing-image fallback of the scenes and the Thai and English stories work as before this PR; no new UI text | No copy key added or changed in either catalog | The three stories' plays pass; `check-i18n` and the copy check pass in the gate |
 
@@ -108,9 +108,18 @@ Headless Chromium cannot show the defect, so row 2 is never proven by a CI scree
    so Chrome draws with its GPU. Record the browser version the run reports.
 3. Open the story `examples-prototype-orivilo-canvas--default`. On the "04 In use" board, view the
    card and the sign at 100% zoom, then at the overview zoom. Do the same on brandbook page 11.
-4. In each of the four views, take a screenshot of the card and of the sign (eight screenshots).
-5. Row 2 passes when every screenshot shows the mark and the full word "orivilo", with no blob and no
-   missing or merged letter. A run in headless Chromium, or without the Chrome channel, does not count.
+4. In each of the four views, take a screenshot of the card and of the sign (eight screenshots). In
+   the two overview views, also take the same four screenshots in headless Chromium, for comparison
+   only.
+5. Row 2 passes when both of these hold:
+   - At 100% zoom (the board and page 11, four real Chrome screenshots): each shows the mark and the
+     full word "orivilo", with no blob and no missing or merged letter.
+   - At the overview zoom (the board and page 11, four real Chrome screenshots): each shows the mark
+     and the word shape, with no blob and no extra dark mass, and matches its headless Chromium twin
+     from step 4. Letters are not read at this zoom; the lockup is too small for them in any renderer.
+
+   The real Chrome screenshots are the evidence. A run in headless Chromium, or without the Chrome
+   channel, does not count on its own; its overview captures serve only as the twins.
 
 ## Rows per PR
 
@@ -150,3 +159,11 @@ from a screenshot; the lockup that row 1 places does render.
   render nothing"; the real Chrome walk of row 2. No Jira tool call and no shell in this role: the
   issue text came from the envelope's first context pointer. To review downstream: the builder, the
   reviewer and the qa envelopes of this issue's PR.
+- v1.1 (2026-11-25): row 2 and step 5 of "How row 2 is walked" stop asking for the readable word at
+  the overview zoom. Reason: the sign-off finding S1 of task ORV-308-signoff (designer, head
+  46f92f6), which measured the lockup at about 16 device px wide at the overview zoom (28 percent)
+  and the same unreadable pixels in real Chrome and in headless Chromium. At that zoom row 2 now
+  asks for the mark and the word shape, no blob, no extra dark mass, and a match with the headless
+  Chromium twin; the full word with no missing or merged letter stays the pass condition at 100%
+  zoom on the board and on page 11. Step 4 adds the four headless twins. To review downstream: the
+  qa envelope of this issue's PR (row 2 walk).
