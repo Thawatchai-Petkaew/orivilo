@@ -2,7 +2,7 @@
 issue: ORV-312 (https://tpetkaew.atlassian.net/browse/ORV-312)
 lane: M (a slice card of ORV-309; no shared component API, token, recipe or profile changes)
 mode: POC mode short spec (`.claude/skills/ovl/SKILL.md`, section "POC mode")
-version: 1.2
+version: 1.3
 ---
 
 # ORV-312: the phone of piece B shows the node board, not the landing
@@ -63,7 +63,7 @@ files `en.ts` and `th.ts`. "Design row n" is a row of `docs/specs/ORV-312/design
 | 7 | The locale catalog | check-i18n, the copy check and the unit test run | Not a screen | `orvCanvas.use.phone` reads "The board on a phone" / "กระดานบนมือถือ"; `orvCanvas.use.phoneSub` reads "Mockup: ORIVILO's own node board at 390, live, with sample data, on an AI phone picture." / "ม็อกอัป: กระดานโหนดของ ORIVILO ที่กว้าง 390 แสดงสดด้วยข้อมูลตัวอย่าง วางบนภาพโทรศัพท์ที่สร้างด้วย AI" (design row 6). No other key changes, no key is added or removed, and `en.ts` and `th.ts` keep the same keys. No middot and no em dash | `orivilo-canvas.test.ts` with check-i18n and the copy check in the gate |
 | 8 | Canvas stories `PreviewInUseBoard` page 3 and `PreviewBrandbook` page 11, Thai | Rendering | Every label on the phone shows in Thai: "บรีฟ", "ทำให้เจตนา / จับต้องได้" on two lines, "กลุ่มผู้ใช้", "ผู้ก่อตั้ง ทีมเล็ก", "บุคลิก", "ความรู้สึก", "สงบและมั่นใจ", "โลโก้", "สี", "คู่มือแบรนด์", "ภาพ", "ชุดสี", "ดูอย่างเดียว", "เปิดคู่มือแบรนด์"; no Thai mark is cut | The brief's text is 2 lines in both languages; the audience's and the feeling's lines are 2 lines in English and 1 in Thai. `expectNoGlyphClip` holds on the brief's text, the audience's and the feeling's lines, the guide's node title, the badge and the button, on page 3 and on page 11. At the `u-board` tile the Thai play checks the label texts (the badge aside, row 1) and the two-line brief text, and no glyph clip: the helper reads a clip's corner radius in css px under no scale, so it reads red at the tile's small scale | Plays of `PreviewPhoneBoardThai` (page 3) and `PreviewPhoneBoardBrandbookThai` (page 11); `InUseChapterThai` for the `u-board` tile |
 | 9 | Canvas story `MissingImages` | `scene-phone` is missing | Piece B's tile shows the violet flood and the missing label only, as ORV-309 design row 4.5 | No `[data-phone-screen]`, no board and no button in piece B; `u-board` and page 11 hold 0 intent buttons | `MissingImages` play |
-| 10 | Canvas story `PreviewAt360`, the board and page 11 | Rendering at 360 | The phone picture renders whole in its tile, with the screen scaled as one, nothing reflowed | The frame's `scrollWidth` equals its `clientWidth` | `PreviewAt360` play |
+| 10 | Canvas stories `PreviewInUseBoardAt360` (the In use board) and `PreviewBrandbookAt360` (page 11) | Rendering at 360 | The phone picture renders whole in its tile, with the screen scaled as one, nothing reflowed | The frame's `scrollWidth` equals its `clientWidth` | Plays of `PreviewInUseBoardAt360` and `PreviewBrandbookAt360`, each through `expectPagesHoldAt360` |
 | 11 | Canvas stories `InUseChapter` and `PreviewBrandbook` page 11 | Querying the DOM | The phone screen shows live components, not a picture of a screen (comment 10829) | Inside each `[data-phone-screen]` there are 0 `img` and 0 `picture`; piece B holds exactly one `img`, the phone picture `scene-phone` | Plays of `InUseChapter` and `PreviewBrandbook` |
 | 12 | The data module `orivilo-canvas.data.ts` and the image records | The unit test runs | Not a screen | The counts of ORV-309 row 10 hold unchanged (31 nodes, 36 edges, 14 result nodes, 8 sequences of 42 pages, nine chapter stops). The image ids stay 8: the seven of ORV-274 `images-1` and `scene-phone` | `orivilo-canvas.test.ts` |
 | 13 | The PR head against `develop` | Reading the diff of the protected paths | Not a screen | No change under `packages/design-system/src/components/`, `src/tokens/`, `src/recipes/`, `src/profiles/` or `apps/web/`: no new token, recipe class, public API or contrast pair, and nothing under `packages/design-system/.storybook/static` | `git diff --stat origin/develop...HEAD -- packages/design-system/src/components packages/design-system/src/tokens packages/design-system/src/recipes packages/design-system/src/profiles apps/web packages/design-system/.storybook/static` prints nothing |
@@ -72,10 +72,10 @@ files `en.ts` and `th.ts`. "Design row n" is a row of `docs/specs/ORV-312/design
 
 ## Rows per PR
 
-- Rows: 1-15
+- PR 253: rows 1-15
 
-One PR holds every row. It builds on PR 251 of ORV-309 (the phone picture and `PhoneScene`) and
-opens after PR 251 is merged; its number is not known yet.
+One PR, PR 253, holds every row. It builds on PR 251 of ORV-309 (the phone picture and
+`PhoneScene`).
 
 ## Rows that render nothing
 
@@ -208,3 +208,8 @@ node -e 'const x0=26.86,k=0.6325,x=88,p=x0+x*k;console.log(p.toFixed(2),((p-x0)/
   button's end, bottom and height only. Row 8: the new Thai labels and line counts. Rows 4, 6, 7,
   9 to 15 and phone-board-1 hold. To review downstream: the builder's plays and `PHONE_AT`,
   `PHONE_EDGES` (design, the builder's list), the reviewer and qa envelopes of this slice's PR.
+- v1.3 (2026-11-26): task ORV-312-spec-v1-3, two form fixes, no requirement changed. Rows per PR
+  takes the form the result recorder reads, `- PR 253: rows 1-15`, and names PR 253. Row 10, from
+  the code review's Suggestion S3: its Given and Check name the plays that hold the phone at 360,
+  `PreviewInUseBoardAt360` and `PreviewBrandbookAt360`, not `PreviewAt360`. To review downstream:
+  the qa envelope and the result record of this slice's PR.
