@@ -34,6 +34,7 @@ import {
   BRAND_NAME,
   BROWSER,
   CLOCK,
+  DEMO_POINTS,
   cellBox,
   coverCrop,
   homography,
@@ -858,7 +859,6 @@ describe("orivilo canvas data, images (spec row 33)", () => {
   const ids = [
     "brand-hero",
     "direction-team",
-    "colour-reference",
     "direction-making",
     "direction-place",
     "scene-card",
@@ -868,7 +868,6 @@ describe("orivilo canvas data, images (spec row 33)", () => {
   const TREATMENT: Record<string, string> = {
     "brand-hero": "photo",
     "direction-team": "violet",
-    "colour-reference": "photo",
     "direction-making": "violet",
     "direction-place": "paper",
     "scene-card": "photo",
@@ -910,7 +909,7 @@ describe("orivilo canvas data, images (spec row 33)", () => {
     });
   }
 
-  it("holds exactly the 8 ids", () => {
+  it("holds exactly the 7 ids", () => {
     expect(IMAGES.map((i) => i.id).sort()).toEqual([...ids].sort());
   });
 
@@ -1014,6 +1013,76 @@ describe("orivilo canvas data, images (spec row 33)", () => {
     }
     for (const n of NODES) if (n.body.kind === "demo") used.add(n.body.image);
     expect([...used].sort()).toEqual([...ids].sort());
+  });
+});
+
+describe("orivilo canvas data, the colour demo (ORV-313 rows 6 and 8)", () => {
+  const rgb = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+  const distance = (a: string, b: string) =>
+    Math.hypot(...rgb(a).map((v, i) => v - (rgb(b)[i] ?? 0)));
+  /** The PALETTE entry nearest to a hex by straight RGB distance (demo-read-1, worked example W1). */
+  const nearest = (hex: string) =>
+    PALETTE.reduce((best, entry) =>
+      distance(hex, entry.hex) < distance(hex, best.hex) ? entry : best,
+    );
+
+  it("holds the four points read from brand-hero, in reading order", () => {
+    // The hex values are the means of the 11 x 11 squares read from the file by the design's script
+    // (section 3); they are not the palette's own values.
+    expect(DEMO_POINTS).toEqual([
+      { n: 1, x: 14, y: 22, hex: "#8526CC", palette: "violet" },
+      { n: 2, x: 29, y: 38, hex: "#E6DBDA", palette: "canvas" },
+      { n: 3, x: 50, y: 55, hex: "#15131E", palette: "ink" },
+      { n: 4, x: 86, y: 92, hex: "#7922C1", palette: "violet" },
+    ]);
+  });
+
+  it("keeps every hex as # and six upper-case digits and every point inside the picture", () => {
+    for (const point of DEMO_POINTS) {
+      expect(point.hex, `point ${point.n} hex`).toMatch(/^#[0-9A-F]{6}$/);
+      expect(point.x, `point ${point.n} x`).toBeGreaterThan(0);
+      expect(point.x, `point ${point.n} x`).toBeLessThan(100);
+      expect(point.y, `point ${point.n} y`).toBeGreaterThan(0);
+      expect(point.y, `point ${point.n} y`).toBeLessThan(100);
+    }
+  });
+
+  it("names for each point the palette colour nearest to its read hex", () => {
+    for (const point of DEMO_POINTS) {
+      expect(point.palette, `point ${point.n}`).toBe(nearest(point.hex).id);
+      // A read value is not the palette's own: it was read from pixels, not typed to match.
+      expect(
+        PALETTE.map((p) => p.hex),
+        `point ${point.n} is a read value`,
+      ).not.toContain(point.hex);
+    }
+  });
+
+  it("shows c-demo the brand photograph with its four points", () => {
+    const demo = NODES.find((n) => n.id === "c-demo");
+    expect(demo?.body).toEqual({ kind: "demo", image: "brand-hero", points: DEMO_POINTS });
+    expect(demo?.open, "c-demo has no preview page").toBeUndefined();
+  });
+
+  it("has no id, record or alt key of colour-reference", () => {
+    expect(IMAGES.map((i) => i.id)).not.toContain("colour-reference");
+    for (const messages of [en, th]) {
+      expect(Object.keys(messages.orvCanvas.image.alt)).not.toContain("colour-reference");
+    }
+    for (const file of ["colour-reference.webp", "colour-reference.prompt.md"]) {
+      expect(existsSync(resolve(STATIC, file)), file).toBe(false);
+    }
+  });
+
+  it("words the note and the near line in both languages", () => {
+    expect(en.orvCanvas.demo.note).toBe(
+      "Not in the product yet. Points 1 to 4 read the colours back from the brand photo, which AI made from ORIVILO's palette. Lime is not in it. The owner chose the violet; it was not read from a photo.",
+    );
+    expect(th.orvCanvas.demo.note).toBe(
+      "ยังไม่มีในผลิตภัณฑ์ จุด 1 ถึง 4 อ่านสีกลับจากภาพแบรนด์ที่ AI สร้างจากชุดสีของ ORIVILO ในภาพไม่มีสีเขียวมะนาว และเจ้าของเลือกสีม่วงเอง ไม่ได้อ่านจากภาพ",
+    );
+    expect(en.orvCanvas.demo.near).toBe("≈ {name}");
+    expect(th.orvCanvas.demo.near).toBe("≈ {name}");
   });
 });
 
