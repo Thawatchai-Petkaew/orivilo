@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { type ComponentProps, useState } from "react";
 import { expect, userEvent, waitFor, within } from "storybook/test";
 import { messagesFor, type Messages } from "../i18n/messages/index";
 import {
@@ -10,6 +11,7 @@ import {
   expectPortPillsClear,
   expectSameHeight,
   inVitest,
+  pointRectDistance,
   resolvedColor,
   type Side,
 } from "../testing/visual-asserts";
@@ -1389,6 +1391,222 @@ function expectPhoneScene(piece: HTMLElement, name: string, radii: { round: stri
   expect(c.left, `${name} clock inside the screen`).toBeGreaterThanOrEqual(s.left - 0.5);
 }
 
+// ---- the phone board (ORV-312 design rows 1 to 5)
+
+/** Design row 2: each card's box on the 390 screen in design px, `[x, y, width, height]`. */
+const PHONE_CARDS: Readonly<Record<string, readonly [number, number, number, number]>> = {
+  brief: [16, 150, 200, 128.1],
+  logo: [262, 190, 112, 150],
+  colour: [294, 424, 80, 118],
+  guide: [88, 572, 286, 168],
+};
+/** Design row 2: the four edges by id, each joining a source node to a target node. */
+const PHONE_JOINS: Readonly<Record<string, readonly [string, string]>> = {
+  "brief-logo": ["brief", "logo"],
+  "brief-colour": ["brief", "colour"],
+  "logo-guide": ["logo", "guide"],
+  "colour-guide": ["colour", "guide"],
+};
+/** Design row 4: the intent button's box, `[start, width]`, its end at 374, 48 high, its bottom at 804. */
+const PHONE_BUTTON = { en: [145.4, 228.6], th: [234.9, 139.1] } as const;
+/** The edge rule of design row 2: an edge keeps this many design px from a node it does not join. */
+const EDGE_CLEAR = 6;
+
+/** The phone placement inside `scope`: piece B where the scope holds several pieces, else the scope. */
+const phoneOf = (scope: Element): Element => scope.querySelector('[data-piece="phone"]') ?? scope;
+
+/**
+ * The phone's screen and a way to read any box in the screen's own design px (390 wide): the screen
+ * is drawn at `k` css px per design px, whatever scale the place puts it under.
+ */
+function phoneRead(scope: Element) {
+  const screen = phoneOf(scope).querySelector<HTMLElement>("[data-phone-screen]");
+  if (!screen) throw new RangeError("no phone screen");
+  const s = screen.getBoundingClientRect();
+  const k = s.width / 390;
+  const box = (r: DOMRect | { left: number; top: number; width: number; height: number }) => ({
+    x: (r.left - s.left) / k,
+    y: (r.top - s.top) / k,
+    w: r.width / k,
+    h: r.height / k,
+  });
+  return { screen, s, k, box };
+}
+
+/**
+ * The phone board screen of rows 1 and 2 in a phone: one app bar with no button, one present board
+ * of four nodes and four edges, the guidebook selected, the view at rest, no landing and no image;
+ * each card within 0.5 design px of its box. Returns the card boxes for a later open to match.
+ */
+function expectPhoneBoard(scope: Element, name: string) {
+  const { screen, box } = phoneRead(scope);
+  const bars = screen.querySelectorAll("header");
+  expect(bars, `${name} app bar`).toHaveLength(1);
+  expect(
+    (bars[0] as Element).querySelectorAll("button, [role='button']"),
+    `${name} app bar holds no button`,
+  ).toHaveLength(0);
+  expect(
+    screen.querySelectorAll('.ds-board[data-variant="present"]'),
+    `${name} present board`,
+  ).toHaveLength(1);
+  const nodes = [...screen.querySelectorAll<HTMLElement>(".react-flow__node")];
+  expect(nodes.map((n) => n.dataset.id).sort(), `${name} nodes`).toEqual(
+    Object.keys(PHONE_CARDS).sort(),
+  );
+  expect(screen.querySelectorAll(".react-flow__edge"), `${name} edges`).toHaveLength(4);
+  const selected = screen.querySelectorAll(".ds-node[data-selected]");
+  expect(selected, `${name} one selected node`).toHaveLength(1);
+  expect(
+    selected[0]?.closest(".react-flow__node")?.getAttribute("data-id"),
+    `${name} selected`,
+  ).toBe("guide");
+  const viewport = screen.querySelector<HTMLElement>(".react-flow__viewport") as HTMLElement;
+  expect(getComputedStyle(viewport).transform, `${name} view`).toBe("matrix(1, 0, 0, 1, 0, 0)");
+  expect(screen.querySelectorAll("[data-section], h1"), `${name} holds no landing`).toHaveLength(0);
+  expect(
+    screen.querySelectorAll("img, picture, canvas"),
+    `${name} screen holds no image`,
+  ).toHaveLength(0);
+  const cards: Record<string, number[]> = {};
+  for (const node of nodes) {
+    const id = node.dataset.id as string;
+    const card = node.querySelector(".ds-node") as Element;
+    const r = box(card.getBoundingClientRect());
+    const want = PHONE_CARDS[id] as readonly number[];
+    [r.x, r.y, r.w, r.h].forEach((got, i) => {
+      expect(
+        Math.abs(got - (want[i] as number)),
+        `${name} ${id} ${["x", "y", "width", "height"][i]} is ${got.toFixed(2)}, expected ${want[i]}`,
+      ).toBeLessThanOrEqual(0.5);
+    });
+    cards[id] = [r.x, r.y, r.w, r.h];
+  }
+  // Each edge ends on a port of the phone's own board, under the scale of the place it is in.
+  expectEdgesOnPorts(phoneOf(scope), `${name} phone board`, 4);
+  return cards;
+}
+
+/**
+ * Row 5 of the slice: one lime button on the phone, in an inert subtree, with the guidebook's own
+ * words, its end at 374 and its bottom at 804 of the 390 screen, under the guidebook card.
+ */
+function expectPhoneIntent(scope: Element, name: string, words: Messages, lang: "en" | "th") {
+  const buttons = phoneOf(scope).querySelectorAll<HTMLElement>('.ds-button[data-variant="intent"]');
+  expect(buttons, `${name} intent buttons`).toHaveLength(1);
+  const button = buttons[0] as HTMLElement;
+  expect(button.closest("[inert]"), `${name} intent is inert`).not.toBeNull();
+  expect(button.closest("[data-phone-screen]"), `${name} intent is on the screen`).not.toBeNull();
+  expect(button.textContent, `${name} intent label`).toBe(words.business.board.openGuidebook);
+  const { box } = phoneRead(scope);
+  const r = box(button.getBoundingClientRect());
+  const [start, width] = PHONE_BUTTON[lang];
+  const near = (got: number, want: number, what: string) =>
+    expect(
+      Math.abs(got - want),
+      `${name} button ${what} is ${got.toFixed(2)}, expected ${want}`,
+    ).toBeLessThanOrEqual(0.5);
+  near(r.x, start, "start");
+  near(r.x + r.w, 374, "end");
+  near(r.y + r.h, 804, "bottom");
+  near(r.h, 48, "height");
+  near(r.w, width, "width");
+  const guide = PHONE_CARDS["guide"] as readonly number[];
+  expect(r.y, `${name} button is under the guidebook card`).toBeGreaterThanOrEqual(
+    (guide[1] as number) + (guide[3] as number),
+  );
+}
+
+/**
+ * Row 3 of the slice: every edge, sampled every 1/200 of its length, stays `EDGE_CLEAR` design px
+ * from the card, the handles and the label of each node it does not join.
+ */
+function expectEdgesClear(scope: Element, name: string) {
+  const { screen, k } = phoneRead(scope);
+  const nodes = [...screen.querySelectorAll<HTMLElement>(".react-flow__node")];
+  const edges = [...screen.querySelectorAll<SVGPathElement>("path.ds-edge__path")];
+  expect(edges, `${name} edges`).toHaveLength(4);
+  const parts = (node: HTMLElement) =>
+    [
+      node.querySelector(".ds-node"),
+      node.querySelector(".ds-node__label"),
+      ...node.querySelectorAll(".react-flow__handle"),
+    ].map((el) => (el as Element).getBoundingClientRect());
+  const rects = new Map(nodes.map((n) => [n.dataset.id as string, parts(n)]));
+  for (const path of edges) {
+    const id = path.closest(".react-flow__edge")?.getAttribute("data-id") ?? "";
+    const join = PHONE_JOINS[id];
+    expect(join, `${name} edge ${id} is one of the four`).toBeDefined();
+    const toScreen = path.getScreenCTM() as DOMMatrix;
+    const length = path.getTotalLength();
+    let nearest = Infinity;
+    for (let i = 0; i <= 200; i++) {
+      const local = path.getPointAtLength((length * i) / 200);
+      const p = new DOMPoint(local.x, local.y).matrixTransform(toScreen);
+      for (const [node, list] of rects) {
+        if (join?.includes(node)) continue;
+        for (const r of list) nearest = Math.min(nearest, pointRectDistance(p, r) / k);
+      }
+    }
+    expect(
+      nearest,
+      `${name} edge ${id} passes ${nearest.toFixed(1)} design px from a node it does not join`,
+    ).toBeGreaterThanOrEqual(EDGE_CLEAR);
+  }
+}
+
+/**
+ * Row 8 of the slice, Thai: every label of the phone in Thai, the brief's heading on two lines and
+ * no mark cut on the heading, the guidebook's title, the badge or the button. `tile` reads the phone
+ * as the In use node draws it, about 90 css px wide: the board's "View only" badge has no box there
+ * (the recipe hides it in a board that holds a centred dock, and the canvas's own holds one), and
+ * the glyph helper reads a corner radius in css px under no scale, so it is read on the large places.
+ */
+function expectPhoneThai(scope: Element, name: string, tile = false) {
+  const { screen } = phoneRead(scope);
+  const board = TH.oriviloLanding.board;
+  const shown = screen.getBoundingClientRect();
+  // What a person reads on the display: text with a box that starts above the display's bottom (the
+  // library's attribution sits below it, its keyboard help has no box).
+  const leaves = [...screen.querySelectorAll("*:not(style)")]
+    .filter((e) => {
+      const r = e.getBoundingClientRect();
+      return r.width > 0 && r.top < shown.bottom;
+    })
+    .filter((e) => e.children.length === 0 && (e.textContent ?? "").trim() !== "")
+    .map((e) => (e.textContent ?? "").trim());
+  for (const text of [
+    board.brief,
+    board.briefText,
+    board.briefMeta,
+    board.logo,
+    board.colour,
+    board.guidebook,
+    board.guideTitle,
+    board.image,
+    board.palette,
+    ...(tile ? [] : [TH.board.readOnly]),
+    TH.business.board.openGuidebook,
+  ]) {
+    expect(leaves, `${name} shows "${text}"`).toContain(text);
+  }
+  const latin = leaves.filter((t) => /[A-Za-z]/.test(t) && t !== BRAND_NAME);
+  expect(latin, `${name} shows no English label`).toEqual([]);
+  const heading = within(screen as HTMLElement).getByText(board.briefText);
+  const range = document.createRange();
+  range.selectNodeContents(heading);
+  const lines = new Set([...range.getClientRects()].map((r) => Math.round(r.top)));
+  expect(lines.size, `${name} the brief's heading is on two lines`).toBe(2);
+  const title = within(screen as HTMLElement).getByText(board.guideTitle);
+  const mode = screen.querySelector(".ds-board__mode") as Element;
+  const button = screen.querySelector('.ds-button[data-variant="intent"]') as Element;
+  if (tile) {
+    expect(mode.getBoundingClientRect().width, `${name} badge has no box`).toBe(0);
+    return;
+  }
+  for (const el of [heading, title, mode, button]) expectNoGlyphClip(el, screen);
+}
+
 /**
  * Piece C (rows 3.1 and 4.4): one `[data-app-icon]` whose width is 0.15 to 0.17 of the screen's, 19
  * skeleton slots, the mark's ring and dot inside the icon's box, no intent button, and a screen that
@@ -1435,7 +1653,7 @@ function expectHomeScreen(icon: HTMLElement, radii: { round: string; container: 
 
 /**
  * The digital pieces of the In use board (spec ORV-309 row 11, C5, C11), read in `board`: the app in
- * a browser with ORIVILO's live board, the landing on a phone, the app icon on a home screen and the
+ * a browser with ORIVILO's live board, the node board on a phone, the app icon on a home screen and the
  * link share card. Exactly one intent button, in the phone, in an inert subtree.
  */
 async function expectDigitalPieces(board: Element, words: Messages) {
@@ -1468,15 +1686,14 @@ async function expectDigitalPieces(board: Element, words: Messages) {
   expect(intents(windowPiece), "the window holds no intent button").toHaveLength(0);
   expect(inertAndHidden(windowPiece.querySelector("[data-live-frame]") as Element)).toBe(true);
 
-  // B: the landing on a phone.
+  // B: the board on a phone (ORV-312 rows 1, 2, 5 and 11).
   const phone = piece("phone");
   const live = phone.querySelector<HTMLElement>("[data-live-frame]") as HTMLElement;
   expect(inertAndHidden(live)).toBe(true);
   expectPhoneScene(phone, "the phone", { round });
-  expect(
-    live.closest("[data-phone-screen]"),
-    "the landing is on the phone's screen",
-  ).not.toBeNull();
+  expect(live.closest("[data-phone-screen]"), "the board is on the phone's screen").not.toBeNull();
+  await waitFor(() => expectPhoneBoard(phone, "the phone"));
+  expectPhoneIntent(phone, "the phone", words, words === TH ? "th" : "en");
   expect(intents(phone), "the phone holds the one intent button").toHaveLength(1);
   expect(intents(phone)[0]?.closest("[inert]")).not.toBeNull();
 
@@ -1769,7 +1986,7 @@ function designBox(el: Element, page: Element) {
 /**
  * Brandbook part 03 (spec ORV-309 row 12): page 10 holds the ink half and a field of three live
  * screens at -12 degrees on violet, no image and one intent button, in the landing; page 11 holds six
- * placements, the phone with its layout grid and measure, the window, the icon, the icon set of 24
+ * placements, the phone (ORV-312: the node board) with its layout grid and measure, the window, the icon, the icon set of 24
  * glyphs, the card and the sign, and one intent button, in the phone. Nothing is clipped or spills.
  */
 async function expectPartThree(page: HTMLElement, n: 10 | 11, words: Messages) {
@@ -1845,7 +2062,11 @@ async function expectPartThree(page: HTMLElement, n: 10 | 11, words: Messages) {
   expect(intents[0]?.closest('[data-piece="phone"]'), "the intent is in piece B's phone").toBe(
     phone,
   );
-  // The layout grid: two dashed lines at 24 and 366 of the 390 screen, the measure 24, 342, 24.
+  // ORV-312 rows 1, 2 and 5: the phone shows the board and its one button.
+  await waitFor(() => expectPhoneBoard(phone, "page 11 phone"));
+  expectPhoneIntent(phone, "page 11 phone", words, words === TH ? "th" : "en");
+  // The layout grid (ORV-312 row 6): two dashed lines at 16 and 374 of the 390 screen, the measure
+  // 16, 358, 16, the ticks on 0, 16, 374 and 390.
   const live = phone.querySelector<HTMLElement>("[data-live-frame]") as HTMLElement;
   const screen = live.getBoundingClientRect();
   const lines = [...phone.querySelectorAll<HTMLElement>("[data-layout-grid] > div")];
@@ -1856,17 +2077,17 @@ async function expectPartThree(page: HTMLElement, n: 10 | 11, words: Messages) {
     resolvedColor(lines[0] as HTMLElement, "--ds-brand-signature"),
   );
   const at390 = (x: number) => ((x - screen.left) / screen.width) * 390;
-  expect(at390((lines[0] as HTMLElement).getBoundingClientRect().left)).toBeCloseTo(24, 0);
-  expect(at390((lines[1] as HTMLElement).getBoundingClientRect().left)).toBeCloseTo(366, 0);
+  expect(at390((lines[0] as HTMLElement).getBoundingClientRect().left)).toBeCloseTo(16, 0);
+  expect(at390((lines[1] as HTMLElement).getBoundingClientRect().left)).toBeCloseTo(374, 0);
   const measure = phone.querySelector<HTMLElement>("[data-measure]") as HTMLElement;
   const labels = [...measure.querySelectorAll<HTMLElement>("span")];
   expect(
     labels.map((l) => l.textContent),
     "the measure",
-  ).toEqual(["24", "342", "24"]);
+  ).toEqual(["16", "358", "16"]);
   const ticks = [...measure.querySelectorAll<HTMLElement>(".border-s")];
   expect(ticks, "four ticks").toHaveLength(4);
-  [0, 24, 366, 390].forEach((x, i) => {
+  [0, 16, 374, 390].forEach((x, i) => {
     expect(at390((ticks[i] as HTMLElement).getBoundingClientRect().left), `tick ${i}`).toBeCloseTo(
       x,
       0,
@@ -2741,6 +2962,11 @@ async function expectPagesHoldAt360(dialog: HTMLElement, from: number, count: nu
         expect(r.right, `page ${n} ${label} right`).toBeLessThanOrEqual(frame.right + 1);
         expect(r.bottom, `page ${n} ${label} bottom`).toBeLessThanOrEqual(frame.bottom + 1);
       }
+      // ORV-312 row 10: the phone board scales as one with its picture, nothing reflowed.
+      const board = [...art.querySelectorAll("[data-phone-screen]")].some((screen) =>
+        screen.querySelector("header"),
+      );
+      if (board) await waitFor(() => expectPhoneBoard(art, `page ${n} at 360`));
       if (n < from + count - 1) {
         await userEvent.keyboard("{ArrowRight}");
       }
@@ -2766,6 +2992,193 @@ export const PreviewBrandbookAt360: Story = {
     const dialog = await dialogOf(EN.orvCanvas.preview.book);
     await expectPagesHoldAt360(dialog, 10, 3);
   },
+};
+
+/**
+ * Moves the preview off `page` and back, `times` times: each return mounts the piece again. The cards
+ * are read at every open and must equal the first (ORV-312 row 4: the board is placed by number, no
+ * fit, no measure, no effect).
+ */
+async function expectSamePhoneOnEveryOpen(
+  dialog: HTMLElement,
+  page: number,
+  count: number,
+  first: Record<string, number[]>,
+  times = 2,
+) {
+  const stage = stageOf(dialog);
+  for (let open = 1; open <= times; open++) {
+    const before = phoneRead(stage).screen;
+    await userEvent.keyboard("{ArrowRight}");
+    await waitFor(() => expect(countOf(dialog)).toBe(`${page + 1} / ${count}`));
+    await userEvent.keyboard("{ArrowLeft}");
+    await waitFor(() => expect(countOf(dialog)).toBe(`${page} / ${count}`));
+    let again: Record<string, number[]> = {};
+    await waitFor(() => {
+      again = expectPhoneBoard(stage, `open ${open + 1}`);
+    });
+    expect(phoneRead(stage).screen, `open ${open + 1} mounted the phone again`).not.toBe(before);
+    for (const [id, box] of Object.entries(first)) {
+      (again[id] as number[]).forEach((got, i) => {
+        expect(
+          Math.abs(got - (box[i] as number)),
+          `open ${open + 1} ${id} box ${i} moved by ${Math.abs(got - (box[i] as number)).toFixed(3)}`,
+        ).toBeLessThanOrEqual(0.01);
+      });
+    }
+  }
+}
+
+/**
+ * ORV-312 rows 1 to 5 on piece B's own page: the phone shows the board in English (the app bar, four
+ * nodes, four edges clear of the nodes they do not join, one lime button), the caption's new lines,
+ * and the same view on three opens.
+ */
+export const PreviewPhoneBoard: Story = {
+  globals: { locale: "en" },
+  args: { preview: { sequence: "inUse", page: 3 } },
+  play: async () => {
+    const dialog = await dialogOf(EN.orvCanvas.node.inUseBoard);
+    expect(countOf(dialog)).toBe("3 / 8");
+    const stage = stageOf(dialog);
+    await imagesLoaded(stage);
+    expect(within(dialog).getByText(EN.orvCanvas.use.phone)).toBeDefined();
+    expect(within(dialog).getByText(EN.orvCanvas.use.phoneSub)).toBeDefined();
+    // The edges first: they are drawn once every node is measured, and they are the row 3 check.
+    await waitFor(() => expectEdgesClear(stage, "page 3"));
+    let first: Record<string, number[]> = {};
+    await waitFor(() => {
+      first = expectPhoneBoard(stage, "page 3");
+    });
+    expectPhoneIntent(stage, "page 3", EN, "en");
+    await expectSamePhoneOnEveryOpen(dialog, 3, 8, first);
+  },
+};
+
+/** ORV-312 rows 3, 5 and 8 in Thai, on a dark stage: the edges clear, every label Thai and whole. */
+export const PreviewPhoneBoardThai: Story = {
+  globals: { locale: "th", mode: "dark" },
+  args: { preview: { sequence: "inUse", page: 3 } },
+  play: async () => {
+    const dialog = await dialogOf(TH.orvCanvas.node.inUseBoard);
+    expect(countOf(dialog)).toBe("3 / 8");
+    const stage = stageOf(dialog);
+    await imagesLoaded(stage);
+    expect(within(dialog).getByText(TH.orvCanvas.use.phone)).toBeDefined();
+    expect(within(dialog).getByText(TH.orvCanvas.use.phoneSub)).toBeDefined();
+    await waitFor(() => expectEdgesClear(stage, "page 3 th"));
+    expectPhoneThai(stage, "page 3 th");
+    await waitFor(() => expectPhoneBoard(stage, "page 3 th"));
+    expectPhoneIntent(stage, "page 3 th", TH, "th");
+  },
+};
+
+/** The page of the open book, once it shows. */
+async function bookPageEl(dialog: HTMLElement, n: number) {
+  return (await waitFor(() => {
+    const el = stageOf(dialog).querySelector<HTMLElement>(`[data-book-page="${n}"]`);
+    expect(el).not.toBeNull();
+    return el as HTMLElement;
+  })) as HTMLElement;
+}
+
+/** ORV-312 rows 2, 4 and 5 on brandbook page 11: the same phone board on three opens. */
+export const PreviewPhoneBoardBrandbook: Story = {
+  globals: { locale: "en" },
+  args: { preview: { sequence: "book", page: 11 } },
+  play: async () => {
+    const dialog = await dialogOf(EN.orvCanvas.preview.book);
+    await waitFor(() => expect(countOf(dialog)).toBe("11 / 12"));
+    const page = await bookPageEl(dialog, 11);
+    await imagesLoaded(page);
+    let first: Record<string, number[]> = {};
+    await waitFor(() => {
+      first = expectPhoneBoard(page, "page 11");
+    });
+    expectPhoneIntent(page, "page 11", EN, "en");
+    await expectSamePhoneOnEveryOpen(dialog, 11, 12, first);
+  },
+};
+
+/** ORV-312 rows 5, 6 and 8 on brandbook page 11 in Thai, on a dark stage: grid, button, labels. */
+export const PreviewPhoneBoardBrandbookThai: Story = {
+  globals: { locale: "th", mode: "dark" },
+  args: { preview: { sequence: "book", page: 11 } },
+  play: async () => {
+    const dialog = await dialogOf(TH.orvCanvas.preview.book);
+    await waitFor(() => expect(countOf(dialog)).toBe("11 / 12"));
+    const page = await bookPageEl(dialog, 11);
+    await imagesLoaded(page);
+    await atWindow(1440, 900, async () => {
+      await fontsReady();
+      await expectPartThree(page, 11, TH);
+    });
+    expectPhoneThai(page, "page 11 th");
+  },
+};
+
+/** A canvas that mounts again each time its button is pressed: the same board, a fresh mount. */
+function Remounting(args: ComponentProps<typeof OriviloCanvas>) {
+  const [opens, setOpens] = useState(1);
+  return (
+    <>
+      <button type="button" className="sr-only" data-remount="" onClick={() => setOpens(opens + 1)}>
+        remount
+      </button>
+      <OriviloCanvas key={opens} {...args} />
+    </>
+  );
+}
+
+/** ORV-312 row 4 on the In use board node: three mounts of the canvas show the same phone board. */
+export const InUseChapterRemount: Story = {
+  globals: { locale: "en" },
+  args: { chapter: "inUse" },
+  render: (args) => <Remounting {...args} />,
+  play: async ({ canvasElement }) =>
+    atWindow(1440, 900, async () => {
+      const root = canvasElement;
+      let first: Record<string, number[]> = {};
+      for (let open = 1; open <= 3; open++) {
+        await ready(root);
+        const board = nodeEl(root, "u-board");
+        await imagesLoaded(board);
+        let cards: Record<string, number[]> = {};
+        await waitFor(() => {
+          cards = expectPhoneBoard(board, `u-board open ${open}`);
+        });
+        if (open === 1) first = cards;
+        for (const [id, box] of Object.entries(first)) {
+          (cards[id] as number[]).forEach((got, i) => {
+            expect(
+              Math.abs(got - (box[i] as number)),
+              `u-board open ${open} ${id} box ${i}`,
+            ).toBeLessThanOrEqual(0.01);
+          });
+        }
+        if (open < 3) {
+          const before = board;
+          (root.querySelector("[data-remount]") as HTMLButtonElement).click();
+          await waitFor(() => expect(before.isConnected).toBe(false));
+        }
+      }
+    }),
+};
+
+/** ORV-312 rows 2, 5 and 8 on the In use board node in Thai. */
+export const InUseChapterThai: Story = {
+  globals: { locale: "th" },
+  args: { chapter: "inUse" },
+  play: async ({ canvasElement }) =>
+    atWindow(1440, 900, async () => {
+      const root = canvasElement;
+      await ready(root);
+      const board = nodeEl(root, "u-board");
+      await imagesLoaded(board);
+      await waitFor(() => expectPhoneBoard(board, "u-board th"));
+      expectPhoneIntent(board, "u-board th", TH, "th");
+      expectPhoneThai(board, "u-board th", true);
+    }),
 };
 
 const ALL_IMAGES: readonly ImageId[] = IMAGES.map((i) => i.id);
@@ -2810,6 +3223,11 @@ function expectPhoneMissing(scope: Element, name: string) {
       "[data-layout-grid]",
       "[data-measure]",
       "[data-live-frame]",
+      // ORV-312: nor the phone board's app bar, board, edges or button.
+      "header",
+      ".react-flow",
+      ".ds-board",
+      ".ds-button",
     ]) {
       expect(piece.querySelectorAll(part), `${name} ${id} holds no ${part}`).toHaveLength(0);
     }

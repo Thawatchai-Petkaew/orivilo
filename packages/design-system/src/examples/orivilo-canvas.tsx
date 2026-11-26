@@ -164,6 +164,11 @@ import {
   NODES,
   PALETTE,
   PAPER,
+  PHONE_AT,
+  PHONE_BAR,
+  PHONE_BOARD,
+  PHONE_EDGES,
+  PHONE_INTENT,
   PIECES,
   phoneView,
   placeOnQuad,
@@ -963,6 +968,118 @@ function BrowserWindow({ design }: { design: Size }) {
   );
 }
 
+type BoardWords = Messages["oriviloLanding"]["board"];
+
+/**
+ * The graph of the phone board screen (ORV-312 design row 2): four nodes of the landing's own graph,
+ * placed by number, the guidebook selected, and four edges. The guidebook keeps no output port: the
+ * product node is not on this screen, and a port with no edge would be a loose end.
+ */
+function phoneGraph(words: BoardWords): Graph {
+  const nodes = heroGraph(words, false).nodes.flatMap((n): BoardNode[] => {
+    const place = PHONE_AT[n.id];
+    if (!place) return [];
+    const guide = n.id === "guide";
+    return [
+      {
+        ...n,
+        position: { x: place.at[0], y: place.at[1] },
+        width: place.width,
+        data: guide ? { ...n.data, outputs: [] } : n.data,
+        ...(guide ? { selected: true } : {}),
+      },
+    ];
+  });
+  const edges = PHONE_EDGES.map(
+    ([source, sourceHandle, target, targetHandle]) =>
+      ({
+        id: `${source}-${target}`,
+        type: "orivilo",
+        source,
+        sourceHandle,
+        target,
+        targetHandle,
+        data: { meaning: "input", label: false },
+      }) as const,
+  );
+  return { nodes, edges };
+}
+
+/**
+ * The bodies of the phone board's nodes: the landing's own, except the brief, whose line wraps
+ * balanced so that the Thai line breaks in the middle and not before one lone word.
+ */
+function phoneBody(words: BoardWords) {
+  const rest = heroBody(words, true);
+  return (node: BoardNode): ReactNode =>
+    node.id === "brief" ? (
+      <div className="flex flex-col gap-1">
+        <p className="m-0 text-balance text-heading-sm">{words.briefText}</p>
+        <p className="m-0 text-body-xs text-text-secondary">{words.briefMeta}</p>
+      </div>
+    ) : (
+      rest(node)
+    );
+}
+
+/**
+ * The phone's screen (ORV-312 design rows 1 to 4), in a box of the screen's own design size: an app
+ * bar under the status row, ORIVILO's own board in its present form below it, and the one intent
+ * button at the end corner. The board is placed by number and its view never moves, so the screen is
+ * the same on every open. Sample data; the frame is inert and nothing on it runs.
+ */
+function PhoneBoardScreen({ status, height }: { status: number; height: number }) {
+  const m = useMessages();
+  const words = m.oriviloLanding.board;
+  return (
+    <div className="relative overflow-hidden" style={{ width: 390, height }}>
+      <div
+        className="absolute overflow-hidden"
+        style={{
+          left: PHONE_BOARD.x,
+          top: PHONE_BOARD.y,
+          width: PHONE_BOARD.w,
+          height: PHONE_BOARD.h,
+        }}
+      >
+        <CanvasBoard
+          label={words.label}
+          graph={phoneGraph(words)}
+          variant="present"
+          fitView={false}
+          chrome={false}
+          minimap={false}
+          renderBody={phoneBody(words)}
+        >
+          <TrueHandles />
+        </CanvasBoard>
+      </div>
+      <div
+        className="absolute left-0 top-0 w-full border-b border-border-subtle bg-surface-canvas"
+        style={{ height: PHONE_BAR, paddingTop: status }}
+      >
+        <TopNavigation
+          name={m.orvCanvas.use.studioName}
+          brand={<Logo kind="horizontal" height={20} decorative />}
+          items={[]}
+          actions={<Avatar name={m.orvCanvas.sheet.owner} size="sm" decorative />}
+          contentClassName="px-4 py-2"
+        />
+      </div>
+      <div
+        className="absolute inset-x-0 flex justify-end"
+        style={{ bottom: PHONE_INTENT.bottom, paddingInlineEnd: PHONE_INTENT.end }}
+      >
+        <span data-design-profile="neutral" data-mode="light" className="contents">
+          <Button variant="intent" size="lg">
+            {m.business.board.openGuidebook}
+          </Button>
+        </span>
+      </div>
+    </div>
+  );
+}
+
 /**
  * The one device (design rows 4.1 and 4.2): the phone picture in a tile, and the live screen laid on
  * its display. The picture is a straight-on view, so the screen is a box under one scale and one
@@ -1087,7 +1204,7 @@ function PhoneScene({
 }
 
 /**
- * The landing on a phone (B): the picture whole, the live page on its display below a status row.
+ * The board on a phone (B): the picture whole, the live phone board screen on its display.
  * Page 11's variant "grid" adds the layout grid over the display and the measure above the phone.
  */
 function PhonePiece({
@@ -1101,7 +1218,6 @@ function PhonePiece({
   size: Size;
   grid: boolean;
 }) {
-  const locale = useLocale();
   const m = useMessages();
   return (
     <PhoneScene
@@ -1117,9 +1233,7 @@ function PhonePiece({
           design={c.screenWidth}
           mode="dark"
         >
-          <div style={{ paddingTop: c.status }}>
-            <OriviloLanding lang={locale} width={c.screenWidth} photograph={false} />
-          </div>
+          <PhoneBoardScreen status={c.status} height={view.design.h} />
         </LiveFrame>
       )}
       over={

@@ -155,9 +155,10 @@ export type PieceContent =
       span: number;
     }
   | {
-      // The landing on the phone picture (B), whole (design row 4.3). `status` is the height of the
-      // status row, in design px, above the landing. The page 11 variant "grid" draws two dashed
-      // lines at `lines` and a measure at `measure` x positions, in design px of the screen.
+      // The phone board screen on the phone picture (B), whole (ORV-312 rows 1 to 4). `status` is the
+      // height of the status row, in design px, above the app bar's content. The page 11 variant
+      // "grid" draws two dashed lines at `lines` and a measure at `measure` x positions, in design px
+      // of the screen.
       kind: "phone";
       image: ImageId;
       screenWidth: number;
@@ -901,6 +902,36 @@ export const WINDOW_AT: Readonly<Record<string, Pt>> = {
   product: [1240, 172],
 };
 
+/**
+ * Where the phone board puts its four nodes (ORV-312 design row 2): flow position and width. The
+ * board's view stays at its origin with no fit, so a node's flow position plus (0, 93), the board's
+ * origin inside its 1 px hairline, is its box on the 390 screen: nothing depends on a measure. One
+ * start edge at 16 and one end edge at 374; logo and colour step in width (112, then 80) so no edge
+ * runs through a node it does not join.
+ */
+export const PHONE_AT: Readonly<Record<string, { at: Pt; width: number }>> = {
+  brief: { at: [16, 57], width: 200 },
+  logo: { at: [262, 97], width: 112 },
+  colour: { at: [294, 331], width: 80 },
+  guide: { at: [88, 479], width: 286 },
+};
+/**
+ * The board's box on the screen (design row 1): 1 past each side and 54 past the bottom, so the
+ * hairline and the rounded corners fall outside the display or under the app bar.
+ */
+export const PHONE_BOARD: Box = { x: -1, y: 92, w: 392, h: 800 };
+/** The app bar's height under the status row, its one line included (design row 1). */
+export const PHONE_BAR = 102;
+/** The intent button's margins: its end at 374 of the 390 screen, 34 above the bottom (row 4). */
+export const PHONE_INTENT = { end: 16, bottom: 34 } as const;
+/** The phone board's four edges, `[source, source port, target, target port]` (design row 2). */
+export const PHONE_EDGES: readonly (readonly [string, string, string, string])[] = [
+  ["brief", "out", "logo", "in"],
+  ["brief", "out", "colour", "in"],
+  ["logo", "out", "guide", "img"],
+  ["colour", "out", "guide", "pal"],
+];
+
 /** The 24 glyphs of the icon set specimen (page 11), 6 x 4, in reading order: names in `icons.tsx`. */
 export const ICON_SET = [
   "Cursor",
@@ -1009,7 +1040,7 @@ export const PIECES: readonly PieceRecord[] = [
       image: "scene-phone",
       screenWidth: 390,
       status: 54,
-      grid: { lines: [24, 366], measure: [0, 24, 366, 390] },
+      grid: { lines: [16, 374], measure: [0, 16, 374, 390] },
     },
     caption: "use.phone",
     second: "use.phoneSub",
