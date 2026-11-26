@@ -21,6 +21,7 @@ import {
   BRAND_NAME,
   CHAPTERS,
   CLOCK,
+  DEMO_POINTS,
   EDGES,
   ICON_SET,
   IMAGES,
@@ -649,11 +650,15 @@ export const Default: Story = {
     expectBottomFurniture(root, words);
 
     // Row 31 (C10): each point numeral of the demo reads at label-sm (13, weight 500, line height
-    // 1) and sits in the middle of its 22 px disc, in the dark scope the disc is drawn in.
-    const numerals = [...nodeEl(root, "c-demo").querySelectorAll<HTMLElement>("span")].filter(
-      (el) => el.children.length === 0 && /^[1-5]$/.test(el.textContent ?? ""),
-    );
-    expect(numerals, "five numerals").toHaveLength(5);
+    // 1) and sits in the middle of its 22 px disc, in the dark scope the disc is drawn in. The
+    // numerals are the leaves of the four rings: the read row's numbers are not counted (ORV-313 row 4).
+    const numerals = [
+      ...nodeEl(root, "c-demo").querySelectorAll<HTMLElement>("[data-demo-ring] span"),
+    ].filter((el) => el.children.length === 0);
+    expect(
+      numerals.map((el) => el.textContent),
+      "four numerals",
+    ).toEqual(["1", "2", "3", "4"]);
     for (const numeral of numerals) {
       const cs = getComputedStyle(numeral);
       const size = tokenSize(root, "--ds-type-label-sm-font-size");
@@ -673,7 +678,12 @@ export const Default: Story = {
       );
     }
 
-    expectDemoRings(root, "--ds-surface-card");
+    expectDemoRings(root);
+    // The overview shows the brand photograph twice, small: in the In use board and in c-demo.
+    expect(
+      root.querySelectorAll('[data-photo="brand-hero"]').length,
+      "brand-hero in the In use board and in c-demo",
+    ).toBeGreaterThanOrEqual(2);
   },
 };
 
@@ -962,6 +972,8 @@ export const InThai: Story = {
     expect(family("--ds-font-body")).toContain("Sarabun");
     await expectGuideStart(root);
     await expectPortPillsApart(root);
+    // ORV-313 rows 2 and 3: the colour demo's badge, read row and note in Thai, no glyph clipped.
+    expectColourDemo(root, TH, "th");
   },
 };
 
@@ -1042,20 +1054,121 @@ export const InThaiBrandbookEnd: Story = {
 };
 
 /**
- * The ring round each demo point numeral (ORV-290 row 31): it keeps the card's ground in light, and
- * the subtle border in dark, where the card's ground would melt into the black paper at point 3.
+ * The ring round each demo point numeral (ORV-313 row 4, design row D4): the photograph does not
+ * change with the mode, so its ring is the same light ring in both modes, the card's ground resolved
+ * in a light scope. The expected colour is read from a probe in its own light scope, outside the
+ * ring, so a ring that lost its light scope in dark mode is not judged against itself.
  */
-function expectDemoRings(root: HTMLElement, token: string) {
-  const node = nodeEl(root, "c-demo");
-  const rings = [...node.querySelectorAll<HTMLElement>("[data-mode] > span")]
-    .filter((el) => /^[1-5]$/.test(el.textContent ?? ""))
-    .map((numeral) => numeral.closest("[data-mode]")?.parentElement as HTMLElement);
-  expect(rings, "five discs").toHaveLength(5);
+function expectDemoRings(root: HTMLElement) {
+  const light = document.createElement("div");
+  light.setAttribute("data-mode", "light");
+  light.setAttribute("data-design-profile", "neutral");
+  document.body.append(light);
+  const card = resolvedColor(light, "--ds-surface-card");
+  light.remove();
+  const rings = nodeEl(root, "c-demo").querySelectorAll<HTMLElement>("[data-demo-ring]");
+  expect([...rings].map((ring) => ring.dataset.demoRing)).toEqual(["1", "2", "3", "4"]);
   for (const ring of rings) {
-    expect(getComputedStyle(ring).boxShadow, `the ring of point ${ring.textContent}`).toContain(
-      resolvedColor(ring, token),
-    );
+    expect(
+      getComputedStyle(ring).boxShadow,
+      `the ring of point ${ring.dataset.demoRing}`,
+    ).toContain(card);
   }
+}
+
+/** The point a ring or a column belongs to: the data's, by position. */
+function demoPoint(i: number) {
+  const point = DEMO_POINTS[i];
+  if (!point) throw new RangeError(`no point ${i}`);
+  return point;
+}
+
+/**
+ * The colour demo node c-demo (ORV-313 rows 2 to 4, demo-photo-1, demo-read-1): the badge at the
+ * photo's top start, four rings on the points, the read row of four columns with the swatch, the
+ * number and hex, and the palette colour it comes near, and the note. Sizes the design fixes are read
+ * in design px (`offsetWidth`) or with the zoom divided out; nothing here compares a size that follows
+ * text with a number measured on one machine.
+ */
+function expectColourDemo(root: HTMLElement, words: Messages, lang: "en" | "th") {
+  const node = nodeEl(root, "c-demo");
+  const zoom = zoomOf(root);
+  expect(node.innerHTML, "no colour-reference anywhere in c-demo").not.toContain(
+    "colour-reference",
+  );
+  const photos = node.querySelectorAll<HTMLElement>("[data-photo]");
+  expect([...photos].map((el) => el.dataset.photo)).toEqual(["brand-hero"]);
+  const photo = photos[0] as HTMLElement;
+  // Row D1: the whole picture at 342 x 456 (342 x 1448 / 1086), no crop.
+  expect([photo.offsetWidth, photo.offsetHeight], "the photo's box").toEqual([342, 456]);
+  const box = photo.getBoundingClientRect();
+
+  const badge = within(photo.parentElement as HTMLElement).getByText(words.orvCanvas.demo.badge);
+  const badgeBox = (badge.closest("[style*='left: 8px']") as HTMLElement).getBoundingClientRect();
+  expect((badgeBox.left - box.left) / zoom, "the badge's start inset").toBeCloseTo(8, 0);
+  expect((badgeBox.top - box.top) / zoom, "the badge's top inset").toBeCloseTo(8, 0);
+
+  // Four rings, each centred on its point in percent of the picture.
+  const rings = [...node.querySelectorAll<HTMLElement>("[data-demo-ring]")];
+  expect(rings, "four rings").toHaveLength(4);
+  for (const [i, ring] of rings.entries()) {
+    const point = demoPoint(i);
+    expect([ring.offsetWidth, ring.offsetHeight], `ring ${point.n} size`).toEqual([22, 22]);
+    const r = ring.getBoundingClientRect();
+    const dx = r.left + r.width / 2 - (box.left + (point.x / 100) * box.width);
+    const dy = r.top + r.height / 2 - (box.top + (point.y / 100) * box.height);
+    expect(Math.abs(dx), `ring ${point.n} x off its point`).toBeLessThan(1);
+    expect(Math.abs(dy), `ring ${point.n} y off its point`).toBeLessThan(1);
+  }
+
+  // The read row: four columns in order, the swatch painted the read hex, no tooltip.
+  const reads = node.querySelector<HTMLElement>("[data-demo-reads]");
+  expect(reads, "the read row").not.toBeNull();
+  const columns = [...(reads as HTMLElement).querySelectorAll<HTMLElement>("[data-demo-point]")];
+  expect(columns.map((li) => li.dataset.demoPoint)).toEqual(["1", "2", "3", "4"]);
+  expect((reads as HTMLElement).querySelectorAll("[title]"), "no swatch has a title").toHaveLength(
+    0,
+  );
+  for (const [i, li] of columns.entries()) {
+    const point = demoPoint(i);
+    expect(li.children, `column ${point.n} holds the swatch and two lines`).toHaveLength(3);
+    const [swatch, first, second] = [...li.children] as HTMLElement[];
+    expect(getComputedStyle(swatch as HTMLElement).backgroundColor, `swatch ${point.n}`).toBe(
+      hexToRgb(point.hex),
+    );
+    expect([...(first as HTMLElement).children].map((el) => el.textContent)).toEqual([
+      String(point.n),
+      point.hex,
+    ]);
+    // Line 1 is one line and does not overflow its column.
+    const line = first as HTMLElement;
+    expect(line.getBoundingClientRect().height, `line 1 of ${point.n} is one line`).toBeLessThan(
+      parseFloat(getComputedStyle(line).lineHeight) * zoom * 1.5,
+    );
+    expect(line.scrollWidth, `line 1 of ${point.n} fits its column`).toBe(line.clientWidth);
+    const name = PALETTE.find((p) => p.id === point.palette)?.name;
+    if (!name) throw new RangeError(`no palette ${point.palette}`);
+    expect((second as HTMLElement).textContent, `line 2 of ${point.n}`).toBe(
+      copyOf(words, "demo.near", { name: copyOf(words, name) }),
+    );
+    if (lang === "th") expectNoGlyphClip(second as HTMLElement);
+  }
+
+  expect(within(node).getByText(words.orvCanvas.demo.note), "the note").toBeDefined();
+}
+
+/** The picture as a person sees it: decoded, not cropped, from brand-hero's own file. */
+function expectDemoPhotoWhole(root: HTMLElement, words: Messages) {
+  const photo = nodeEl(root, "c-demo").querySelector<HTMLElement>('[data-photo="brand-hero"]');
+  const img = photo?.querySelector("img") as HTMLImageElement;
+  expect(img, "the photograph").not.toBeNull();
+  expect(img.src.endsWith("/orv-274/brand-hero.webp"), img.src).toBe(true);
+  expect(img.alt).toBe(copyOf(words, "image.alt.brand-hero"));
+  // The box has the picture's own shape, so object-fit crops nothing.
+  expect(img.naturalWidth / img.naturalHeight).toBeCloseTo(342 / 456, 3);
+  const a = img.getBoundingClientRect();
+  const b = (photo as HTMLElement).getBoundingClientRect();
+  expect([a.width, a.height]).toEqual([b.width, b.height]);
 }
 
 /** The whole board in dark mode: the a11y addon finds nothing, and a violet flood keeps its violet. */
@@ -1076,7 +1189,7 @@ export const Dark: Story = {
     probe.remove();
     expect(getComputedStyle(flood as HTMLElement).backgroundColor).toBe(lightViolet);
     expect(root.querySelector("[data-mode='dark']")).not.toBeNull();
-    expectDemoRings(root, "--ds-border-subtle");
+    expectDemoRings(root);
     await expectKeyboardOrder(root, EN);
   },
 };
@@ -1247,14 +1360,37 @@ export const LogoChapter: Story = {
   },
 };
 
+/**
+ * The colour demo on the brand photograph in the 03 chapter view (ORV-313 rows 2 and 3): the node,
+ * its photograph whole, the four rings, the read row and the note, with the whole chapter above the
+ * dock. Read in light by `ColourChapter` and in dark here.
+ */
+async function playColourDemo(root: HTMLElement) {
+  await ready(root);
+  await waitFor(() => expectChapterInView(root, "colour", EN));
+  await imagesLoaded(nodeEl(root, "c-demo"));
+  expectColourDemo(root, EN, "en");
+  expectDemoPhotoWhole(root, EN);
+}
+
+/** The colour chapter in dark: the same demo, the same light rings. */
+export const ColourChapterDark: Story = {
+  globals: { locale: "en", mode: "dark" },
+  args: { chapter: "colour" },
+  play: async ({ canvasElement }) => {
+    await playColourDemo(canvasElement);
+    expectDemoRings(canvasElement);
+  },
+};
+
 /** The colour chapter: each palette swatch holds its name and hex on its own colour with a hairline. */
 export const ColourChapter: Story = {
   globals: { locale: "en" },
   args: { chapter: "colour" },
   play: async ({ canvasElement }) => {
     const root = canvasElement;
-    await ready(root);
-    await waitFor(() => expectChapterInView(root, "colour", EN));
+    await playColourDemo(root);
+    expectDemoRings(root);
     await expectDockAgrees(root, "colour", EN);
     const card = nodeEl(root, "c-pal");
     for (const entry of PALETTE) {
@@ -3509,6 +3645,19 @@ export const MissingImages: Story = {
     // Row 4.5: a phone without its picture is its flood and the missing label, never a screen
     // floating on violet: no screen, no pill, no clock, and so no intent button on the board.
     expectPhoneMissing(nodeEl(root, "u-board"), "the board");
+    // ORV-313 row 5 (design row D7): c-demo without brand-hero keeps the flood, the badge, the read
+    // row and the note, and draws no ring on nothing.
+    const demo = nodeEl(root, "c-demo");
+    const slot = demo.querySelector<HTMLElement>('[data-photo="brand-hero"]') as HTMLElement;
+    expect(slot.textContent, "the id and the missing line").toContain("brand-hero");
+    expect(slot.textContent).toContain(EN.orvCanvas.image.missing);
+    expect(slot.querySelectorAll("img"), "no picture in the slot").toHaveLength(0);
+    expect(within(demo).getByText(EN.orvCanvas.demo.badge)).toBeDefined();
+    expect(demo.querySelectorAll("[data-demo-ring]"), "no ring on a missing picture").toHaveLength(
+      0,
+    );
+    expect(demo.querySelectorAll("[data-demo-point]"), "the read row stays").toHaveLength(4);
+    expect(within(demo).getByText(EN.orvCanvas.demo.note)).toBeDefined();
     const dialog = await openNode(root, "u-board", EN.orvCanvas.node.inUseBoard);
     await expectPaperBounds(stageOf(dialog), { ink: ALL_SIDES, tiles: true });
     const sequence = SEQUENCES.find((s) => s.id === ("inUse" satisfies SequenceId));

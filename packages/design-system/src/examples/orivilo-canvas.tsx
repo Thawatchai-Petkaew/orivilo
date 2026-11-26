@@ -2703,7 +2703,7 @@ function ContrastBody({ rows }: { rows: readonly RowRecord[] }) {
 
 function DemoBody({ body }: { body: Extract<BodyRecord, { kind: "demo" }> }) {
   const m = useMessages();
-  const { mode } = useContext(PageContext);
+  const { missing } = useContext(PageContext);
   const record = imageOf(body.image);
   const width = 342;
   const size = { w: width, h: Math.round((width * record.height) / record.width) };
@@ -2716,43 +2716,60 @@ function DemoBody({ body }: { body: Extract<BodyRecord, { kind: "demo" }> }) {
             {m.orvCanvas.demo.badge}
           </Badge>
         </div>
+        {/* A ring marks a spot on the picture, so a missing picture draws none (ORV-313 design D7). */}
+        {missing.has(body.image)
+          ? null
+          : body.points.map((point) => (
+              <span
+                key={point.n}
+                {...scope("light")}
+                aria-hidden="true"
+                data-demo-ring={point.n}
+                // The photograph does not change with the mode, so its ring is the same light ring in
+                // both modes (design D4): the dark mode's own border read 1.30 : 1 on the sweatshirt.
+                className="absolute rounded-round ring-2 ring-surface-card"
+                style={{
+                  left: `${point.x}%`,
+                  top: `${point.y}%`,
+                  width: 22,
+                  height: 22,
+                  translate: "-50% -50%",
+                }}
+              >
+                <span
+                  {...scope("dark")}
+                  className="flex size-full items-center justify-center rounded-round bg-surface-canvas text-text-primary"
+                >
+                  {/* The scope resets the type, so the numeral sets its own step inside it (ORV-290 row 31). */}
+                  <span className="font-body text-label-sm leading-none tabular-nums">
+                    {point.n}
+                  </span>
+                </span>
+              </span>
+            ))}
+      </div>
+      <ol data-demo-reads="" className="m-0 flex list-none gap-1 p-0 px-2 pt-2">
         {body.points.map((point) => (
-          <span
+          <li
             key={point.n}
-            aria-hidden="true"
-            className={cx(
-              "absolute rounded-round ring-2",
-              // In dark the card's own ground would melt into the black paper at point 3.
-              mode === "dark" ? "ring-border-subtle" : "ring-surface-card",
-            )}
-            style={{
-              left: `${point.x}%`,
-              top: `${point.y}%`,
-              width: 22,
-              height: 22,
-              translate: "-50% -50%",
-            }}
+            data-demo-point={point.n}
+            className="flex min-w-0 flex-1 flex-col gap-1"
           >
             <span
-              {...scope("dark")}
-              className="flex size-full items-center justify-center rounded-round bg-surface-canvas text-text-primary"
-            >
-              {/* The scope resets the type, so the numeral sets its own step inside it (ORV-290 row 31). */}
-              <span className="font-body text-label-sm leading-none tabular-nums">{point.n}</span>
+              aria-hidden="true"
+              className="border border-border-subtle"
+              style={{ height: 20, background: point.hex }}
+            />
+            <span className="flex items-baseline gap-1 font-body text-label-sm leading-none tabular-nums whitespace-nowrap">
+              <span className="text-text-secondary">{point.n}</span>
+              <span className="text-text-primary">{point.hex}</span>
             </span>
-          </span>
+            <span className="truncate font-body text-body-xs text-text-secondary">
+              {copyOf(m, "demo.near", { name: copyOf(m, paletteOf(point.palette).name) })}
+            </span>
+          </li>
         ))}
-      </div>
-      <div className="flex gap-1 px-2 pt-2">
-        {body.points.map((point) => (
-          <span
-            key={point.n}
-            title={point.hex}
-            className="flex-1 border border-border-subtle"
-            style={{ height: 20, background: point.hex }}
-          />
-        ))}
-      </div>
+      </ol>
       <p className={cx(MUTED, "px-2 py-2")}>{m.orvCanvas.demo.note}</p>
     </>
   );
