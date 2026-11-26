@@ -609,7 +609,12 @@ async function expectPortPillsApart(root: HTMLElement) {
   expect(read, "port pills read").toBeGreaterThan(0);
 }
 
-/** The whole board in English: the dock, the fit, the chapters, the keyboard path and the hygiene rules. */
+// The English board is walked by several stories, not one: a play of 22 s on the Mac needs about 100 s
+// on CI, where a story times out at 60 s (ORV-309 re-check, CI-1). Each story below keeps its own
+// share of the checks the single play made, and runs at 7.5 s or less on the Mac (60 s over the ratio
+// of 8 in testing.md).
+
+/** The overview: one heading, the fit, the chapter titles, no overlap, the bottom furniture, the demo. */
 export const Default: Story = {
   globals: { locale: "en" },
   play: async ({ canvasElement }) => {
@@ -640,7 +645,6 @@ export const Default: Story = {
       within(root).getByText(words.orvCanvas.status.overview.replace("{count}", "31")),
     ).toBeDefined();
     expectNoOverlap(root);
-    await expectPortPillsApart(root);
     expectBottomFurniture(root, words);
 
     // Row 31 (C10): each point numeral of the demo reads at label-sm (13, weight 500, line height
@@ -669,6 +673,16 @@ export const Default: Story = {
     }
 
     expectDemoRings(root, "--ds-surface-card");
+  },
+};
+
+/** The dock: nine buttons, and the one-step jumps under reduced motion by click, by Tab and Enter, to the Overview. */
+export const DefaultDock: Story = {
+  globals: { locale: "en" },
+  play: async ({ canvasElement }) => {
+    const root = canvasElement;
+    const words = EN;
+    await ready(root);
 
     // The dock: nine buttons. Under reduced motion a jump lands in one frame (row 34), marks only
     // its own button, says so, and frames its chapter; the route is a click, then the keyboard (row 21).
@@ -709,21 +723,39 @@ export const Default: Story = {
         await waitFor(() => expectAllInView(root));
         await frames(4);
       });
+    });
+  },
+};
 
-      // The keyboard path: Tab to the colour part, Enter opens page 6 of 12.
+/** The keyboard path: a real Tab route to the colour part, Enter opens page 6 of 12, and its keys. */
+export const DefaultTabRoute: Story = {
+  globals: { locale: "en" },
+  play: async ({ canvasElement }) => {
+    const root = canvasElement;
+    const words = EN;
+    await ready(root);
+    await reducedMotion(async () => {
       const title = words.orvCanvas.preview.book;
       // A real Tab key (the simulated one does not skip `inert` parts, so it sticks on a node whose
       // phone holds a live page); outside Vitest the node is focused directly.
       let found = false;
       if (inVitest) {
-        const trail: string[] = [];
-        for (let i = 0; i < 200 && !found; i++) {
-          await pressTab();
-          const now = document.activeElement as HTMLElement | null;
-          trail.push(`${now?.tagName}:${now?.dataset.id ?? ""}`);
-          found = now?.dataset.id === "bb-colour";
+        const sentinel = document.createElement("button");
+        sentinel.setAttribute("aria-label", "start of the page");
+        root.before(sentinel);
+        try {
+          sentinel.focus();
+          const trail: string[] = [];
+          for (let i = 0; i < 200 && !found; i++) {
+            await pressTab();
+            const now = document.activeElement as HTMLElement | null;
+            trail.push(`${now?.tagName}:${now?.dataset.id ?? ""}`);
+            found = now?.dataset.id === "bb-colour";
+          }
+          expect(found, `Tab reaches bb-colour: ${trail.slice(-8).join(" ")}`).toBe(true);
+        } finally {
+          sentinel.remove();
         }
-        expect(found, `Tab reaches bb-colour: ${trail.slice(-8).join(" ")}`).toBe(true);
       } else {
         nodeEl(root, "bb-colour").focus();
       }
@@ -747,36 +779,99 @@ export const Default: Story = {
       await waitFor(() => expect(document.activeElement).toBe(nodeEl(root, "bb-colour")));
       expect(viewportOf(root)?.style.transform).toBe(zoomBefore);
     });
+  },
+};
 
-    // Each result opens its own sequence, and the scrim closes it. The first node of each sequence
-    // also pages through every page, and the honesty scan reads the open dialog at each one
-    // (ORV-280 C8): the board scan below runs after every dialog has closed.
-    const paged = new Set<string>();
-    for (const record of NODES.filter((n) => n.open)) {
-      const open = record.open;
-      if (!open) continue;
-      const sequence = SEQUENCES.find((s) => s.id === open.sequence);
-      if (!sequence) throw new RangeError(`no sequence ${open.sequence}`);
-      const d = await openNode(root, record.id, copyOf(words, sequence.title));
-      expect(countOf(d), record.id).toBe(`${open.page} / ${sequence.pages.length}`);
-      const length = sequence.pages.length;
-      if (!paged.has(sequence.id)) {
-        await userEvent.keyboard("{Home}");
-        for (let n = 1; n <= length; n++) {
-          await waitFor(() => expect(countOf(d)).toBe(`${n} / ${length}`));
-          paged.add(`${sequence.id}:${n}`);
-          expect(d.textContent ?? "", `${sequence.id} page ${n}`).not.toMatch(HONESTY);
-          if (n < length) await userEvent.keyboard("{ArrowRight}");
-        }
-        paged.add(sequence.id);
+/**
+ * Which stories page which sequences. The 42 pages are read by several stories, each its share of
+ * the eight sequences (6, 3, 2, 6, 8, 12, 2 and 3 pages); `expectSharesCover` proves the shares
+ * hold every sequence of SEQUENCES exactly once and add up to 42 pages, so a sequence added or
+ * dropped without a share fails every paging story.
+ */
+const PAGING_SHARES: Readonly<Record<"first" | "second" | "book", readonly SequenceId[]>> = {
+  first: ["direction", "logo", "type", "palette"],
+  second: ["inUse", "system", "pages"],
+  book: ["book"],
+};
+
+const pagesOf = (ids: readonly SequenceId[]) =>
+  ids.reduce((sum, id) => sum + (SEQUENCES.find((s) => s.id === id)?.pages.length ?? 0), 0);
+
+function expectSharesCover() {
+  const owned = Object.values(PAGING_SHARES).flat();
+  expect([...owned].sort(), "every sequence has one share").toEqual(
+    SEQUENCES.map((s) => s.id).sort(),
+  );
+  expect(pagesOf(owned), "the shares add up to 42 pages").toBe(42);
+}
+
+/**
+ * Each result of the shared sequences opens its own sequence, and the scrim closes it. The first
+ * node of each sequence also pages through every page, and the honesty scan reads the open dialog at
+ * each one (ORV-280 C8): the board scan of `DefaultHygiene` runs with every dialog closed.
+ */
+async function playSequences(root: HTMLElement, share: readonly SequenceId[]) {
+  expectSharesCover();
+  const words = EN;
+  await ready(root);
+  const paged = new Set<string>();
+  const owned = NODES.filter((n) => n.open && share.includes(n.open.sequence));
+  expect(owned.length, "the share opens at least one node").toBeGreaterThan(0);
+  for (const record of owned) {
+    const open = record.open;
+    if (!open) continue;
+    const sequence = SEQUENCES.find((s) => s.id === open.sequence);
+    if (!sequence) throw new RangeError(`no sequence ${open.sequence}`);
+    const d = await openNode(root, record.id, copyOf(words, sequence.title));
+    expect(countOf(d), record.id).toBe(`${open.page} / ${sequence.pages.length}`);
+    const length = sequence.pages.length;
+    if (!paged.has(sequence.id)) {
+      await userEvent.keyboard("{Home}");
+      for (let n = 1; n <= length; n++) {
+        await waitFor(() => expect(countOf(d)).toBe(`${n} / ${length}`));
+        paged.add(`${sequence.id}:${n}`);
+        expect(d.textContent ?? "", `${sequence.id} page ${n}`).not.toMatch(HONESTY);
+        if (n < length) await userEvent.keyboard("{ArrowRight}");
       }
-      const scrim = document.querySelector<HTMLElement>(".ds-dialog__scrim");
-      expect(scrim).not.toBeNull();
-      await userEvent.click(scrim as HTMLElement);
-      await waitFor(() => expect(document.querySelector("[role='dialog']")).toBeNull());
+      paged.add(sequence.id);
     }
+    const scrim = document.querySelector<HTMLElement>(".ds-dialog__scrim");
+    expect(scrim).not.toBeNull();
+    await userEvent.click(scrim as HTMLElement);
+    await waitFor(() => expect(document.querySelector("[role='dialog']")).toBeNull());
+  }
+  expect(
+    [...paged].filter((key) => key.includes(":")),
+    "every page of the share was read",
+  ).toHaveLength(pagesOf(share));
+}
 
-    // Hygiene: ids, inert art and live parts, one heading, images, no focus inside a body.
+/** The direction, logo, type and palette results: 17 pages, each read with the honesty scan. */
+export const DefaultSequencesFirst: Story = {
+  globals: { locale: "en" },
+  play: ({ canvasElement }) => playSequences(canvasElement, PAGING_SHARES.first),
+};
+
+/** The in use, design system and product pages results: 13 pages, each read with the honesty scan. */
+export const DefaultSequencesSecond: Story = {
+  globals: { locale: "en" },
+  play: ({ canvasElement }) => playSequences(canvasElement, PAGING_SHARES.second),
+};
+
+/** The brandbook results: 12 pages, opened from four nodes, each read with the honesty scan. */
+export const DefaultSequencesBook: Story = {
+  globals: { locale: "en" },
+  play: ({ canvasElement }) => playSequences(canvasElement, PAGING_SHARES.book),
+};
+
+/** The hygiene rules: ids, inert art and live parts, one heading, images, no focus inside a body. */
+export const DefaultHygiene: Story = {
+  globals: { locale: "en" },
+  play: async ({ canvasElement }) => {
+    const root = canvasElement;
+    const words = EN;
+    await ready(root);
+    await imagesLoaded(root);
     // A live frame holds whole pages and boards of its own (the landing, the app, the guidebook),
     // each with the ids of its components; they are inert and hidden from the page, so the page's
     // ids are the ones outside them.
@@ -802,8 +897,6 @@ export const Default: Story = {
     for (const id of PRODUCT_NODE_IDS)
       expectLivePage(nodeEl(root, id), id, words, id === "p-landing");
     expect(root.textContent).not.toMatch(HONESTY);
-    // Every one of the 42 preview pages was read (W2 of the spec: 6, 3, 2, 6, 8, 12, 2 and 3).
-    expect([...paged].filter((key) => key.includes(":"))).toHaveLength(42);
     for (const el of root.querySelectorAll(
       ".ds-node__body button, .ds-node__body input, .ds-node__body a[href], .ds-node__body [tabindex]",
     )) {
@@ -820,11 +913,28 @@ export const Default: Story = {
       ).not.toBeNull();
       expect(el.closest("[inert]"), `${el.tagName} on a page is inert`).not.toBeNull();
     }
-    await expectKeyboardOrder(root, words);
   },
 };
 
-/** The whole board in Thai: the Thai fonts, the whole brandbook with one-line furniture, marks whole. */
+/** Row 35: the keyboard order of the whole board in English, from before the page to the last dock button. */
+export const DefaultKeyboardOrder: Story = {
+  globals: { locale: "en" },
+  play: async ({ canvasElement }) => {
+    await ready(canvasElement);
+    await expectKeyboardOrder(canvasElement, EN);
+  },
+};
+
+/** Row 32 (B14): the port name pills of every node, in English, none within 8 world px of another node. */
+export const DefaultPortPills: Story = {
+  globals: { locale: "en" },
+  play: async ({ canvasElement }) => {
+    await ready(canvasElement);
+    await expectPortPillsApart(canvasElement);
+  },
+};
+
+/** The whole board in Thai: the Thai fonts, the guidebook start and the port pills. */
 export const InThai: Story = {
   globals: { locale: "th" },
   play: async ({ canvasElement }) => {
@@ -851,33 +961,83 @@ export const InThai: Story = {
     expect(family("--ds-font-body")).toContain("Sarabun");
     await expectGuideStart(root);
     await expectPortPillsApart(root);
+  },
+};
 
-    const dialog = await openNode(root, "bb-cover", TH.orvCanvas.preview.book);
-    const stage = stageOf(dialog);
-    const sample = inVitest ? new Set([1, 3, 6, 10, 11, 12]) : new Set<number>();
-    for (let n = 1; n <= 12; n++) {
-      await waitFor(() => expect(stage.querySelector(`[data-book-page="${n}"]`)).not.toBeNull());
-      await fontsReady();
-      const page = stage.querySelector<HTMLElement>(`[data-book-page="${n}"]`) as HTMLElement;
-      expectOneLine(page);
-      expectTextInside(page, page.getBoundingClientRect(), `page ${n}`);
-      if (n === 10 || n === 11) await expectPartThree(page, n, TH);
-      if (sample.has(n)) {
-        for (const line of page.querySelectorAll<HTMLElement>("[data-art-line]")) {
-          if (/[฀-๿]/.test(line.textContent ?? "") && (line.textContent ?? "").length < 40) {
-            await expectLabelInkWhole(line);
-            break;
-          }
+/**
+ * The Thai brandbook is read in two stories, pages 1 to 6 and 7 to 12 (the shots of the ink check
+ * queue behind other files, so one story of 12 pages ran long). `expectRangesMeet` proves the
+ * ranges start at page 1, meet end to end and stop at the last page of the book.
+ */
+const THAI_BOOK_RANGES: readonly (readonly [number, number])[] = [
+  [1, 6],
+  [7, 12],
+];
+
+function expectRangesMeet() {
+  const pages = at(
+    SEQUENCES.filter((s) => s.id === "book"),
+    0,
+  ).pages.length;
+  expect(at(THAI_BOOK_RANGES, 0)[0], "the first range starts at page 1").toBe(1);
+  THAI_BOOK_RANGES.forEach(([from, to], i) => {
+    if (i > 0)
+      expect(from, `range ${i + 1} starts where range ${i} stopped`).toBe(
+        at(THAI_BOOK_RANGES, i - 1)[1] + 1,
+      );
+    expect(to, `range ${i + 1} is not empty`).toBeGreaterThanOrEqual(from);
+  });
+  expect(
+    at(THAI_BOOK_RANGES, THAI_BOOK_RANGES.length - 1)[1],
+    "the last range stops at the last page",
+  ).toBe(pages);
+}
+
+/** One range of the Thai brandbook: one-line furniture, text inside each page, marks whole. */
+async function playThaiBook(root: HTMLElement, from: number, to: number) {
+  expectRangesMeet();
+  await ready(root);
+  const dialog = await openNode(root, "bb-cover", TH.orvCanvas.preview.book);
+  const stage = stageOf(dialog);
+  const sample = inVitest ? new Set([1, 3, 6, 10, 11, 12]) : new Set<number>();
+  for (let n = 1; n < from; n++) {
+    await userEvent.keyboard("{ArrowRight}");
+    await waitFor(() => expect(countOf(dialog)).toBe(`${n + 1} / 12`));
+  }
+  for (let n = from; n <= to; n++) {
+    await waitFor(() => expect(stage.querySelector(`[data-book-page="${n}"]`)).not.toBeNull());
+    await fontsReady();
+    const page = stage.querySelector<HTMLElement>(`[data-book-page="${n}"]`) as HTMLElement;
+    expectOneLine(page);
+    expectTextInside(page, page.getBoundingClientRect(), `page ${n}`);
+    if (n === 10 || n === 11) await expectPartThree(page, n, TH);
+    if (sample.has(n)) {
+      for (const line of page.querySelectorAll<HTMLElement>("[data-art-line]")) {
+        if (/[฀-๿]/.test(line.textContent ?? "") && (line.textContent ?? "").length < 40) {
+          await expectLabelInkWhole(line);
+          break;
         }
       }
-      if (n < 12) {
-        await userEvent.keyboard("{ArrowRight}");
-        await waitFor(() => expect(countOf(dialog)).toBe(`${n + 1} / 12`));
-      }
     }
-    await userEvent.keyboard("{Escape}");
-    await waitFor(() => expect(document.querySelector("[role='dialog']")).toBeNull());
-  },
+    if (n < 12) {
+      await userEvent.keyboard("{ArrowRight}");
+      await waitFor(() => expect(countOf(dialog)).toBe(`${n + 1} / 12`));
+    }
+  }
+  await userEvent.keyboard("{Escape}");
+  await waitFor(() => expect(document.querySelector("[role='dialog']")).toBeNull());
+}
+
+/** The Thai brandbook, pages 1 to 6. */
+export const InThaiBrandbook: Story = {
+  globals: { locale: "th" },
+  play: ({ canvasElement }) => playThaiBook(canvasElement, ...at(THAI_BOOK_RANGES, 0)),
+};
+
+/** The Thai brandbook, pages 7 to 12. */
+export const InThaiBrandbookEnd: Story = {
+  globals: { locale: "th" },
+  play: ({ canvasElement }) => playThaiBook(canvasElement, ...at(THAI_BOOK_RANGES, 1)),
 };
 
 /**
