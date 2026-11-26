@@ -1247,8 +1247,9 @@ export const en: Messages = {
       note: "The mark, screens and print are real SVG and HTML laid on AI scenes. The mark on the sweatshirt was generated from the real mark and checked.",
       hero: "Brand photograph",
       heroSub: "AI image; the mark on the sweatshirt was generated from the real mark and checked",
-      phone: "Landing on a phone",
-      phoneSub: "Mockup: ORIVILO's own landing at 390, live, on an AI phone picture.",
+      phone: "The board on a phone",
+      phoneSub:
+        "Mockup: ORIVILO's own node board at 390, live, with sample data, on an AI phone picture.",
       sign: "Sign",
       sceneSub: "Mockup: AI scene, the logo laid on",
     },
