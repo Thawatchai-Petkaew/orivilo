@@ -74,7 +74,7 @@ import {
   TopNavigation,
 } from "../components/index";
 import { fixtureTaskJobs, fixtureTaskJobsEn } from "../components/fixtures";
-import type { BoardNode, Graph } from "../components/canvas-board/graph";
+import type { BoardNode, Graph, PortSpec } from "../components/canvas-board/graph";
 import { cx } from "../components/cx";
 import {
   ArtifactIcon,
@@ -164,6 +164,12 @@ import {
   NODES,
   PALETTE,
   PAPER,
+  PHONE_AT,
+  PHONE_BAR,
+  PHONE_BOARD,
+  PHONE_EDGES,
+  PHONE_INTENT,
+  PHONE_SCALES,
   PIECES,
   phoneView,
   placeOnQuad,
@@ -964,6 +970,214 @@ function BrowserWindow({ design }: { design: Size }) {
 }
 
 /**
+ * The graph of the phone board screen (ORV-312 design row 2, revision 3): four knowledge nodes, two
+ * artifacts and the guidebook, placed by number, the guidebook selected, and six edges, every one
+ * running forward. The four knowledge nodes are not in the landing's graph, so the graph builds each
+ * node's data here, with its words from the locale's messages. The guidebook keeps no output port:
+ * the product node is not on this screen, and a port with no edge would be a loose end.
+ */
+function phoneGraph(m: Messages): Graph {
+  const words = m.oriviloLanding.board;
+  const port = (id: string, kind: PortSpec["kind"], label: string): PortSpec => ({
+    id,
+    kind,
+    label,
+  });
+  const text = port("out", "text", words.text);
+  const into = port("in", "text", words.text);
+  const node = (
+    id: string,
+    title: string,
+    kind: BoardNode["data"]["kind"],
+    inputs: PortSpec[],
+    outputs: PortSpec[],
+  ): BoardNode => {
+    const place = PHONE_AT[id];
+    if (!place) throw new RangeError(`no phone place for ${id}`);
+    return {
+      id,
+      type: "orivilo",
+      position: { x: place.at[0], y: place.at[1] },
+      width: place.width,
+      data: {
+        title,
+        kind,
+        size: "custom",
+        pad: kind === "knowledge" ? "text" : "media",
+        inputs,
+        outputs,
+      },
+      ...(id === "guide" ? { selected: true } : {}),
+    };
+  };
+  const nodes = [
+    node("brief", words.brief, "knowledge", [], [text]),
+    node("audience", m.orvCanvas.node.audience, "knowledge", [], [text]),
+    node("personality", m.orvCanvas.node.personality, "knowledge", [], [text]),
+    node("feeling", m.orvCanvas.node.feeling, "knowledge", [], [text]),
+    node("logo", words.logo, "artifact", [into], [port("out", "image", words.image)]),
+    node("colour", words.colour, "artifact", [into], [port("out", "palette", words.palette)]),
+    node(
+      "guide",
+      words.guidebook,
+      "artifact",
+      [port("img", "image", words.image), port("pal", "palette", words.palette)],
+      [],
+    ),
+  ];
+  const edges = PHONE_EDGES.map(
+    ([source, sourceHandle, target, targetHandle]) =>
+      ({
+        id: `${source}-${target}`,
+        type: "orivilo",
+        source,
+        sourceHandle,
+        target,
+        targetHandle,
+        data: { meaning: "input", label: false },
+      }) as const,
+  );
+  return { nodes, edges };
+}
+
+/**
+ * The bodies of the phone board's seven nodes (ORV-312 design row 2): the brief's line, two short
+ * secondary lines, three scales, the mark, four swatches and a violet cover. They are the phone's
+ * own, so the landing's hero board keeps its look. Every word is a label the product draws.
+ */
+function phoneBody(m: Messages) {
+  const words = m.oriviloLanding.board;
+  return (node: BoardNode): ReactNode => {
+    switch (node.id) {
+      case "brief":
+        return <p className="m-0 text-balance text-body-md">{words.briefText}</p>;
+      case "audience":
+        return (
+          <p className="m-0 text-balance text-body-sm text-text-secondary">
+            {m.orvCanvas.audience.founder}
+          </p>
+        );
+      case "feeling":
+        return (
+          <p className="m-0 text-balance text-body-sm text-text-secondary">
+            {m.orvCanvas.sheet.answer.feeling}
+          </p>
+        );
+      case "personality":
+        // Three scales, no words: a hairline track and a dot at a fixed sample share.
+        return (
+          <div className="flex flex-col gap-3 py-1">
+            {PHONE_SCALES.map((at) => (
+              <div key={at} className="relative h-3">
+                <div className="absolute inset-x-0 top-1.5 border-t border-border-strong" />
+                <div
+                  className="absolute top-0 size-3 rounded-round bg-brand-signature"
+                  style={{ left: `calc(${at}% - 6px)` }}
+                />
+              </div>
+            ))}
+          </div>
+        );
+      case "logo":
+        return (
+          <div className="ds-node__media flex h-20 items-center justify-center bg-surface-sunken">
+            <Logo kind="mark" height={44} decorative />
+          </div>
+        );
+      case "colour":
+        return (
+          <div className="ds-node__media flex h-20 overflow-hidden">
+            <div className="h-full bg-brand-signature" style={{ flexGrow: 3 }} />
+            <div className="h-full bg-surface-sunken" style={{ flexGrow: 3 }} />
+            <div className="h-full bg-text-primary" style={{ flexGrow: 2 }} />
+            <div
+              className="h-full bg-action-intent"
+              data-design-profile="neutral"
+              data-mode="light"
+              style={{ flexGrow: 1 }}
+            />
+          </div>
+        );
+      case "guide":
+        // The cover: no title, the label above the card names the node.
+        return (
+          <div
+            className="ds-node__media relative h-[312px] overflow-hidden bg-brand-signature"
+            data-mode="dark"
+            data-design-profile="neutral"
+          >
+            <div className="absolute left-3 top-3">
+              <Logo kind="mark" height={24} tone="one-colour" decorative />
+            </div>
+            <div className="absolute -bottom-[34px] -right-[34px]">
+              <Logo kind="mark" height={128} tone="one-colour" decorative />
+            </div>
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
+}
+
+/**
+ * The phone's screen (ORV-312 design rows 1 to 4), in a box of the screen's own design size: an app
+ * bar under the status row, ORIVILO's own board in its present form below it, and the one intent
+ * button at the end corner. The board is placed by number and its view never moves, so the screen is
+ * the same on every open. Sample data; the frame is inert and nothing on it runs.
+ */
+function PhoneBoardScreen({ status, height }: { status: number; height: number }) {
+  const m = useMessages();
+  return (
+    <div className="relative overflow-hidden" style={{ width: 390, height }}>
+      <div
+        className="absolute overflow-hidden"
+        style={{
+          left: PHONE_BOARD.x,
+          top: PHONE_BOARD.y,
+          width: PHONE_BOARD.w,
+          height: PHONE_BOARD.h,
+        }}
+      >
+        <CanvasBoard
+          label={m.oriviloLanding.board.label}
+          graph={phoneGraph(m)}
+          variant="present"
+          fitView={false}
+          chrome={false}
+          minimap={false}
+          renderBody={phoneBody(m)}
+        >
+          <TrueHandles />
+        </CanvasBoard>
+      </div>
+      <div
+        className="absolute left-0 top-0 w-full border-b border-border-subtle bg-surface-canvas"
+        style={{ height: PHONE_BAR, paddingTop: status }}
+      >
+        <TopNavigation
+          name={m.orvCanvas.use.studioName}
+          brand={<Logo kind="horizontal" height={20} decorative />}
+          items={[]}
+          actions={<Avatar name={m.orvCanvas.sheet.owner} size="sm" decorative />}
+          contentClassName="px-4 py-2"
+        />
+      </div>
+      <div
+        className="absolute inset-x-0 flex justify-end"
+        style={{ bottom: PHONE_INTENT.bottom, paddingInlineEnd: PHONE_INTENT.end }}
+      >
+        <span data-design-profile="neutral" data-mode="light" className="contents">
+          <Button variant="intent" size="lg">
+            {m.business.board.openGuidebook}
+          </Button>
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/**
  * The one device (design rows 4.1 and 4.2): the phone picture in a tile, and the live screen laid on
  * its display. The picture is a straight-on view, so the screen is a box under one scale and one
  * translate: `[data-phone-screen]` at the display's place, its corner the picture's own (image
@@ -1087,7 +1301,7 @@ function PhoneScene({
 }
 
 /**
- * The landing on a phone (B): the picture whole, the live page on its display below a status row.
+ * The board on a phone (B): the picture whole, the live phone board screen on its display.
  * Page 11's variant "grid" adds the layout grid over the display and the measure above the phone.
  */
 function PhonePiece({
@@ -1101,7 +1315,6 @@ function PhonePiece({
   size: Size;
   grid: boolean;
 }) {
-  const locale = useLocale();
   const m = useMessages();
   return (
     <PhoneScene
@@ -1117,9 +1330,7 @@ function PhonePiece({
           design={c.screenWidth}
           mode="dark"
         >
-          <div style={{ paddingTop: c.status }}>
-            <OriviloLanding lang={locale} width={c.screenWidth} photograph={false} />
-          </div>
+          <PhoneBoardScreen status={c.status} height={view.design.h} />
         </LiveFrame>
       )}
       over={

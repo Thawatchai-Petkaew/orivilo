@@ -44,6 +44,9 @@ import {
   VIEW_ZOOM,
   VIOLET,
   WINDOW_AT,
+  PHONE_AT,
+  PHONE_EDGES,
+  PHONE_BOARD,
 } from "./orivilo-canvas.data";
 import { heroGraph } from "./orivilo-landing";
 
@@ -305,9 +308,15 @@ describe("the product chapter (spec ORV-309 rows 5, 6, 7, 10 and 14)", () => {
       "ภาพจำลอง",
       "ข้อมูลตัวอย่าง",
     ]);
-    expect(en.orvCanvas.use.phoneSub).toBe(
-      "Mockup: ORIVILO's own landing at 390, live, on an AI phone picture.",
-    );
+    // ORV-312 design row 6: the phone shows the node board, in both languages.
+    expect([en.orvCanvas.use.phone, en.orvCanvas.use.phoneSub]).toEqual([
+      "The board on a phone",
+      "Mockup: ORIVILO's own node board at 390, live, with sample data, on an AI phone picture.",
+    ]);
+    expect([th.orvCanvas.use.phone, th.orvCanvas.use.phoneSub]).toEqual([
+      "กระดานบนมือถือ",
+      "ม็อกอัป: กระดานโหนดของ ORIVILO ที่กว้าง 390 แสดงสดด้วยข้อมูลตัวอย่าง วางบนภาพโทรศัพท์ที่สร้างด้วย AI",
+    ]);
     expect(en.orvCanvas.product.landingNote).toBe(
       "ORIVILO's own landing page, in English and Thai.",
     );
@@ -689,16 +698,102 @@ describe("orivilo canvas data, boards and book (spec rows 28, 29, 30)", () => {
     expect(set && "glyphs" in set ? set.glyphs : []).toEqual(ICON_SET);
   });
 
-  it("draws the phone's layout grid at 24 and 366 of 390, the measure 24, 342, 24", () => {
+  it("draws the phone's layout grid at 16 and 374 of 390, the measure 16, 358, 16 (ORV-312 row 5, W1)", () => {
     const phone = PIECES.find((p) => p.id === "phone");
     if (phone?.content.kind !== "phone") throw new Error("no phone");
     const { lines, measure } = phone.content.grid;
     expect(phone.content.screenWidth).toBe(390);
     expect(phone.content.status).toBe(54);
     expect(phone.content.image).toBe("scene-phone");
-    expect(lines).toEqual([24, 366]);
-    expect(measure).toEqual([0, 24, 366, 390]);
-    expect(measure.slice(1).map((end, i) => end - (measure[i] ?? 0))).toEqual([24, 342, 24]);
+    expect(lines).toEqual([16, 374]);
+    expect(measure).toEqual([0, 16, 374, 390]);
+    expect(measure.slice(1).map((end, i) => end - (measure[i] ?? 0))).toEqual([16, 358, 16]);
+    // W1: the margin is 16, the end line is the width less the margin.
+    const w = 390;
+    const m = 16;
+    expect([m, w - 2 * m, m, w - m]).toEqual([16, 358, 16, 374]);
+  });
+
+  it("places the phone board's seven nodes by number: flow position plus the origin is design row 2's screen box (ORV-312 revision 3)", () => {
+    // The board's box and its 1 px hairline put the flow origin at (0, 93) of the screen.
+    expect(PHONE_BOARD).toEqual({ x: -1, y: 92, w: 392, h: 800 });
+    const origin = [PHONE_BOARD.x + 1, PHONE_BOARD.y + 1];
+    expect(origin).toEqual([0, 93]);
+    expect(Object.keys(PHONE_AT)).toEqual([
+      "brief",
+      "audience",
+      "personality",
+      "feeling",
+      "logo",
+      "colour",
+      "guide",
+    ]);
+    expect(PHONE_AT).toEqual({
+      brief: { at: [16, 57], width: 130 },
+      audience: { at: [16, 217], width: 122 },
+      personality: { at: [16, 370], width: 122 },
+      feeling: { at: [16, 543], width: 122 },
+      logo: { at: [162, 130], width: 86 },
+      colour: { at: [162, 463], width: 86 },
+      guide: { at: [264, 212], width: 110 },
+    });
+    const screen = Object.fromEntries(
+      Object.entries(PHONE_AT).map(([id, n]) => [
+        id,
+        [n.at[0] + (origin[0] ?? 0), n.at[1] + (origin[1] ?? 0), n.width],
+      ]),
+    );
+    expect(screen).toEqual({
+      brief: [16, 150, 130],
+      audience: [16, 310, 122],
+      personality: [16, 463, 122],
+      feeling: [16, 636, 122],
+      logo: [162, 223, 86],
+      colour: [162, 556, 86],
+      guide: [264, 305, 110],
+    });
+    // One start edge at 16 (the four knowledge cards) and one end edge at 374 (the guidebook).
+    const at = (id: string) => (PHONE_AT as Record<string, { at: Pt; width: number }>)[id];
+    expect(["brief", "audience", "personality", "feeling"].map((id) => at(id)?.at[0])).toEqual([
+      16, 16, 16, 16,
+    ]);
+    expect((at("guide")?.at[0] ?? 0) + (at("guide")?.width ?? 0)).toBe(374);
+  });
+
+  it("joins the phone board with six edges, each running forward from a card's end to a later card's start (ORV-312 row 2)", () => {
+    expect(PHONE_EDGES).toEqual([
+      ["brief", "out", "logo", "in"],
+      ["audience", "out", "logo", "in"],
+      ["personality", "out", "colour", "in"],
+      ["feeling", "out", "colour", "in"],
+      ["logo", "out", "guide", "img"],
+      ["colour", "out", "guide", "pal"],
+    ]);
+    // The ports each node of the phone graph draws (the guide keeps no output: no loose end).
+    const inputs: Record<string, string[]> = {
+      logo: ["in"],
+      colour: ["in"],
+      guide: ["img", "pal"],
+    };
+    const outputs: Record<string, string[]> = {
+      brief: ["out"],
+      audience: ["out"],
+      personality: ["out"],
+      feeling: ["out"],
+      logo: ["out"],
+      colour: ["out"],
+    };
+    const place = PHONE_AT as Record<string, { at: Pt; width: number }>;
+    for (const [source, out, target, into] of PHONE_EDGES) {
+      expect(outputs[source], `${source}.${out}`).toContain(out);
+      expect(inputs[target], `${target}.${into}`).toContain(into);
+      // Forward: the target's card starts at or beyond the source's end.
+      expect(
+        (place[target]?.at[0] ?? 0) - ((place[source]?.at[0] ?? 0) + (place[source]?.width ?? 0)),
+        `${source} to ${target} runs forward`,
+      ).toBeGreaterThanOrEqual(0);
+    }
+    expect(new Set(PHONE_EDGES.map(([s, , t]) => `${s}-${t}`)).size).toBe(6);
   });
 
   it("gives page 11 its own second line, the other eleven pages the plain book line (design row 4.5)", () => {
@@ -1209,6 +1304,8 @@ describe("the In use board and brandbook part 03 (spec ORV-309 rows 11, 12, 13 a
   // digital pieces; the screens laid on it are held to the same guards as the rest.
   const scene = between("function PhoneScene", "function PhonePiece");
   const digital = pieces.replace(scene, "") + field;
+  // The phone's own screen (ORV-312): its graph, its body and the screen, up to PhoneScene's comment.
+  const phoneBoard = between("function phoneGraph", "/**\n * The one device");
 
   /**
    * Every way a digital piece could show an image of a page or an app, or call a model or an image
@@ -1250,10 +1347,62 @@ describe("the In use board and brandbook part 03 (spec ORV-309 rows 11, 12, 13 a
     }
   });
 
-  it("holds no intent button in the window, the icon, the share card, the icon set or the field", () => {
-    expect(countIntent(digital)).toBe(0);
+  it("holds no intent button in the window, the icon, the share card, the icon set or the field, and one in the phone's screen", () => {
+    expect(countIntent(digital.replace(phoneBoard, ""))).toBe(0);
+    expect(countIntent(phoneBoard)).toBe(1);
     expect(countIntent(scene)).toBe(0);
     expect(countIntent(source)).toBeLessThanOrEqual(1);
+  });
+
+  /**
+   * What the phone's screen must not hold (ORV-312 phone-board-1, rows 3 and 4): the landing, a view
+   * that depends on a measure, a fit or an effect. Forms blocked: the `OriviloLanding` component in
+   * JSX and as a call, `setViewport`, a `fitView(` call and `fitView` left on, `useEffect`,
+   * `useLayoutEffect`, `useReactFlow` (the handle of a view call) and `ResizeObserver`.
+   */
+  const VIEW_FORMS: [string, RegExp][] = [
+    ["OriviloLanding in JSX", /<OriviloLanding\b/],
+    ["OriviloLanding as a call", /\bOriviloLanding\s*\(/],
+    ["setViewport", /\bsetViewport\b/],
+    ["fitView call", /\bfitView\s*\(/],
+    ["fitView on", /\bfitView\s*(?:=\s*\{\s*true\s*\}|(?=[\s/>]))/],
+    ["useEffect", /\buseEffect\b/],
+    ["useLayoutEffect", /\buseLayoutEffect\b/],
+    ["useReactFlow", /\buseReactFlow\b/],
+    ["ResizeObserver", /\bResizeObserver\b/],
+  ];
+  const viewForm = (text: string) => VIEW_FORMS.filter(([, re]) => re.test(text)).map(([n]) => n);
+
+  it("builds the phone's screen from catalog parts, placed by number, with no landing, fit or effect (phone-board-1)", () => {
+    expect(viewForm(phoneBoard)).toEqual([]);
+    const samples: Record<string, string> = {
+      "OriviloLanding in JSX": "<OriviloLanding lang={locale} />",
+      "OriviloLanding as a call": "OriviloLanding({ lang })",
+      setViewport: "flow.setViewport({ x: 0, y: 0, zoom: 1 })",
+      "fitView call": "void flow.fitView()",
+      "fitView on": '<CanvasBoard fitView variant="present" />',
+      useEffect: "useEffect(() => undefined, [])",
+      useLayoutEffect: "useLayoutEffect(() => undefined, [])",
+      useReactFlow: "const flow = useReactFlow()",
+      ResizeObserver: "new ResizeObserver(measure)",
+    };
+    expect(Object.keys(samples).sort()).toEqual(VIEW_FORMS.map(([n]) => n).sort());
+    for (const [name, sample] of Object.entries(samples)) {
+      expect(viewForm(sample), name).toContain(name);
+    }
+    // The catalog parts of design rows 1 to 4, and the board's own settings (row 3).
+    expect(phoneBoard).toMatch(/<TopNavigation\b/);
+    expect(phoneBoard).toMatch(/items=\{\[\]\}/);
+    expect(phoneBoard).toMatch(/<Logo kind="horizontal" height=\{20\}/);
+    expect(phoneBoard).toMatch(/<Avatar\b/);
+    expect(phoneBoard).toMatch(/<CanvasBoard\b/);
+    expect(phoneBoard).toMatch(/variant="present"/);
+    expect(phoneBoard).toMatch(/fitView=\{false\}/);
+    expect(phoneBoard).toMatch(/chrome=\{false\}/);
+    expect(phoneBoard).toMatch(/minimap=\{false\}/);
+    expect(phoneBoard).toMatch(/<TrueHandles\b/);
+    expect(phoneBoard).toMatch(/variant="intent" size="lg"/);
+    expect(phoneBoard).toMatch(/data-design-profile="neutral" data-mode="light"/);
   });
 
   it("holds the one phone picture in PhoneScene and no image inside the live screens (design row 4.4)", () => {
