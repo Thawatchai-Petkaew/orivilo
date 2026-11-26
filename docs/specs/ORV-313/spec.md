@@ -2,7 +2,7 @@
 issue: ORV-313 (https://tpetkaew.atlassian.net/browse/ORV-313)
 lane: M (a normal story; no shared component API, token, recipe or profile changes)
 mode: POC mode short spec (`.claude/skills/ovl/SKILL.md`, section "POC mode")
-version: 1.1
+version: 1.2
 ---
 
 # ORV-313: the colour demo reads the brand photograph
@@ -63,7 +63,7 @@ A9 with A7's static folder.
 | # | Given | When | User sees | Data effect | Check |
 | --- | --- | --- | --- | --- | --- |
 | 1 | Canvas stories `ColourChapter` and `Default` (the overview), English and Thai, light and dark stage | A person looks at the `c-demo` node | Under the title "Demo: colours read back" / "ตัวอย่าง: อ่านสีกลับจากภาพ" and the badge "Mechanism demo" / "ตัวอย่างกลไก", the brand photograph: a founder in a violet studio, in a near-black sweatshirt with the ORIVILO mark, holding an off-white card, beside a violet block. Four numbered points sit on the wall, the card, the sweatshirt and the block, none on the mark. Under the picture the four colours read at those points, each ending on the palette colour it comes near. The node reads as a brand picture going in and its colours coming out onto the palette: the eye goes picture, point, colour, palette. No bowl and no clay anywhere. In the overview the same photograph shows small in the In use board above, and reads as the same photograph in use, not as a repeat (design section 1) | None | Judged by eye in the qa walk, on the screens of design section 9 (`chapter-en-light-100.png`, `chapter-en-dark-100.png`, `chapter-th-dark-100.png`, `node-en-light-2x.png`, `node-en-dark-2x.png`, `node-th-dark-2x.png`, `node-missing-en-light-2x.png`, `node-missing-en-dark-2x.png`, `overview-en-light-100.png`) and the node in Thai on the light stage, retaken on the build |
-| 2 | Canvas story `ColourChapter` (English, light and dark) and `InThai` | Rendering at 1440 x 900 | `c-demo` shows the photograph whole, with no crop, the badge "Mechanism demo" / "ตัวอย่างกลไก" at its top start, four numbered rings, the read row of row 3 and the note: "Not in the product yet. Points 1 to 4 read the colours back from the brand photo, which AI made from ORIVILO's palette. Lime is not in it. The owner chose the violet; it was not read from a photo." / "ยังไม่มีในผลิตภัณฑ์ จุด 1 ถึง 4 อ่านสีกลับจากภาพแบรนด์ที่ AI สร้างจากชุดสีของ ORIVILO ในภาพไม่มีสีเขียวมะนาว และเจ้าของเลือกสีม่วงเอง ไม่ได้อ่านจากภาพ". The whole node sits in the 03 chapter view, above the dock | The `c-demo` photo is `[data-photo="brand-hero"]` and measures as design row D1 gives it at zoom 1. The node keeps its id, kind, title key, width, position, `pad`, input port and edge 18, and has no `open` (design section 2). Its height is design row D8's. No element and no `img` names `colour-reference` | `ColourChapter` play (`expectChapterInView`); `InThai` play; `Default` play (`expectNoOverlap`) |
+| 2 | Canvas story `ColourChapter` (English, light and dark) and `InThai` | Rendering at 1440 x 900 | `c-demo` shows the photograph whole, with no crop, the badge "Mechanism demo" / "ตัวอย่างกลไก" at its top start, four numbered rings, the read row of row 3 and the note: "Not in the product yet. Points 1 to 4 read the colours back from the brand photo, which AI made from ORIVILO's palette. Lime is not in it. The owner chose the violet; it was not read from a photo." / "ยังไม่มีในผลิตภัณฑ์ จุด 1 ถึง 4 อ่านสีกลับจากภาพแบรนด์ที่ AI สร้างจากชุดสีของ ORIVILO ในภาพไม่มีสีเขียวมะนาว และเจ้าของเลือกสีม่วงเอง ไม่ได้อ่านจากภาพ". The whole node sits in the 03 chapter view, above the dock | The `c-demo` photo is `[data-photo="brand-hero"]` and measures as design row D1 gives it at zoom 1. The node keeps its id, kind, title key, width, position, `pad`, input port and edge 18, and has no `open` (design section 2). Its height is design row D8's. No element and no `img` names `colour-reference` | `ColourChapter` play (`expectChapterInView`); `ColourChapterDark` play (the dark stage); `InThai` play; `Default` play (`expectNoOverlap`) |
 | 3 | Canvas story `ColourChapter` (English) and `InThai` | Rendering | Under the photograph, four columns numbered 1 to 4. Each holds a swatch of the colour read, then the number and the hex on one line: "1 #8526CC", "2 #E6DBDA", "3 #15131E", "4 #7922C1", then the palette colour it comes near: "≈ Violet", "≈ Canvas", "≈ Ink", "≈ Violet" / "≈ ม่วง", "≈ พื้น", "≈ หมึก", "≈ ม่วง". No distance number and no tooltip | Inside `[data-demo-reads]`, four `[data-demo-point]` in order 1 to 4. Each swatch's computed background equals its point's hex (demo-read-1). Line 1 is one line and its `scrollWidth` equals its `clientWidth`. No swatch has a `title` attribute. In Thai, `expectNoGlyphClip` holds on line 2 | `ColourChapter` play; `InThai` play |
 | 4 | Canvas stories `Default` (light) and `Dark` | Rendering | Four discs numbered 1 to 4 on the photograph, each numeral centred in its disc, each disc in a white ring in both modes, clear on the violet wall, the off-white card, the near-black sweatshirt and the violet block | Four `[data-demo-ring]`. The numerals are at `label-sm` and centred (ORV-290 row 31 holds). Each ring's box shadow holds `--ds-surface-card` resolved in a light scope, in light and in dark (design row D4). The `Default` play counts the numerals through `[data-demo-ring]` and finds four, so the read row's numbers are not counted | `Default` and `Dark` plays, with `expectDemoRings` rewritten as design section 8 gives it |
 | 5 | Canvas story `MissingImages` | `brand-hero` is missing | In `c-demo`: the paper flood, the id `brand-hero` and "This image is not here yet" / "ยังไม่มีภาพนี้", the badge, and no numbered disc. The read row with its four colours and the note stay (design row D7) | In `c-demo`: zero `[data-demo-ring]`, four `[data-demo-point]`, and no `img` in the photo slot | `MissingImages` play |
@@ -76,8 +76,9 @@ A9 with A7's static folder.
 
 ## Rows per PR
 
-One PR holds every row, 1 to 11. When the PR has a number, the main session adds its line here as
-a list item in the result recorder's form, `PR <number>: rows 1-11`.
+- PR 255: rows 1-11
+
+One PR holds every row, 1 to 11.
 
 ## Rows that render nothing
 
@@ -230,3 +231,7 @@ node -e 'console.log(342*1448/1086)'
   section says in prose that one PR holds every row, and the line is added in the recorder's form
   `- PR <n>: rows <list>` once the PR has a number. To review downstream: the qa envelope of this
   card's PR.
+- v1.2 (2026-11-26): task ORV-313-spec-v1-2, a form fix with no change of requirement. Under
+  "Rows per PR" the line `- PR 255: rows 1-11` is added, now that the PR has its number. Row 2's
+  Check cell names the `ColourChapterDark` play, the story the build added for the dark stage. To
+  review downstream: the reviewer and qa envelopes of PR 255.
