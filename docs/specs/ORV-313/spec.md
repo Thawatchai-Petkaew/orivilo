@@ -2,7 +2,7 @@
 issue: ORV-313 (https://tpetkaew.atlassian.net/browse/ORV-313)
 lane: M (a normal story; no shared component API, token, recipe or profile changes)
 mode: POC mode short spec (`.claude/skills/ovl/SKILL.md`, section "POC mode")
-version: 1.0
+version: 1.1
 ---
 
 # ORV-313: the colour demo reads the brand photograph
@@ -76,9 +76,8 @@ A9 with A7's static folder.
 
 ## Rows per PR
 
-- Rows: 1-11
-
-One PR holds every row.
+One PR holds every row, 1 to 11. When the PR has a number, the main session adds its line here as
+a list item in the result recorder's form, `PR <number>: rows 1-11`.
 
 ## Rows that render nothing
 
@@ -226,3 +225,8 @@ node -e 'console.log(342*1448/1086)'
   question with its default; W1 to W3. To review downstream: the builder, reviewer and qa envelopes
   of this card's PR; the ORV-274, ORV-278, ORV-280, ORV-290 and ORV-309 statements listed above,
   which this card does not edit.
+- v1.1 (2026-11-26): task ORV-313-spec-v1-1, a form fix with no change of requirement. Under
+  "Rows per PR" the line `- Rows: 1-11`, which the result recorder rejects there, is removed; the
+  section says in prose that one PR holds every row, and the line is added in the recorder's form
+  `- PR <n>: rows <list>` once the PR has a number. To review downstream: the qa envelope of this
+  card's PR.
