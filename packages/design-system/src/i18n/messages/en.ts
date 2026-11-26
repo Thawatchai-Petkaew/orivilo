@@ -1216,8 +1216,6 @@ export const en: Messages = {
           "A Thai woman founder in a violet studio, in a dark sweatshirt with the ORIVILO mark on the chest, holding up a blank card",
         "direction-team":
           "Three people at a large pale wooden table, placing colour swatches and cards in rows",
-        "colour-reference":
-          "A top-down still life of a violet bowl, a lime clay block, an ink sheet and a white card on cream paper",
         "direction-making":
           "Two hands pressing a fold into a small curved paper model on a dark table",
         "direction-place":
@@ -1289,7 +1287,8 @@ export const en: Messages = {
     },
     demo: {
       badge: "Mechanism demo",
-      note: "Not in the product yet. Made from ORIVILO's palette, then read back at points 1 to 5. The owner chose the violet; it was not read from this image.",
+      note: "Not in the product yet. Points 1 to 4 read the colours back from the brand photo, which AI made from ORIVILO's palette. Lime is not in it. The owner chose the violet; it was not read from a photo.",
+      near: "≈ {name}",
     },
     wall: {
       guidelines: "Brand guidelines",

@@ -35,7 +35,6 @@ export type SequenceId =
 export type ImageId =
   | "brand-hero"
   | "direction-team"
-  | "colour-reference"
   | "direction-making"
   | "direction-place"
   | "scene-card"
@@ -359,7 +358,8 @@ export interface DemoPoint {
   n: number;
   x: number; // percent of the image
   y: number;
-  hex: string; // read back from the made image
+  hex: string; // read from the pixels of the photograph, never typed to match the palette
+  palette: PaletteId; // the PALETTE colour nearest to the read hex by straight RGB distance
 }
 export type RowsLook =
   | "plain"
@@ -526,33 +526,6 @@ Avoid: stock-photo poses, staged laughing, business suits, whiteboards with writ
     termsUrl: TERMS,
     check: check(
       "Three people at a wide pale table placing colour swatches and cards in rows, with no screens in view",
-    ),
-  },
-  {
-    id: "colour-reference",
-    file: "/orv-274/colour-reference.webp",
-    promptFile: "colour-reference.prompt.md",
-    prompt: `Use case: Demo of reading colours from an image, for the ORIVILO concept canvas. The image is made from the ORIVILO palette.
-Asset type: Photographic still life, 4:3 landscape, 1448x1086.
-Primary request: An arranged still life whose five large colour areas are exactly the ORIVILO palette, each area flat and evenly lit so a colour can be sampled.
-Scene/backdrop: Matte paper, colour #F4F4F0, covering the left half.
-Subject: A violet #7A22C7 ceramic bowl, a lime #D9F66F clay block, an ink #16151D paper sheet covering the lower right quarter, a white #FFFFFF card, all apart from each other.
-Style/medium: Editorial still-life photograph, real materials, colour-accurate, no grading.
-Composition/framing: Top-down, the four objects spread so each has a flat area of at least one tenth of the frame.
-Lighting/mood: Even, soft, colour-neutral daylight (5000 K), minimal shadows.
-Color palette: #F4F4F0, #7A22C7, #D9F66F, #16151D, #FFFFFF.
-Materials/textures: Matte paper, matte glazed ceramic, unglazed clay, matte card.
-Text (verbatim): none.
-Constraints: No text, letters, numbers or symbols anywhere. No logos, brand marks or recognisable products. No people or hands. No ring with a dot, no open circle with a dot, nothing that reads as a logo. No gloss or reflections on the colour areas.
-Avoid: sparkles, robots, brains, infinity signs, rainbow gradients, coral or peach tones, neon glow, glossy 3D render look, heavy vignette, watermark, border, frame, transparent areas. The image is fully opaque and fills every pixel to all four edges.`,
-    width: 1448,
-    height: 1086,
-    treatment: "photo",
-    generatedWith: MADE_WITH,
-    generatedOn: MADE_ON,
-    termsUrl: TERMS,
-    check: check(
-      "A top-down still life of a violet bowl, a lime clay block, an ink sheet and a white card on cream paper",
     ),
   },
   {
@@ -1781,12 +1754,17 @@ const BRIEF = "orivilo-brand-identity-v1.md";
 const METHOD = "brand-ci-method.md";
 const SPEC = "orivilo-brand-spec-v1.1.md";
 
-const DEMO_POINTS: readonly DemoPoint[] = [
-  { n: 1, x: 25, y: 33, hex: "#7A2FA7" },
-  { n: 2, x: 74, y: 25, hex: "#D3EF46" },
-  { n: 3, x: 80, y: 75, hex: "#19181E" },
-  { n: 4, x: 27, y: 78, hex: "#F4F3FC" },
-  { n: 5, x: 54, y: 45, hex: "#E3E2E0" },
+/**
+ * The four points of the colour demo on `brand-hero`, in reading order, x and y in percent of the
+ * image. Each hex is the mean sRGB of the 11 x 11 pixel square centred on the point, read from
+ * `.storybook/static/orv-274/brand-hero.webp` by the script of ORV-313 design section 3 (demo-read-1).
+ * No point sits on the mark: its dot is narrower than the square.
+ */
+export const DEMO_POINTS: readonly DemoPoint[] = [
+  { n: 1, x: 14, y: 22, hex: "#8526CC", palette: "violet" }, // the wall
+  { n: 2, x: 29, y: 38, hex: "#E6DBDA", palette: "canvas" }, // the card she holds
+  { n: 3, x: 50, y: 55, hex: "#15131E", palette: "ink" }, // the sweatshirt
+  { n: 4, x: 86, y: 92, hex: "#7922C1", palette: "violet" }, // the violet block
 ];
 
 /** A brief card that gives one text output. */
@@ -2242,7 +2220,7 @@ export const NODES: readonly NodeRecord[] = [
     pad: "media",
     inputs: [port("palette", "palette", c("port.palette"))],
     outputs: [],
-    body: { kind: "demo", image: "colour-reference", points: DEMO_POINTS },
+    body: { kind: "demo", image: "brand-hero", points: DEMO_POINTS },
   },
   // 05 Brandbook: four parts, one book
   {
