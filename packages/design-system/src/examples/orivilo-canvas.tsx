@@ -17,6 +17,7 @@ import {
 import {
   type CSSProperties,
   type ComponentPropsWithoutRef,
+  type ComponentType,
   type ReactNode,
   createContext,
   startTransition,
@@ -34,60 +35,128 @@ import {
 } from "../boundary/DesignProfileBoundary";
 import {
   Alert,
+  Avatar,
   Badge,
+  Breadcrumb,
+  BreadcrumbLink,
+  BreadcrumbPage,
   Button,
-  Card,
-  CardTitle,
-  CardValue,
   CanvasBoard,
+  CanvasChat,
   CanvasControls,
+  Checkbox,
   Dialog,
   DialogContent,
+  FeaturedIcon,
   Field,
   Input,
+  Inspector,
+  Kbd,
   Logo,
   PageHeader,
+  Progress,
   RadioGroup,
   RadioGroupItem,
   ScrollArea,
-  SectionHeader,
+  Select,
+  Skeleton,
+  Slider,
+  Spinner,
+  Switch,
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TaskBar,
+  Tag,
+  Textarea,
+  ToggleGroup,
+  ToggleGroupItem,
+  TopNavigation,
 } from "../components/index";
+import { fixtureTaskJobs, fixtureTaskJobsEn } from "../components/fixtures";
 import type { BoardNode, Graph } from "../components/canvas-board/graph";
 import { cx } from "../components/cx";
-import { ChevronLeftIcon, ChevronRightIcon, CloseIcon } from "../components/icons";
+import {
+  ArtifactIcon,
+  ChatIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  CloseIcon,
+  CompareStepIcon,
+  CopyIcon,
+  CursorIcon,
+  DirectionIcon,
+  DraftStepIcon,
+  EyeIcon,
+  FitIcon,
+  GenerateStepIcon,
+  GroupIcon,
+  HandIcon,
+  type IconProps,
+  InputBlockIcon,
+  KnowledgeIcon,
+  LockIcon,
+  NoteIcon,
+  PlusIcon,
+  ReadStepIcon,
+  RedoIcon,
+  ReferenceIcon,
+  RetryIcon,
+  SearchIcon,
+  SendIcon,
+  TrashIcon,
+  UndoIcon,
+  UploadIcon,
+} from "../components/icons";
 import { DOT_RADIUS, GEOMETRY, RING_STROKE } from "../components/logo/geometry";
 import { formatNumber } from "../i18n/format";
 import { useLocale, useMessages } from "../i18n/LocaleProvider";
 import { fill, type Messages } from "../i18n/messages/index";
 import { BRAND_PROFILES } from "../profiles/index";
 import { tokens } from "../tokens/index";
-import { BrandReportScreen, Notice, ReadingCard } from "./brand-report";
-import { ANALYSED, PAGE, PREMIUM_BODY } from "./brand-report.fixtures";
-import { Landing } from "./landing";
+import { BusinessBoardScreen } from "./business-board";
+import { ENGLISH_VIEW, THAI_VIEW } from "./business-fixtures";
+import { GuidebookScreen } from "./guidebook";
+import { done } from "./guidebook-fixtures";
+import { OriviloLanding, heroBody, heroGraph } from "./orivilo-landing";
+import { TrueHandles } from "./true-handles";
 import {
   type ArtText,
   type ArtToken,
   type BoardId,
+  type BookArt,
   type BookPageRecord,
   type BodyRecord,
   type Box,
   type ChapterId,
   type CopyKey,
+  type IconName,
   type ImageId,
+  type LiveId,
   type NodeRecord,
   type Paint,
   type PaletteId,
+  type PieceContent,
+  type PhoneCrop,
+  type PhoneView,
   type PieceRecord,
+  type Placement,
   type PreviewPageRecord,
   type RowRecord,
   type SequenceId,
   type Size,
   type TypeStyle,
+  ADDRESS,
   BOARDS,
   BOOK,
   BOOK_FRAME,
+  BRAND_NAME,
+  BROWSER,
   CHAPTERS,
+  chapterViewport,
+  CLOCK,
   copyOf,
+  DOCK_MARGIN,
   FRAMES,
   graphOf,
   IMAGES,
@@ -96,14 +165,19 @@ import {
   PALETTE,
   PAPER,
   PIECES,
+  phoneView,
   placeOnQuad,
   quadInTile,
   SEQUENCES,
   SHEETS,
+  studioGraph,
   textOf,
   TYPE_SAMPLE,
   TYPE_SPECIMEN,
   VIOLET,
+  VIEW_PAD,
+  VIOLET_ON_INK,
+  WINDOW_AT,
 } from "./orivilo-canvas.data";
 
 export interface OriviloCanvasProps {
@@ -188,8 +262,16 @@ interface LiveFrameProps {
   outer: { w: number; h: number | "auto" };
   /** The width the page is laid out at, in design px. */
   design: number;
-  /** Design px down from the top, or the report's findings. */
-  start?: number | "report" | undefined;
+  /** Design px down from the top. */
+  start?: number | undefined;
+  /**
+   * A selector inside the page: the frame starts at its top, less `space.inset-md`. Measured with a
+   * `ResizeObserver`, so a font that swaps in later moves the start and not the page's lines.
+   * Internal to this example (spec ORV-309 C2).
+   */
+  startAt?: string | undefined;
+  /** Fades the cropped bottom edge into the page's own canvas colour (C1), by tokens only. */
+  fade?: boolean | undefined;
   mode?: BoundaryMode | undefined;
   children: ReactNode;
 }
@@ -199,24 +281,30 @@ interface LiveFrameProps {
  * the page keeps its design-width layout and its container queries; `inert` and `aria-hidden` take
  * it out of the tab order and the accessibility tree.
  */
-function LiveFrame({ outer, design, start = 0, mode, children }: LiveFrameProps) {
+function LiveFrame({ outer, design, start = 0, startAt, fade, mode, children }: LiveFrameProps) {
   const { live, mode: pageMode } = useContext(PageContext);
   const scale = outer.w / design;
+  // The scaled box, and inside it the page, which slides up to its start.
   const inner = useRef<HTMLDivElement>(null);
-  const [offset, setOffset] = useState(typeof start === "number" ? start : 0);
+  const page = useRef<HTMLDivElement>(null);
+  const [offset, setOffset] = useState(start);
   const [auto, setAuto] = useState(0);
   useLayoutEffect(() => {
-    const el = inner.current;
-    if (!el || !live) return;
+    const box = inner.current;
+    const el = page.current;
+    if (!box || !el || !live) return;
     const measure = () => {
-      if (outer.h === "auto") setAuto(el.offsetHeight * scale);
-      if (start !== "report") return;
-      const target = el.querySelector("[data-report]");
+      if (outer.h === "auto") setAuto(box.offsetHeight * scale);
+      if (startAt === undefined) return;
+      const target = el.querySelector(startAt);
       if (!target) return;
+      // Screen px per design px: this frame's scale times the zoom of any board that holds it.
+      const drawn = box.getBoundingClientRect().width / box.offsetWidth;
+      if (!(drawn > 0)) return;
       setOffset(
         Math.max(
           0,
-          (target.getBoundingClientRect().top - el.getBoundingClientRect().top) / scale - INSET_MD,
+          (target.getBoundingClientRect().top - el.getBoundingClientRect().top) / drawn - INSET_MD,
         ),
       );
     };
@@ -224,7 +312,7 @@ function LiveFrame({ outer, design, start = 0, mode, children }: LiveFrameProps)
     const observer = new ResizeObserver(measure);
     observer.observe(el);
     return () => observer.disconnect();
-  }, [live, outer.h, scale, start]);
+  }, [live, outer.h, scale, startAt]);
   return (
     <div
       className="relative overflow-hidden"
@@ -233,21 +321,40 @@ function LiveFrame({ outer, design, start = 0, mode, children }: LiveFrameProps)
       inert
       aria-hidden="true"
     >
-      <div
-        ref={inner}
-        className="absolute left-0 top-0"
-        style={{
-          width: design,
-          transform: `scale(${scale}) translateY(-${offset}px)`,
-          transformOrigin: "0 0",
-        }}
-      >
-        {live ? (
-          <DesignProfileBoundary profile={BRAND_PROFILES[0]} mode={mode ?? pageMode}>
-            <div className="bg-surface-canvas font-body text-text-primary">{children}</div>
-          </DesignProfileBoundary>
-        ) : null}
-      </div>
+      {live ? (
+        <DesignProfileBoundary profile={BRAND_PROFILES[0]} mode={mode ?? pageMode}>
+          {/* A fixed frame clips its page at its own box. The clip is a scroll region without a bar
+              (never scrolled: the page slides by a transform), because the a11y checker's colour
+              stack clips at scroll regions, not at `overflow: hidden`, and would read the page's
+              dark canvas behind the label of the node below. */}
+          <div
+            ref={inner}
+            className="absolute left-0 top-0"
+            style={{
+              width: design,
+              ...(outer.h === "auto"
+                ? {}
+                : { height: outer.h / scale, overflow: "auto", scrollbarWidth: "none" }),
+              transform: `scale(${scale})`,
+              transformOrigin: "0 0",
+            }}
+          >
+            <div ref={page} style={{ transform: `translateY(-${offset}px)` }}>
+              <div className="bg-surface-canvas font-body text-text-primary">{children}</div>
+            </div>
+          </div>
+          {fade ? (
+            <div
+              aria-hidden="true"
+              data-crop-fade=""
+              className="pointer-events-none absolute inset-x-0 bottom-0 h-12"
+              style={{
+                background: "linear-gradient(to bottom, transparent, var(--ds-surface-canvas))",
+              }}
+            />
+          ) : null}
+        </DesignProfileBoundary>
+      ) : null}
     </div>
   );
 }
@@ -754,19 +861,502 @@ function Scene({
   );
 }
 
-/** One piece drawn at a tile size; `onPage` draws the icon full tile, as the book's page 11 does. */
+const ICON_BY_NAME: Record<IconName, ComponentType<IconProps>> = {
+  Cursor: CursorIcon,
+  Hand: HandIcon,
+  Plus: PlusIcon,
+  Search: SearchIcon,
+  Undo: UndoIcon,
+  Redo: RedoIcon,
+  InputBlock: InputBlockIcon,
+  Knowledge: KnowledgeIcon,
+  Artifact: ArtifactIcon,
+  Reference: ReferenceIcon,
+  Direction: DirectionIcon,
+  Note: NoteIcon,
+  ReadStep: ReadStepIcon,
+  DraftStep: DraftStepIcon,
+  CompareStep: CompareStepIcon,
+  GenerateStep: GenerateStepIcon,
+  Eye: EyeIcon,
+  Group: GroupIcon,
+  Chat: ChatIcon,
+  Send: SendIcon,
+  Upload: UploadIcon,
+  Copy: CopyIcon,
+  Trash: TrashIcon,
+  Fit: FitIcon,
+};
+
+const TILE = "relative overflow-hidden rounded-media";
+
+/**
+ * The app in a browser at its design size (A): a tab strip, a toolbar with the address, and below
+ * them ORIVILO's own Studio, the same `TopNavigation` and the same live board the landing shows,
+ * with the Positioning node selected. Drawn from catalog parts; nothing in it is an image.
+ */
+function BrowserWindow({ design }: { design: Size }) {
+  const m = useMessages();
+  const use = m.orvCanvas.use;
+  const words = m.oriviloLanding.board;
+  const graph = heroGraph(words, false);
+  // The window's own positions (row 3.2); Positioning is the selected node.
+  const nodes = graph.nodes.map((n) => {
+    const [x, y] = WINDOW_AT[n.id] ?? [n.position.x, n.position.y];
+    return { ...n, position: { x, y }, ...(n.id === "pos" ? { selected: true } : {}) };
+  });
+  return (
+    <div
+      {...scope("dark")}
+      className="flex flex-col overflow-hidden rounded-container border border-border-subtle bg-surface-sunken font-body text-text-primary"
+      style={{ width: design.w, height: design.h }}
+      data-browser=""
+    >
+      <div className="flex h-11 shrink-0 items-end gap-2 px-3">
+        <div className="flex h-9 w-60 items-center gap-2 rounded-t-media bg-surface-canvas px-3">
+          <Logo kind="mark" height={16} decorative />
+          <span className="text-label-sm">{BRAND_NAME}</span>
+          <CloseIcon className="ms-auto size-3.5 text-text-secondary" />
+        </div>
+        <PlusIcon className="mb-2.5 size-4 text-text-secondary" />
+      </div>
+      <div className="flex h-12 shrink-0 items-center gap-4 border-b border-border-subtle bg-surface-canvas px-4">
+        <ChevronLeftIcon className="size-4 text-text-secondary" />
+        <ChevronRightIcon className="size-4 text-text-secondary" />
+        <RetryIcon className="size-4 text-text-secondary" />
+        <div className="flex h-8 flex-1 items-center gap-2 rounded-control bg-surface-sunken px-4">
+          <LockIcon className="size-3.5 text-text-secondary" />
+          <span className="text-body-sm">{ADDRESS}</span>
+        </div>
+      </div>
+      <div className="relative min-h-0 flex-1">
+        <DesignProfileBoundary profile={BRAND_PROFILES[0]} mode="dark">
+          <div className="absolute inset-0 flex flex-col bg-surface-canvas text-text-primary">
+            <TopNavigation
+              name={use.studioName}
+              brand={<Logo kind="horizontal" height={20} decorative />}
+              items={[
+                { label: m.orvCanvas.sheet.view.board, href: "/board" },
+                { label: m.orvCanvas.sheet.view.guidebook, href: "/guidebook" },
+              ]}
+              currentPath="/board"
+              actions={<Avatar name={m.orvCanvas.sheet.owner} size="sm" decorative />}
+              contentClassName="px-5"
+            />
+            <div className="relative min-h-0 flex-1 bg-surface-board">
+              <div className="absolute inset-0">
+                <CanvasBoard
+                  label={words.label}
+                  graph={{ ...graph, nodes }}
+                  variant="edit"
+                  minimap={false}
+                  renderBody={heroBody(words, false)}
+                >
+                  <TrueHandles />
+                </CanvasBoard>
+              </div>
+            </div>
+          </div>
+        </DesignProfileBoundary>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * The one device (design rows 4.1 and 4.2): the phone picture in a tile, and the live screen laid on
+ * its display. The picture is a straight-on view, so the screen is a box under one scale and one
+ * translate: `[data-phone-screen]` at the display's place, its corner the picture's own (image
+ * geometry from the record, not a UI radius), and inside it a design box 390 wide under `scale(k)`.
+ * The pill is drawn again above the live screen so one surface runs edge to edge. With the picture
+ * missing the tile shows its flood and the missing label only: a screen without its device would be
+ * a drawn phone again. `over` draws above the picture in tile px, for the page 11 measure.
+ */
+function PhoneScene({
+  piece,
+  image,
+  size,
+  crop,
+  mode,
+  screen,
+  lines,
+  over,
+}: {
+  piece: PieceRecord;
+  image: ImageId;
+  size: Size;
+  crop: PhoneCrop;
+  /** The mode the status row reads in: the mode of the screen's own ground. */
+  mode: Mode;
+  screen: (view: PhoneView) => ReactNode;
+  /** Dashed layout lines over the display, at x of the 390 wide screen (page 11 only). */
+  lines?: readonly number[] | undefined;
+  over?: ((view: PhoneView) => ReactNode) | undefined;
+}) {
+  const m = useMessages();
+  const { missing, fail } = useContext(PageContext);
+  const record = imageOf(image);
+  if (!record.device) throw new RangeError(`orivilo-canvas: image ${image} has no device`);
+  const view = phoneView(size, { w: record.width, h: record.height }, record.device, crop);
+  const { picture, island } = view;
+  // The display's box and its corner, which come from the record: one place, used by the screen and
+  // by the lines that clip with it.
+  const display: CSSProperties = {
+    left: view.screen.x,
+    top: view.screen.y,
+    width: view.screen.w,
+    height: view.screen.h,
+    borderRadius: view.radius,
+  };
+  return (
+    <Flood
+      paint={piece.flood}
+      className={TILE}
+      style={{ width: size.w, height: size.h }}
+      data-photo={image}
+    >
+      {missing.has(image) ? (
+        <MissingLabel id={image} paint={piece.flood} />
+      ) : (
+        <>
+          <img
+            src={record.file}
+            width={record.width}
+            height={record.height}
+            alt={copyOf(m, `image.alt.${image}` as CopyKey)}
+            loading="lazy"
+            decoding="async"
+            className="absolute"
+            style={{
+              left: picture.x,
+              top: picture.y,
+              width: picture.w,
+              height: picture.h,
+              maxWidth: "none",
+            }}
+            onError={() => fail(image)}
+          />
+          <div className="absolute overflow-hidden" data-phone-screen="" style={display}>
+            <div
+              className="relative"
+              style={{
+                width: view.design.w,
+                height: view.design.h,
+                transform: `scale(${view.k})`,
+                transformOrigin: "0 0",
+              }}
+            >
+              {screen(view)}
+              <span
+                {...scope(mode)}
+                className="absolute flex items-center justify-center font-body text-label-md text-text-primary"
+                data-clock=""
+                style={{ left: 0, top: island.y, width: island.x, height: island.h }}
+              >
+                {CLOCK}
+              </span>
+              <Flood
+                paint={INK}
+                className="absolute rounded-round"
+                data-island=""
+                style={{ left: island.x, top: island.y, width: island.w, height: island.h }}
+              />
+            </div>
+          </div>
+          {lines ? (
+            <div
+              {...scope("dark")}
+              className="absolute overflow-hidden"
+              data-layout-grid=""
+              style={display}
+            >
+              {lines.map((x) => (
+                <div
+                  key={x}
+                  className="absolute bottom-0 top-0 border-s border-dashed border-brand-signature"
+                  style={{ left: x * view.k }}
+                />
+              ))}
+            </div>
+          ) : null}
+          {over?.(view)}
+        </>
+      )}
+    </Flood>
+  );
+}
+
+/**
+ * The landing on a phone (B): the picture whole, the live page on its display below a status row.
+ * Page 11's variant "grid" adds the layout grid over the display and the measure above the phone.
+ */
+function PhonePiece({
+  piece,
+  content: c,
+  size,
+  grid,
+}: {
+  piece: PieceRecord;
+  content: Extract<PieceContent, { kind: "phone" }>;
+  size: Size;
+  grid: boolean;
+}) {
+  const locale = useLocale();
+  const m = useMessages();
+  return (
+    <PhoneScene
+      piece={piece}
+      image={c.image}
+      size={size}
+      crop="whole"
+      mode="dark"
+      lines={grid ? c.grid.lines : undefined}
+      screen={(view) => (
+        <LiveFrame
+          outer={{ w: c.screenWidth, h: view.design.h }}
+          design={c.screenWidth}
+          mode="dark"
+        >
+          <div style={{ paddingTop: c.status }}>
+            <OriviloLanding lang={locale} width={c.screenWidth} photograph={false} />
+          </div>
+        </LiveFrame>
+      )}
+      over={
+        grid
+          ? (view) => {
+              const xs = c.grid.measure.map((x) => view.screen.x + x * view.k);
+              const x0 = at(xs, 0);
+              const x3 = at(xs, 3);
+              const top = view.screen.y;
+              return (
+                <>
+                  <div
+                    {...scope(textMode(piece.flood))}
+                    className="absolute inset-0 font-body"
+                    data-measure=""
+                  >
+                    <div
+                      className="absolute border-t border-text-primary"
+                      style={{ left: x0, width: x3 - x0, top: top - 18 }}
+                    />
+                    {xs.map((x, i) => (
+                      <div
+                        key={i}
+                        className="absolute border-s border-text-primary"
+                        style={{ left: x, top: top - 24, height: 12 }}
+                      />
+                    ))}
+                    {c.grid.measure.slice(1).map((end, i) => {
+                      const start = at(c.grid.measure, i);
+                      // Centred over its span on one line: the 24 px spans are narrower than their numerals.
+                      return (
+                        <span
+                          key={i}
+                          className="absolute -translate-x-1/2 whitespace-nowrap font-mono text-code-md text-text-primary"
+                          style={{ left: (at(xs, i) + at(xs, i + 1)) / 2, top: top - 48 }}
+                        >
+                          {end - start}
+                        </span>
+                      );
+                    })}
+                    <p
+                      className="absolute m-0 text-label-md text-text-primary"
+                      style={{ left: 24, bottom: 16 }}
+                    >
+                      {m.orvCanvas.use.grid}
+                    </p>
+                  </div>
+                </>
+              );
+            }
+          : undefined
+      }
+    />
+  );
+}
+
+/**
+ * The app icon on a phone's home screen (C), at a real phone's scale (design rows 3.1 and 4.4): the
+ * upper part of the phone picture, and on its display a grid of 60 pt icons with ORIVILO's among
+ * them. The icon is 15% of the screen's width, as on a phone, and the crop carries its legibility.
+ */
+function HomeScreenPiece({
+  piece,
+  content: c,
+  size,
+}: {
+  piece: PieceRecord;
+  content: Extract<PieceContent, { kind: "icon" }>;
+  size: Size;
+}) {
+  const { grid, app } = c;
+  const slots = Array.from({ length: grid.cols * grid.rows }, (_, i) => ({
+    col: i % grid.cols,
+    row: Math.floor(i / grid.cols),
+  }));
+  return (
+    <PhoneScene
+      piece={piece}
+      image={c.image}
+      size={size}
+      crop={{ inset: c.inset }}
+      mode="light"
+      screen={() => (
+        <Flood paint={PAPER} className="absolute inset-0" data-home-screen="">
+          <div {...scope("light")} className="absolute inset-0 font-body text-text-primary">
+            {slots.map(({ col, row }) => {
+              const x = grid.start + col * grid.pitch[0];
+              const y = grid.top + row * grid.pitch[1];
+              if (col !== app.col || row !== app.row) {
+                return (
+                  <div
+                    key={`${col}-${row}`}
+                    className="absolute overflow-hidden rounded-container"
+                    style={{ left: x, top: y, width: grid.icon, height: grid.icon }}
+                  >
+                    <Skeleton shape="block" className="size-full" />
+                  </div>
+                );
+              }
+              return (
+                <div key="app">
+                  <Flood
+                    paint={INK}
+                    className="absolute flex items-center justify-center rounded-container"
+                    style={{ left: x, top: y, width: grid.icon, height: grid.icon }}
+                    data-app-icon=""
+                  >
+                    <div {...scope("dark")}>
+                      <Logo kind="mark" height={grid.icon * app.mark} decorative />
+                    </div>
+                  </Flood>
+                  <span
+                    className="absolute whitespace-nowrap text-center text-label-sm"
+                    style={{
+                      left: x + (grid.icon - grid.pitch[0]) / 2,
+                      top: y + grid.icon + grid.gap,
+                      width: grid.pitch[0],
+                    }}
+                  >
+                    {BRAND_NAME}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </Flood>
+      )}
+    />
+  );
+}
+
+/** The link share card (E): the image at 1.91 : 1 over the share tagline and the address. */
+function SharePiece({
+  piece,
+  content: c,
+  size,
+}: {
+  piece: PieceRecord;
+  content: Extract<PieceContent, { kind: "share" }>;
+  size: Size;
+}) {
+  const m = useMessages();
+  const card = Math.min(c.card.max, size.w - 2 * c.card.margin);
+  const k = card / c.image.w;
+  return (
+    <Flood paint={piece.flood} className={TILE} style={{ width: size.w, height: size.h }}>
+      <div className="flex h-full items-center justify-center">
+        <div
+          {...scope("light")}
+          className="overflow-hidden rounded-container border border-border-subtle bg-surface-card font-body text-text-primary"
+          style={{ width: card }}
+        >
+          <Flood
+            paint={INK}
+            className="relative overflow-hidden"
+            style={{ width: card, height: c.image.h * k }}
+            data-share-image=""
+          >
+            <div
+              className="relative"
+              style={{
+                width: c.image.w,
+                height: c.image.h,
+                transform: `scale(${k})`,
+                transformOrigin: "0 0",
+              }}
+            >
+              <GiantMark
+                size={c.mark.size}
+                ring={VIOLET}
+                dot={VIOLET_ON_INK}
+                style={{ left: c.mark.at[0], top: c.mark.at[1] }}
+              />
+              <div
+                {...scope("dark")}
+                className="absolute"
+                style={{ left: c.logo.inset, bottom: c.logo.inset }}
+              >
+                <Logo kind="horizontal" height={c.logo.height} decorative />
+              </div>
+            </div>
+          </Flood>
+          <div className="flex flex-col gap-0.5 px-3 py-2.5">
+            <span className="text-label-md">{m.orvCanvas.use.shareTagline}</span>
+            <span className="text-body-xs text-text-secondary">{ADDRESS}</span>
+          </div>
+        </div>
+      </div>
+    </Flood>
+  );
+}
+
+/** The icon set specimen (page 11): the glyphs of `icons.tsx` on a grid of hairlines, 6 across. */
+function IconSet({ glyphs, size }: { glyphs: readonly IconName[]; size: Size }) {
+  const m = useMessages();
+  return (
+    <Flood
+      paint={INK}
+      className={TILE}
+      style={{ width: size.w, height: size.h }}
+      data-specimen="icons"
+    >
+      <div
+        {...scope("dark")}
+        className="flex h-full flex-col justify-between p-6 font-body text-text-primary"
+      >
+        <span className="text-label-md">{m.orvCanvas.use.icons}</span>
+        <div className="grid grid-cols-6 self-center border-s border-t border-border-subtle">
+          {glyphs.map((name) => {
+            const Glyph = ICON_BY_NAME[name];
+            return (
+              <div
+                key={name}
+                data-glyph={name}
+                className="flex size-9 items-center justify-center border-e border-b border-border-subtle"
+              >
+                <Glyph className="size-5" />
+              </div>
+            );
+          })}
+        </div>
+        <span className="text-body-xs text-text-secondary">{m.orvCanvas.use.iconsNote}</span>
+      </div>
+    </Flood>
+  );
+}
+
+/** One piece drawn at a tile size; the variant "grid" is the phone of the book's page 11. */
 function PieceArt({
   piece,
   size,
   variant,
-  onPage = false,
 }: {
   piece: PieceRecord;
   size: Size;
-  variant?: "violet" | "small" | undefined;
-  onPage?: boolean | undefined;
+  variant?: "grid" | undefined;
 }) {
-  const m = useMessages();
   const c = piece.content;
   const tile = "relative overflow-hidden rounded-media";
   const box = { width: size.w, height: size.h };
@@ -806,149 +1396,31 @@ function PieceArt({
           </div>
         </Flood>
       );
-    case "icon": {
-      const full = onPage;
-      const side = full ? Math.min(size.w, size.h) : c.side * Math.min(size.w, size.h);
-      const violetIcon = variant === "violet";
-      const ground: Paint = full && violetIcon ? VIOLET : c.ground;
-      return (
-        <Flood paint={full ? PAPER : piece.flood} className={tile} style={box}>
-          <Flood
-            paint={ground}
-            className={cx(
-              "absolute flex items-center justify-center",
-              full ? "border border-border-subtle" : "shadow-overlay",
-            )}
-            style={{
-              width: side,
-              height: side,
-              left: (size.w - side) / 2,
-              top: (size.h - side) / 2,
-              borderRadius: side * c.radius,
-            }}
-          >
-            <div {...scope("dark")}>
-              <Logo
-                kind="mark"
-                height={side * c.mark}
-                tone={violetIcon ? "one-colour" : "full"}
-                decorative
-              />
-            </div>
-          </Flood>
-        </Flood>
-      );
-    }
-    case "lockup": {
-      const width = c.width * size.w;
-      const height = (width * 150) / 663;
+    case "window": {
+      // The browser is laid from `inset` of the tile width, `span` times as wide as the tile, so it
+      // bleeds off the end and the bottom; the tile clips it.
+      const inset = size.w * c.inset;
+      const width = size.w * c.span;
+      const scale = width / c.design.w;
       return (
         <Flood paint={piece.flood} className={tile} style={box}>
           <div
-            {...scope("dark")}
-            className="absolute text-text-secondary"
-            style={{ width, height, left: (size.w - width) / 2, top: (size.h - height) / 2 }}
+            className="absolute overflow-hidden rounded-container"
+            style={{ left: inset, top: inset }}
           >
-            <svg
-              className="absolute inset-0 overflow-visible"
-              viewBox="0 0 663 150"
-              width={width}
-              height={height}
-              aria-hidden="true"
-              focusable="false"
-              data-guides=""
-            >
-              <g
-                stroke="currentColor"
-                strokeWidth={c.guides.stroke}
-                strokeDasharray={`${c.guides.dash} ${c.guides.dash}`}
-                fill="none"
-              >
-                <line x1={-60} y1={45} x2={723} y2={45} />
-                <line x1={-60} y1={145} x2={723} y2={145} />
-                <rect x={0} y={0} width={150} height={150} />
-                <line x1={190} y1={-30} x2={190} y2={180} />
-                <line x1={662.5} y1={-30} x2={662.5} y2={180} />
-              </g>
-            </svg>
-            <Logo kind="horizontal" height={height} tone="one-colour" decorative />
+            <LiveFrame outer={{ w: width, h: c.design.h * scale }} design={c.design.w} mode="dark">
+              <BrowserWindow design={c.design} />
+            </LiveFrame>
           </div>
         </Flood>
       );
     }
-    case "phone": {
-      const w = size.w * c.width;
-      const h = w * c.ratio;
-      const bezel = w * c.bezel;
-      return (
-        <Flood paint={piece.flood} className={tile} style={box}>
-          <Flood
-            paint={INK}
-            className="absolute shadow-overlay"
-            style={{
-              left: (size.w - w) / 2,
-              top: size.h * c.top,
-              width: w,
-              height: h,
-              borderRadius: w * c.radius,
-            }}
-          >
-            <div
-              className="absolute overflow-hidden"
-              style={{
-                left: bezel,
-                top: bezel,
-                width: w - 2 * bezel,
-                height: h - 2 * bezel,
-                borderRadius: w * c.screenRadius,
-              }}
-            >
-              <LiveFrame
-                outer={{ w: w - 2 * bezel, h: h - 2 * bezel }}
-                design={c.screenWidth}
-                mode="light"
-              >
-                <Landing />
-              </LiveFrame>
-            </div>
-          </Flood>
-        </Flood>
-      );
-    }
-    case "ink": {
-      const small = variant === "small";
-      const lines = c.lines.map((line) =>
-        small && "k" in line.size ? { ...line, size: { k: 0.9 } } : line,
-      );
-      return (
-        <Flood paint={piece.flood} className={tile} style={box}>
-          <GiantMark
-            size={c.mark.size * size.h}
-            ring={c.mark.ring}
-            dot={c.mark.dot}
-            style={{ left: size.w - c.mark.endInset * size.h, top: c.mark.top * size.h }}
-          />
-          {small ? null : (
-            <div {...scope("dark")} className="absolute" style={{ left: 40, top: 36 }}>
-              <Logo kind="horizontal" height={c.lockupSize} decorative />
-            </div>
-          )}
-          <div
-            className="absolute flex flex-col items-start gap-6"
-            style={{ left: 40, bottom: 40 }}
-          >
-            {lines.map((line, i) => (
-              <ArtLine key={i} line={line} />
-            ))}
-            <div {...scope("light")}>
-              <Button variant="intent" size={small ? "md" : c.action.size} tabIndex={-1}>
-                {copyOf(m, c.action.label)}
-              </Button>
-            </div>
-          </div>
-        </Flood>
-      );
-    }
+    case "phone":
+      return <PhonePiece piece={piece} content={c} size={size} grid={variant === "grid"} />;
+    case "icon":
+      return <HomeScreenPiece piece={piece} content={c} size={size} />;
+    case "share":
+      return <SharePiece piece={piece} content={c} size={size} />;
   }
 }
 
@@ -1049,6 +1521,93 @@ function ColumnLines({ lines, from, to }: { lines: readonly ArtText[]; from: num
   );
 }
 
+/** One live screen of page 10's field: a rounded, floating, inert frame at a ratio of its width. */
+function FieldScreen({
+  w,
+  ratio,
+  design,
+  mode,
+  children,
+}: {
+  w: number;
+  ratio: number;
+  design: number;
+  mode: Mode;
+  children: ReactNode;
+}) {
+  return (
+    <div
+      className="overflow-hidden rounded-container shadow-overlay"
+      style={{ width: w, height: w * ratio }}
+    >
+      <LiveFrame outer={{ w, h: w * ratio }} design={design} mode={mode}>
+        {children}
+      </LiveFrame>
+    </div>
+  );
+}
+
+/**
+ * Page 10's art: the three things the prototype shows, the landing, the board and the guidebook, as
+ * live screens in a group turned about its centre on the brand flood. The landing's one intent
+ * button is the page's only lime.
+ */
+function FieldArt({ art, size }: { art: Extract<BookArt, { kind: "field" }>; size: Size }) {
+  const locale = useLocale();
+  const { group, phone, column } = art;
+  const phoneDesign = 390;
+  const ratio = 2.06;
+  return (
+    <Flood
+      paint={art.ground}
+      className="relative overflow-hidden"
+      style={{ width: size.w, height: size.h }}
+      data-field-art=""
+    >
+      <div
+        className="absolute"
+        style={{
+          left: group.x,
+          top: group.y,
+          width: group.w,
+          height: group.h,
+          transform: `rotate(${group.rotate}deg)`,
+          transformOrigin: "50% 50%",
+        }}
+      >
+        <div className="absolute" style={{ left: phone.at[0], top: phone.at[1] }}>
+          <FieldScreen w={phone.width} ratio={ratio} design={phoneDesign} mode="dark">
+            <OriviloLanding lang={locale} width={phoneDesign} photograph={false} />
+          </FieldScreen>
+        </div>
+        <div
+          className="absolute flex flex-col"
+          style={{ left: column.at[0], top: column.at[1], gap: column.gap }}
+        >
+          <FieldScreen
+            w={column.window}
+            ratio={BROWSER.h / BROWSER.w}
+            design={BROWSER.w}
+            mode="dark"
+          >
+            <BrowserWindow design={BROWSER} />
+          </FieldScreen>
+          <FieldScreen w={column.guidebook} ratio={ratio} design={phoneDesign} mode="light">
+            <div style={{ width: phoneDesign }}>
+              <GuidebookScreen
+                access="ready"
+                guidebook={done(locale)}
+                boardHref="#"
+                signInHref="#"
+              />
+            </div>
+          </FieldScreen>
+        </div>
+      </div>
+    </Flood>
+  );
+}
+
 function Opener({ page }: { page: BookPageRecord }) {
   const { inkHalf, size, pad } = BOOK_FRAME;
   const rows: ReactNode[] = [];
@@ -1099,14 +1658,9 @@ function Opener({ page }: { page: BookPageRecord }) {
           ))}
         </div>
       ) : null}
-      {art?.kind === "photo" ? (
+      {art?.kind === "field" ? (
         <div className="absolute" style={{ left: panel.left, top: 0 }}>
-          <Photo
-            id={art.image}
-            size={{ w: panel.width, h: panel.height }}
-            flood={VIOLET}
-            focus={art.focus}
-          />
+          <FieldArt art={art} size={{ w: panel.width, h: panel.height }} />
         </div>
       ) : null}
     </>
@@ -1300,19 +1854,22 @@ function Applications({ page }: { page: BookPageRecord }) {
   if (art?.kind !== "pieces") return null;
   return (
     <>
-      {art.pieces.map((p, i) => (
+      {art.pieces.map((p: Placement, i) => (
         <div
           key={i}
           className="absolute"
           style={{ left: p.box.x, top: p.box.y }}
-          data-piece={p.piece}
+          {...("piece" in p ? { "data-piece": p.piece } : { "data-placement": p.specimen })}
         >
-          <PieceArt
-            piece={pieceOf(p.piece)}
-            size={{ w: p.box.w, h: p.box.h }}
-            variant={p.variant}
-            onPage
-          />
+          {"piece" in p ? (
+            <PieceArt
+              piece={pieceOf(p.piece)}
+              size={{ w: p.box.w, h: p.box.h }}
+              variant={p.variant}
+            />
+          ) : (
+            <IconSet glyphs={p.glyphs} size={{ w: p.box.w, h: p.box.h }} />
+          )}
         </div>
       ))}
     </>
@@ -2007,135 +2564,315 @@ function BookStack({ part }: { part: keyof typeof FIRST_PAGE }) {
   );
 }
 
-function SheetBase() {
-  const m = useMessages();
-  const p = m.orvCanvas.part;
-  const row = (id: string, name: string, children: ReactNode) => (
-    <div key={id} data-port-row={id} className="flex flex-col gap-1">
+// ---- the design system sheets (spec ORV-309 rows 8 and 9)
+
+/** Sheet data, not copy: the project the sheets are about, and an address that is not complete. */
+const SHEET_PROJECT = "ORIVILO";
+const SHEET_SITE = "orivilo.example";
+/** The sheet's media slot: 540 wide at 1280 x 800 is 337.5 high. */
+const SHEET_FRAME_HEIGHT = 337.5;
+
+/** A catalog entry on the base sheet: its code name over one live instance (base-sheet-1). */
+function Item({ name, children }: { name: string; children: ReactNode }) {
+  return (
+    <div className="flex flex-col gap-1" data-catalog={name}>
       <span className="font-body text-label-sm text-text-secondary">{name}</span>
       {children}
     </div>
   );
-  const name = (r: RowRecord) => textOf(m, r.name);
-  const { mode } = useContext(PageContext);
-  return (
-    <DesignProfileBoundary profile={BRAND_PROFILES[0]} mode={mode}>
-      <div
-        className="flex flex-col gap-3 rounded-container bg-surface-canvas p-3 font-body text-text-primary"
-        inert
-        data-sheet="base"
-      >
-        {row(
-          "button",
-          name(at(SHEETS.base, 0)),
-          <div className="flex gap-2">
-            <Button variant="primary" size="sm">
-              {p.read}
-            </Button>
-            <Button variant="secondary" size="sm">
-              {p.clear}
-            </Button>
-          </div>,
-        )}
-        {row(
-          "badge",
-          name(at(SHEETS.base, 1)),
-          <div className="flex flex-wrap gap-2">
-            <Badge variant="brand" size="sm">
-              {at(BRAND_PROFILES, 0).id}
-            </Badge>
-            <Badge size="sm">{p.notMeasured}</Badge>
-            <Badge variant="warning" size="sm">
-              {p.sample}
-            </Badge>
-          </div>,
-        )}
-        {row(
-          "field",
-          name(at(SHEETS.base, 2)),
-          <Field label={p.site} required>
-            <Input size="sm" defaultValue={PAGE} />
-          </Field>,
-        )}
-        {row(
-          "radio",
-          name(at(SHEETS.base, 3)),
-          <RadioGroup defaultValue="mine" aria-label={name(at(SHEETS.base, 3))}>
-            <RadioGroupItem value="mine" label={p.mine} />
-            <RadioGroupItem value="competitor" label={p.competitor} />
-          </RadioGroup>,
-        )}
-        {row(
-          "alert",
-          name(at(SHEETS.base, 4)),
-          <Alert variant="info" title={p.alert} description="" />,
-        )}
-      </div>
-    </DesignProfileBoundary>
-  );
 }
 
-const COMPOSED_HEIGHT = [100, 70, 210, 44, 95] as const;
-
-function SheetComposed() {
+/**
+ * The base sheet: three columns at 1280 x 800, one live instance of each catalog entry of
+ * `SHEETS.base` under its name. It shows default, selected, disabled, loading, error and empty
+ * states; focus is shown by a play. No intent button (intent-once-1).
+ */
+function BaseSheet() {
   const m = useMessages();
-  const { mode } = useContext(PageContext);
-  const p = m.orvCanvas.part;
-  const name = (r: RowRecord) => textOf(m, r.name);
-  const parts: ReactNode[] = [
-    <Card key="card">
-      <CardTitle as="p">{p.site}</CardTitle>
-      <CardValue>{PAGE}</CardValue>
-    </Card>,
-    <PageHeader key="header" level={3} title={m.brandReport.heading} />,
-    <BrandReportScreen key="form" access="form" headingLevel={3} />,
-    <SectionHeader key="section" level={3} title={p.site} />,
-    <ul key="notice" className="m-0 flex list-none flex-col gap-2 p-0">
-      <Notice variant="info" text={p.alert} />
-      <ReadingCard reading={PREMIUM_BODY} url={PAGE} below={false} />
-    </ul>,
-  ];
-  return (
-    <DesignProfileBoundary profile={BRAND_PROFILES[0]} mode={mode}>
-      <div className="flex flex-col gap-3" data-sheet="composed">
-        {SHEETS.composed.map((row, i) => (
-          <div key={row.id} data-port-row={row.id} className="flex flex-col gap-1">
-            <span className="font-body text-label-sm text-text-secondary">{name(row)}</span>
-            <LiveFrame outer={{ w: 328, h: at(COMPOSED_HEIGHT, i) }} design={656}>
-              {at(parts, i)}
-            </LiveFrame>
-          </div>
+  const s = m.orvCanvas.sheet;
+  const entries: Record<string, ReactNode> = {
+    Button: (
+      <>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="primary">{s.button.start}</Button>
+          <Button variant="secondary">{s.button.open}</Button>
+          <Button variant="ghost">{s.button.skip}</Button>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="destructive" size="sm">
+            {s.button.remove}
+          </Button>
+          <Button variant="primary" size="sm" loading loadingLabel={s.button.saving}>
+            {s.button.saving}
+          </Button>
+          <Button variant="secondary" size="sm" disabled>
+            {s.button.publish}
+          </Button>
+          <Button variant="link" size="sm">
+            {s.button.readGuide}
+          </Button>
+        </div>
+      </>
+    ),
+    ToggleGroup: (
+      <div className="flex">
+        <ToggleGroup type="single" defaultValue="board" size="sm" aria-label={s.view.board}>
+          <ToggleGroupItem value="board">{s.view.board}</ToggleGroupItem>
+          <ToggleGroupItem value="list">{s.view.list}</ToggleGroupItem>
+        </ToggleGroup>
+      </div>
+    ),
+    Tabs: (
+      <Tabs defaultValue="board">
+        <TabsList size="sm">
+          <TabsTrigger value="board">{s.view.board}</TabsTrigger>
+          <TabsTrigger value="guide">{s.view.guidebook}</TabsTrigger>
+          <TabsTrigger value="history" count={3}>
+            {s.view.history}
+          </TabsTrigger>
+        </TabsList>
+      </Tabs>
+    ),
+    Breadcrumb: (
+      <Breadcrumb>
+        <BreadcrumbLink href="#">{s.view.projects}</BreadcrumbLink>
+        <BreadcrumbLink href="#">{SHEET_PROJECT}</BreadcrumbLink>
+        <BreadcrumbPage>{s.view.board}</BreadcrumbPage>
+      </Breadcrumb>
+    ),
+    Kbd: (
+      <div className="flex items-center gap-3 font-body text-body-sm text-text-secondary">
+        <Kbd shortcut="Mod+K" />
+        {s.view.command}
+      </div>
+    ),
+    Avatar: (
+      <div className="flex items-center gap-2">
+        <Avatar name={s.owner} size="md" />
+        <span className="font-body text-body-sm">{s.owner}</span>
+      </div>
+    ),
+    FeaturedIcon: (
+      <div className="flex items-center gap-3">
+        <FeaturedIcon variant="info" size="md" />
+        <FeaturedIcon variant="success" size="md" />
+      </div>
+    ),
+    Field: (
+      <Field label={s.field.name} required>
+        <Input size="sm" defaultValue={SHEET_PROJECT} />
+      </Field>
+    ),
+    Input: (
+      <Field label={s.field.site} error={s.siteError}>
+        <Input size="sm" defaultValue={SHEET_SITE} />
+      </Field>
+    ),
+    Select: (
+      <Field label={s.field.language}>
+        <Select
+          size="sm"
+          defaultValue="en"
+          options={[
+            { value: "en", label: s.option.english },
+            { value: "th", label: s.option.thai },
+          ]}
+        />
+      </Field>
+    ),
+    Checkbox: <Checkbox label={s.option.both} defaultChecked />,
+    Switch: (
+      <div className="flex items-center gap-3">
+        <Switch defaultChecked aria-label={s.option.dark} />
+        <span className="font-body text-body-sm">{s.option.dark}</span>
+      </div>
+    ),
+    Slider: <Slider label={s.option.radius} defaultValue={16} max={24} />,
+    Textarea: (
+      <Field label={s.field.brief}>
+        <Textarea size="sm" rows={2} maxLength={280} showCount defaultValue={s.briefValue} />
+      </Field>
+    ),
+    Badge: (
+      <div className="flex flex-wrap gap-2">
+        <Badge variant="brand">{at(BRAND_PROFILES, 0).id}</Badge>
+        <Badge variant="success">{s.badge.agreed}</Badge>
+        <Badge variant="warning">{s.badge.sample}</Badge>
+        <Badge variant="info">{s.badge.rules}</Badge>
+      </div>
+    ),
+    Tag: (
+      <div className="flex flex-wrap gap-2">
+        {[s.voice.thoughtful, s.voice.clear, s.voice.reasoned].map((label, i) => (
+          <Tag key={label} label={label} defaultSelected={i === 0} />
         ))}
       </div>
-    </DesignProfileBoundary>
+    ),
+    RadioGroup: (
+      <RadioGroup defaultValue="mine" aria-label={s.radio.whose}>
+        <RadioGroupItem value="mine" label={s.radio.mine} />
+        <RadioGroupItem value="competitor" label={s.radio.competitor} />
+      </RadioGroup>
+    ),
+    Progress: <Progress label={s.reading} value={60} />,
+    Alert: <Alert variant="info" title={s.alert.title} description={s.alert.text} />,
+    Spinner: <Spinner size="sm" label={s.loading} labelHidden />,
+    Skeleton: (
+      <div className="flex flex-col gap-2">
+        <Skeleton shape="text" />
+        <Skeleton shape="text" className="w-2/3" />
+      </div>
+    ),
+  };
+  return (
+    <div
+      className="grid h-[800px] w-[1280px] grid-cols-3 gap-14 overflow-hidden bg-surface-canvas px-12 py-6"
+      data-sheet="base"
+    >
+      {SHEETS.base.map((column) => (
+        <section key={column.id} className="flex min-w-0 flex-col gap-2" data-column={column.id}>
+          <h3 className="m-0 border-b border-border-subtle pb-3 font-display text-heading-sm text-text-primary">
+            {copyOf(m, column.title)}
+          </h3>
+          {column.entries.map((name) => {
+            const entry = entries[name];
+            if (entry === undefined) throw new RangeError(`orivilo-canvas: no sheet entry ${name}`);
+            return (
+              <Item key={name} name={name}>
+                {entry}
+              </Item>
+            );
+          })}
+        </section>
+      ))}
+    </div>
   );
 }
 
-function LivePage({ id }: { id: "landing" | "form" | "report" }) {
-  if (id === "landing") return <Landing />;
-  if (id === "form") return <BrandReportScreen access="form" headingLevel={3} />;
-  return <BrandReportScreen access="form" view={ANALYSED} headingLevel={3} />;
+/**
+ * The composed sheet: a working Studio at 1280 x 800. A board of five block nodes with the
+ * selected one's toolbar, the canvas controls and a collapsed task bar; beside it the inspector of
+ * the selected node and the rules chat. The chat holds one sample exchange, asked once when the
+ * sheet mounts: the starter question and one fixed reply, labelled "By rules" (nothing is read).
+ */
+function ComposedSheet() {
+  const m = useMessages();
+  const locale = useLocale();
+  const root = useRef<HTMLDivElement>(null);
+  const asked = useRef(false);
+  const graph = useMemo(() => studioGraph(locale, m), [locale, m]);
+  const reply = useMemo(
+    () =>
+      async function* () {
+        yield { text: m.orvCanvas.sheet.rulesReply, basis: "rules" as const };
+      },
+    [m],
+  );
+  useEffect(() => {
+    if (asked.current) return;
+    const starter = root.current?.querySelector<HTMLButtonElement>(".ds-chat__starters button");
+    const form = root.current?.querySelector<HTMLFormElement>(".ds-chat__composer");
+    if (!starter || !form) return;
+    asked.current = true;
+    // The starter fills the box; the next frame has rendered the filled box, which can be sent.
+    starter.click();
+    requestAnimationFrame(() => {
+      if (form.isConnected) form.requestSubmit();
+    });
+  }, []);
+  return (
+    // The seeding click bubbles; the node, the stage or the page that holds this sheet must not
+    // take it for a click of the person (it would select the node or turn the preview's page).
+    <div
+      ref={root}
+      className="flex h-[800px] w-[1280px] overflow-hidden bg-surface-canvas"
+      data-sheet="composed"
+      onClick={(event) => event.stopPropagation()}
+    >
+      <div className="relative min-w-0 flex-1">
+        <CanvasBoard label={m.orvCanvas.sheet.studio} graph={graph} minimap={false}>
+          <TrueHandles />
+          {/* C6: a bottom inset of space.6 keeps the board's attribution link clear of the bar. */}
+          <TaskBar
+            className="bottom-6!"
+            jobs={locale === "en" ? fixtureTaskJobsEn : fixtureTaskJobs}
+            defaultExpanded={false}
+          />
+        </CanvasBoard>
+      </div>
+      <div className="grid w-[400px] shrink-0 grid-rows-[minmax(0,1fr)_minmax(0,1fr)] gap-3 border-s border-border-subtle p-3">
+        <div className="min-h-0 overflow-hidden rounded-container border border-border-card">
+          <Inspector graph={graph} onAnswer={() => undefined} />
+        </div>
+        <CanvasChat variant="sidebar" basis="rules" onAsk={reply} />
+      </div>
+    </div>
+  );
 }
 
-function PageBody({ id }: { id: "landing" | "form" | "report" }) {
+/** A sheet on a result node: the 1280 x 800 sheet scaled to the media slot (540 wide). */
+function SheetBody({ sheet }: { sheet: "base" | "composed" }) {
+  return (
+    <div className="ds-node__media border border-border-subtle">
+      <LiveFrame outer={{ w: 540, h: SHEET_FRAME_HEIGHT }} design={1280}>
+        {sheet === "base" ? <BaseSheet /> : <ComposedSheet />}
+      </LiveFrame>
+    </div>
+  );
+}
+
+/**
+ * The landing and the two product screens, live, at their design width (spec ORV-309 rows 5 to 7).
+ * The landing brings its own dark profile and language; the app is a 1280 x 800 box, so the board
+ * inside it fits the same way at any scale; the guidebook is the page itself.
+ */
+function LivePage({ id }: { id: LiveId }) {
+  const locale = useLocale();
+  const { missing } = useContext(PageContext);
+  if (id === "landing") {
+    return <OriviloLanding lang={locale} photograph={!missing.has("direction-making")} />;
+  }
+  if (id === "app") {
+    return (
+      <div style={{ height: 800 }}>
+        <BusinessBoardScreen
+          access="ready"
+          view={locale === "en" ? ENGLISH_VIEW : THAI_VIEW}
+          signInHref="#"
+          listHref="#"
+          guidebookHref="#"
+        />
+      </div>
+    );
+  }
+  return <GuidebookScreen access="ready" guidebook={done(locale)} boardHref="#" signInHref="#" />;
+}
+
+function PageBody({ id }: { id: LiveId }) {
   const m = useMessages();
   const frame = FRAMES.find((f) => f.id === id);
   if (!frame) throw new RangeError(`orivilo-canvas: no frame ${id}`);
+  const p = m.orvCanvas.product;
   return (
     <>
       <div className="ds-node__media border border-border-subtle">
-        <LiveFrame outer={{ w: 460, h: frame.height - 2 }} design={frame.width} start={frame.start}>
+        <LiveFrame
+          outer={{ w: 460, h: frame.height - 2 }}
+          design={frame.width}
+          start={frame.start}
+          startAt={frame.startAt}
+          fade={frame.fade}
+          mode={id === "landing" ? "dark" : undefined}
+        >
           <LivePage id={id} />
         </LiveFrame>
       </div>
-      {id === "report" ? (
-        <div className="flex items-center gap-2 px-2 py-2">
-          <Badge variant="warning" size="sm">
-            {m.orvCanvas.product.badge}
-          </Badge>
-          <span className={MUTED}>{m.orvCanvas.product.opened}</span>
-        </div>
-      ) : null}
+      <div className="flex items-center gap-2 px-2 py-2">
+        <Badge variant="warning" size="sm">
+          {id === "landing" ? p.landingBadge : p.badge}
+        </Badge>
+        <span className={MUTED}>{p[`${id}Note` as const]}</span>
+      </div>
     </>
   );
 }
@@ -2170,7 +2907,7 @@ function NodeBody({ record }: { record: NodeRecord }) {
     case "book":
       return <BookStack part={body.part} />;
     case "sheet":
-      return body.sheet === "base" ? <SheetBase /> : <SheetComposed />;
+      return <SheetBody sheet={body.sheet} />;
     case "page":
       return <PageBody id={body.page} />;
   }
@@ -2210,21 +2947,22 @@ function Scrolling({
   label,
   size,
   width,
-  findings = false,
+  opensAt,
   children,
 }: {
   label: string;
   size: Size;
   width: number;
-  findings?: boolean;
+  /** A selector inside the page: the page opens scrolled to it. */
+  opensAt?: string | undefined;
   children: ReactNode;
 }) {
   const ref = useRef<HTMLDivElement>(null);
-  // The report opens at its findings. A web font that swaps in after mount, or a late image, moves
-  // the findings, so the offset is applied again whenever the content resizes, until the reader
-  // moves the page themselves (review R1-7).
+  // The guidebook opens at its foundation heading. A web font that swaps in after mount, or a late
+  // image, moves the heading, so the offset is applied again whenever the content resizes, until
+  // the reader moves the page themselves (review R1-7).
   useEffect(() => {
-    if (!findings) return;
+    if (opensAt === undefined) return;
     const root = ref.current;
     const viewport = root?.querySelector<HTMLElement>(".ds-scroll__viewport");
     const content = viewport?.firstElementChild;
@@ -2233,7 +2971,7 @@ function Scrolling({
     // (a scrollbar drag, a key, a wheel or a touch), not the apply's own.
     let placed = viewport.scrollTop;
     const apply = () => {
-      const target = root.querySelector("[data-report]");
+      const target = root.querySelector(opensAt);
       if (!target) return;
       viewport.scrollTop =
         target.getBoundingClientRect().top -
@@ -2257,7 +2995,7 @@ function Scrolling({
       for (const type of moves) viewport.removeEventListener(type, stop);
       viewport.removeEventListener("scroll", onScroll);
     };
-  }, [findings]);
+  }, [opensAt]);
   return (
     <div ref={ref} style={{ width, height: size.h }}>
       <ScrollArea label={label} className="size-full">
@@ -2267,32 +3005,36 @@ function Scrolling({
   );
 }
 
-function LiveScreen({ id, size }: { id: "landing" | "form" | "report"; size: Size }) {
+function LiveScreen({ id, size }: { id: LiveId; size: Size }) {
   const m = useMessages();
-  const { mode } = useContext(PageContext);
+  const label = copyOf(m, `node.${id}` as const);
   if (id === "landing") {
     const width = Math.min(size.w, 1280);
     return (
-      <Scrolling label={m.orvCanvas.node.landing} size={size} width={width}>
-        <LiveFrame outer={{ w: width, h: "auto" }} design={1280}>
-          <Landing />
+      <Scrolling label={label} size={size} width={width}>
+        <LiveFrame outer={{ w: width, h: "auto" }} design={1280} mode="dark">
+          <LivePage id={id} />
         </LiveFrame>
       </Scrolling>
     );
   }
+  if (id === "app") {
+    // A 1280 x 800 box scaled to fit the stage whole: the board inside it keeps its fit.
+    const width = Math.min(size.w, (size.h * 1280) / 800, 1280);
+    return (
+      <LiveFrame outer={{ w: width, h: (width * 800) / 1280 }} design={1280}>
+        <LivePage id={id} />
+      </LiveFrame>
+    );
+  }
+  // The guidebook at its design width, opened at its foundation heading.
+  const frame = FRAMES.find((f) => f.id === id);
   const width = Math.min(size.w, 800);
   return (
-    <Scrolling
-      label={copyOf(m, id === "form" ? "node.form" : "node.report")}
-      size={size}
-      width={width}
-      findings={id === "report"}
-    >
-      <DesignProfileBoundary profile={BRAND_PROFILES[0]} mode={mode}>
-        <div className="bg-surface-canvas font-body text-text-primary">
-          <LivePage id={id} />
-        </div>
-      </DesignProfileBoundary>
+    <Scrolling label={label} size={size} width={width} opensAt={frame?.startAt}>
+      <LiveFrame outer={{ w: width, h: "auto" }} design={800}>
+        <LivePage id={id} />
+      </LiveFrame>
     </Scrolling>
   );
 }
@@ -2325,6 +3067,15 @@ function PreviewArt({ rec, size }: { rec: PreviewPageRecord; size: Size }) {
   if ("logo" in show) return contain(BOARD_DESIGN, <LogoPage kind={show.logo} />);
   if ("type" in show) return contain(BOARD_DESIGN, <TypeSpecimen kind={show.type} />);
   if ("palette" in show) return contain(BOARD_DESIGN, <PaletteSpecimen which={show.palette} />);
+  if ("sheet" in show) {
+    // A 1280 x 800 sheet scaled to fit the stage whole, like the app screen.
+    const width = Math.min(size.w, (size.h * 1280) / 800, 1280);
+    return (
+      <LiveFrame outer={{ w: width, h: (width * 800) / 1280 }} design={1280}>
+        {show.sheet === "base" ? <BaseSheet /> : <ComposedSheet />}
+      </LiveFrame>
+    );
+  }
   return <LiveScreen id={show.live} size={size} />;
 }
 
@@ -2361,7 +3112,11 @@ function Preview({
   };
   const piece = "piece" in rec.show ? pieceOf(rec.show.piece) : null;
   const photoId =
-    piece && (piece.content.kind === "photo" || piece.content.kind === "scene")
+    piece &&
+    (piece.content.kind === "photo" ||
+      piece.content.kind === "scene" ||
+      piece.content.kind === "phone" ||
+      piece.content.kind === "icon")
       ? piece.content.image
       : null;
   const missingNow = photoId !== null && ctx.missing.has(photoId);
@@ -2507,57 +3262,92 @@ interface Jump {
 }
 
 /**
- * The padding of a fit: `base` like the board's own fit command, plus the height the dock covers at
- * the bottom, so no node lands under it. xyflow reads a number padding p as
- * floor((V - V / (1 + p)) / 2) per side.
+ * The height the board's own bottom furniture covers: the dock and the task bar, from the pane's
+ * bottom to the top of the highest. A panel inside a live frame belongs to a board that the page
+ * draws, not to this one, and covers nothing of it.
  */
-function fitPadding(root: Element | null, base: number) {
-  const board = root?.closest(".ds-board") ?? root;
-  if (!board) return base;
-  const rect = board.getBoundingClientRect();
-  const side = (v: number) => Math.floor((v - v / (1 + base)) / 2);
-  const cover = Math.max(
+function coverOf(pane: Element): number {
+  const bottom = pane.getBoundingClientRect().bottom;
+  return Math.max(
     0,
-    ...Array.from(board.querySelectorAll(".react-flow__panel.bottom, .ds-taskbar")).map(
-      (o) => rect.bottom - o.getBoundingClientRect().top,
-    ),
+    ...Array.from(pane.querySelectorAll(".react-flow__panel.bottom, .ds-taskbar"))
+      .filter((o) => o.closest("[data-live-frame]") === null)
+      .map((o) => bottom - o.getBoundingClientRect().top),
   );
-  const px = (n: number): `${number}px` => `${n}px`;
-  return {
-    top: px(side(rect.height)),
-    right: px(side(rect.width)),
-    bottom: px(side(rect.height) + Math.ceil(cover)),
-    left: px(side(rect.width)),
-  };
 }
 
-/** Frames the chosen chapter once the nodes are measured, with no animation (a jump, not a glide). */
+/**
+ * Frames the chosen chapter with no animation (a jump, not a glide). The view is computed here,
+ * from the chapter's measured boxes and the pane's size, and set with `setViewport`, never with
+ * `fitView`: xyflow queues a fit and runs it on the next node update with whatever fit options the
+ * store holds then, and the board's own `fitViewOptions` prop (a new object on each render) puts
+ * its all-nodes options there, so a chapter fit lost to the board's own in some opens and not in
+ * others (sign-off F4, the survey of c20cb1b). It runs again whenever what the view depends on
+ * settles: the measured size of the chapter's nodes, the size of the pane, the fonts and the dock's own box. The view
+ * is a function of those and the chapter, so it is the same on every open.
+ */
 function ChapterFit({ jump }: { jump: Jump }) {
   const flow = useReactFlow();
   const ready = useNodesInitialized();
   const dom = useStore((s) => s.domNode);
-  const fit = useRef(flow.fitView);
+  const chapter = CHAPTERS.find((c) => c.id === jump.id);
+  // The overview frames the whole board.
+  const ids = useMemo(
+    () => (jump.id === "overview" ? NODES.map((n) => n.id) : (chapter?.nodes ?? [])),
+    [jump.id, chapter],
+  );
+  const measured = useStore((s) =>
+    ids
+      .map((id) => {
+        const size = s.nodeLookup.get(id)?.measured;
+        return `${size?.width ?? 0}x${size?.height ?? 0}`;
+      })
+      .join(","),
+  );
+  const pane = useStore((s) => `${s.width}x${s.height}`);
+  // A font that swaps in changes a node's lines and the dock's buttons: fit again once it has.
+  const [fonts, setFonts] = useState(0);
   useEffect(() => {
-    fit.current = flow.fitView;
+    const again = () => setFonts((n) => n + 1);
+    void document.fonts.ready.then(again);
+    document.fonts.addEventListener("loadingdone", again);
+    return () => document.fonts.removeEventListener("loadingdone", again);
+  }, []);
+  // The dock and the task bar set how much of the pane's bottom the chapter must clear: fit again
+  // when their own boxes change, so a late change of either never leaves a stale view.
+  const [cover, setCover] = useState(0);
+  useEffect(() => {
+    if (!dom || !ready) return;
+    const observer = new ResizeObserver(() => setCover((n) => n + 1));
+    for (const furniture of dom.querySelectorAll(".react-flow__panel.bottom, .ds-taskbar")) {
+      if (furniture.closest("[data-live-frame]") === null) observer.observe(furniture);
+    }
+    return () => observer.disconnect();
+  }, [dom, ready]);
+  // `setViewport` does nothing before the pane's zoom handler exists.
+  const initialized = flow.viewportInitialized;
+  const instance = useRef(flow);
+  useEffect(() => {
+    instance.current = flow;
   });
   useEffect(() => {
-    if (!ready) return;
-    const chapter = CHAPTERS.find((c) => c.id === jump.id);
-    if (!chapter) return;
+    if (!ready || !initialized || !chapter || !dom) return;
     const frame = requestAnimationFrame(() => {
-      if (jump.id === "overview") {
-        void fit.current({ padding: fitPadding(dom, 0.2), duration: 0 });
-        return;
-      }
-      void fit.current({
-        nodes: chapter.nodes.map((id) => ({ id })),
-        padding: fitPadding(dom, 0.08),
-        maxZoom: 1,
-        duration: 0,
-      });
+      const { x, y, width, height } = instance.current.getNodesBounds([...ids]);
+      void instance.current.setViewport(
+        chapterViewport(
+          { x, y, w: width, h: height },
+          { w: dom.clientWidth, h: dom.clientHeight },
+          coverOf(dom),
+          jump.id === "overview" ? VIEW_PAD.overview : VIEW_PAD.chapter,
+          DOCK_MARGIN,
+        ),
+        { duration: 0 },
+      );
     });
     return () => cancelAnimationFrame(frame);
-  }, [ready, jump, dom]);
+    // `jump` carries a counter, so a second click on the same chapter fits again.
+  }, [ready, initialized, jump, chapter, dom, ids, measured, pane, fonts, cover]);
   return null;
 }
 
@@ -2661,7 +3451,13 @@ export function OriviloCanvas({
           className="min-h-0"
           style={{ height: "max(640px, calc(var(--story-fill, 0px) - 8rem))" }}
         >
+          {/* The recipe rule `.ds-board:has(.ds-taskbar)` (recipes.css) matches any task bar below the
+              board, so the one nested in the composed sheet of p-pat would lift this board's dock and
+              status line by 74 px. This board has no task bar of its own: `--_lift` is cancelled
+              here (the nested board sets its own on itself, so its controls keep their lift). Scoping
+              the recipe to a board's own task bar is a follow-up (ORV-309 review r2, R2-1). */}
           <CanvasBoard
+            className="[--_lift:0px]!"
             variant="present"
             chrome={false}
             minimap={false}

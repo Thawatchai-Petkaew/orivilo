@@ -16,6 +16,8 @@ import type {
   NodeContent,
   PortSpec,
 } from "../components/canvas-board/graph";
+import { blockById, nodeForBlock, OUTPUT_PORT } from "../blocks/index";
+import type { Locale } from "../i18n/locale";
 import { type FillParams, fill, type Messages } from "../i18n/messages/index";
 import type { EdgeMeaning, PortKind } from "../tokens/canvas";
 
@@ -28,7 +30,8 @@ export type CopyKey = Leaves<Copy>;
 
 export type ChapterId =
   "brief" | "direction" | "logo" | "colour" | "inUse" | "brandbook" | "system" | "product";
-export type SequenceId = "direction" | "logo" | "type" | "palette" | "inUse" | "book" | "pages";
+export type SequenceId =
+  "direction" | "logo" | "type" | "palette" | "inUse" | "book" | "system" | "pages";
 export type ImageId =
   | "brand-hero"
   | "direction-team"
@@ -36,8 +39,9 @@ export type ImageId =
   | "direction-making"
   | "direction-place"
   | "scene-card"
-  | "scene-sign";
-export type LiveId = "landing" | "form" | "report";
+  | "scene-sign"
+  | "scene-phone";
+export type LiveId = "landing" | "app" | "guide";
 export type BoardId = "direction" | "inUse";
 export type PieceId =
   | "people"
@@ -45,11 +49,11 @@ export type PieceId =
   | "place"
   | "making"
   | "type" // direction board, 5
-  | "hero"
-  | "icon"
-  | "lockup"
+  | "window"
   | "phone"
-  | "ink"
+  | "icon"
+  | "hero"
+  | "share"
   | "card"
   | "sign"; // brand in use board, 7
 export type PaletteId = "violet" | "violetDark" | "ink" | "canvas" | "lime";
@@ -142,24 +146,51 @@ export type PieceContent =
       };
     }
   | { kind: "type"; lines: readonly ArtText[] }
-  | { kind: "icon"; side: number; radius: number; mark: number; ground: Paint }
-  | { kind: "lockup"; width: number; guides: { dash: number; stroke: number } }
   | {
-      kind: "phone";
-      width: number;
-      ratio: number;
-      top: number;
-      radius: number;
-      bezel: number;
-      screenRadius: number;
-      screenWidth: number;
+      // The app in a browser window (A): the browser at `design` px laid from `inset` of the tile
+      // width, `span` times the tile width wide, so it bleeds off the end and the bottom.
+      kind: "window";
+      design: Size;
+      inset: number;
+      span: number;
     }
   | {
-      kind: "ink";
-      mark: { size: number; endInset: number; top: number; ring: Paint; dot: Paint };
-      lockupSize: number;
-      lines: readonly ArtText[];
-      action: { label: CopyKey; size: "lg" | "md" };
+      // The landing on the phone picture (B), whole (design row 4.3). `status` is the height of the
+      // status row, in design px, above the landing. The page 11 variant "grid" draws two dashed
+      // lines at `lines` and a measure at `measure` x positions, in design px of the screen.
+      kind: "phone";
+      image: ImageId;
+      screenWidth: number;
+      status: number;
+      grid: {
+        lines: readonly [number, number];
+        measure: readonly [number, number, number, number];
+      };
+    }
+  | {
+      // The app icon on a phone home screen (C), drawn at a phone's true scale (design rows 3.1 and
+      // 4.4) on the upper part of the same picture: every value is design px of the 390 wide screen.
+      kind: "icon";
+      image: ImageId;
+      inset: number; // of the tile width: the body's gap to the start, the end and the top
+      grid: {
+        cols: number;
+        rows: number;
+        icon: number;
+        start: number;
+        pitch: Pt;
+        top: number;
+        gap: number;
+      };
+      app: { col: number; row: number; mark: number }; // mark of the icon
+    }
+  | {
+      // The link share card (E): one card centred in the tile, the image at 1.91 : 1.
+      kind: "share";
+      card: { max: number; margin: number };
+      image: Size;
+      mark: { size: number; at: Pt };
+      logo: { height: number; inset: number };
     }
   | { kind: "lines"; lines: readonly ArtText[] }; // the direction board's `line` piece: words on a flood
 export interface PieceRecord {
@@ -202,11 +233,19 @@ export type BookArt =
       ground?: Paint; // an opener's art panel, filling the page to the right of the ink half
     }
   | { kind: "fields"; ratio: readonly number[]; paints: readonly Paint[] }
-  | { kind: "photo"; image: ImageId; focus: Pt }
   | {
-      kind: "pieces";
-      pieces: readonly { piece: PieceId; box: Box; variant?: "violet" | "small" }[];
-    };
+      // Page 10's art: three live screens on a flood, in a group turned about its centre.
+      kind: "field";
+      ground: Paint;
+      group: Box & { rotate: number }; // px of the art panel, degrees
+      phone: { at: Pt; width: number }; // the landing on a phone screen, at a 2.06 ratio
+      column: { at: Pt; gap: number; window: number; guidebook: number }; // widths of the two screens
+    }
+  | { kind: "pieces"; pieces: readonly Placement[] };
+/** One placement of page 11: an In use piece cropped to a box, or the icon set specimen. */
+export type Placement =
+  | { piece: PieceId; box: Box; variant?: "grid" }
+  | { specimen: "icons"; box: Box; glyphs: readonly IconName[] };
 export interface BookPageRecord {
   n: number; // 1 to 12
   part: BookPart;
@@ -217,6 +256,7 @@ export interface BookPageRecord {
   lines: readonly ArtText[]; // every line on the page, in reading order
   art?: BookArt;
   swatches?: readonly PaletteId[]; // page 7 reads PALETTE: data colour inline (gap 3)
+  second?: CopyKey; // the preview caption's second line, `preview.bookSub` unless set
 }
 
 export type Show =
@@ -224,6 +264,7 @@ export type Show =
   | { piece: PieceId }
   | { book: number }
   | { live: LiveId }
+  | { sheet: "base" | "composed" }
   | { logo: "mark" | "horizontal" | "onInk" }
   | { type: "latin" | "thai" }
   | { palette: "all" | PaletteId };
@@ -248,6 +289,13 @@ export interface ImageCheck {
   checkedBy: string;
   checkedOn: string; // YYYY-MM-DD
 }
+/** A phone in a picture, measured in image px: the frame, the display, its corner and the camera pill. */
+export interface Device {
+  body: Box;
+  screen: Box;
+  radius: number;
+  island: Box;
+}
 export interface ImageRecord {
   id: ImageId;
   file: `/orv-274/${ImageId}.webp`;
@@ -257,6 +305,7 @@ export interface ImageRecord {
   height: number;
   treatment: Treatment;
   quad?: Quad; // the two scenes only: measured corners, percent of the image
+  device?: Device; // the phone picture only: measured boxes in image px (design row 4.1)
   reference?: string; // brand-hero only: the mark image passed to Codex
   generatedWith: string;
   generatedOn: string;
@@ -264,7 +313,7 @@ export interface ImageRecord {
   check: ImageCheck;
 }
 
-/** One row of a list or a sheet. Which fields a row uses depends on the body's `look`. */
+/** One row of a list. Which fields a row uses depends on the body's `look`. */
 export interface RowRecord {
   id: string;
   name: Text | { axis: AxisId };
@@ -275,14 +324,12 @@ export interface RowRecord {
   colours?: readonly string[]; // a version's swatches, data colour
   pair?: { fg: string; bg: string }; // a contrast pair, data colour
   badge?: CopyKey;
-  story?: string; // a sheet row: the catalog story that names it
 }
 
 export interface PortRecord {
   id: string; // the handle id; unique within its node
   kind: PortKind;
   name: Text;
-  row?: string; // a sheet row's id: the port sits at that row's middle
 }
 export interface ChapterRecord {
   id: ChapterId | "overview";
@@ -303,7 +350,9 @@ export interface FrameRecord {
   story: string; // the catalog story the live page comes from
   width: number; // the page's design width
   height: number; // the frame's height on the node card
-  start: number | "report"; // design px down from the top, or at `[data-report]` less `space.inset-md`
+  start: number; // design px down from the top
+  startAt?: string; // a selector inside the page: the frame starts at its top less `space.inset-md`
+  fade?: true; // the cropped bottom fades into the page's own canvas colour
 }
 export interface DemoPoint {
   n: number;
@@ -381,8 +430,7 @@ function art(
 ): ArtText {
   return { text, size, ink, ...rest };
 }
-const port = (id: string, kind: PortKind, name: Text, row?: string): PortRecord =>
-  row === undefined ? { id, kind, name } : { id, kind, name, row };
+const port = (id: string, kind: PortKind, name: Text): PortRecord => ({ id, kind, name });
 
 // ---- the brand's own lines (data, never copy)
 
@@ -406,6 +454,7 @@ export const PALETTE: readonly { id: PaletteId; hex: string; name: CopyKey; role
 
 const MADE_WITH = "Codex CLI, built-in image generation";
 const MADE_ON = "2026-11-17";
+const PHONE_MADE_ON = "2026-11-25";
 const TERMS = "https://openai.com/policies/terms-of-use/";
 const LICENCE = "AI image made with Codex from the prompt beside it; for this demo only";
 const CHECKED_BY = "main session, ORV-274 comment 10653";
@@ -618,6 +667,42 @@ Avoid: mockup-template look, glossy reflections, a second blank surface, clutter
     termsUrl: TERMS,
     check: check("A blank violet panel on a near-black wall in a dark entrance"),
   },
+  {
+    // A blank phone, made for this story (ORV-309 row 4.1): the live screen is laid on its display by
+    // code, so it is a straight-on view and a plain scale and translate place a screen on it.
+    id: "scene-phone",
+    file: "/orv-274/scene-phone.webp",
+    promptFile: "scene-phone.prompt.md",
+    prompt: `Use case: product-mockup
+Asset type: Blank device scene for a brand guideline. A live app screen is placed on the phone's display afterwards by code, so the display must be an empty, flat, straight-on rectangle.
+Primary request: A photorealistic studio product photograph of one modern flagship smartphone standing perfectly upright, seen exactly straight on from the front, with its display switched off, in front of a seamless saturated violet backdrop.
+Scene/backdrop: A seamless studio backdrop in one saturated violet, close to #7A22C7, with a very soft, slightly darker falloff toward the corners. Nothing else in the scene. No table edge, no horizon line, no props.
+Subject: One smartphone in the proportions of a current large flagship phone (about 1 wide to 2.05 tall). A slim brushed dark titanium frame with softly rounded corners is visible as a thin band around the whole front. Uniform, very thin black bezel of equal width on all four sides. The display is one large rounded rectangle, switched off, a flat even matte near-black (#16151D), completely empty, with no reflection, no glare streak, no highlight and no content. At the top centre of the display, a small black pill-shaped camera cutout. Thin side buttons just visible on the left and right edges of the frame.
+Style/medium: Photorealistic high-end product photography, the look of a premium device mockup. Crisp edges, real metal and glass materials.
+Composition/framing: Tall portrait image, aspect ratio about 1:2. The phone is centred horizontally and vertically, perfectly vertical, no tilt, no rotation, no perspective: its edges are parallel to the image edges. The whole phone is inside the frame. The phone takes about 78% of the image width and about 84% of the image height, leaving an even violet margin on every side. Orthographic, straight-on view, as shot with a long lens from the front.
+Lighting/mood: Soft, even studio light. A soft, short contact-free shadow on the backdrop directly behind and slightly below the phone so it reads as a real object floating a few centimetres in front of the wall. A fine, subtle highlight along the metal frame only. Calm, precise, modern.
+Color palette: Violet #7A22C7 backdrop; near-black #16151D display and bezel; dark titanium grey frame. No other colours.
+Materials/textures: Brushed titanium frame, matte black glass.
+Text (verbatim): none
+Constraints: The display stays completely blank and uniformly dark from edge to edge. The image is fully opaque and fills every pixel to all four edges. The phone front is perfectly flat to the camera.
+Avoid: no text, no letters, no numbers, no logo, no brand mark, no icons, no user interface, no wallpaper, no clock, no reflections on the display, no hand, no stand, no table, no second device, no watermark, no border.`,
+    width: 800,
+    height: 1600,
+    treatment: "photo",
+    device: {
+      body: { x: 76, y: 119, w: 648, h: 1346 },
+      screen: { x: 95, y: 138, w: 611, h: 1313 },
+      radius: 80,
+      island: { x: 332, y: 157, w: 137, h: 35 },
+    },
+    generatedWith: MADE_WITH,
+    generatedOn: PHONE_MADE_ON,
+    termsUrl: TERMS,
+    check: {
+      ...check("A blank phone standing upright on a violet backdrop, its display off"),
+      checkedOn: PHONE_MADE_ON,
+    },
+  },
 ];
 
 // ---- the scene quad helper (gap 22)
@@ -684,6 +769,102 @@ export function placeOnQuad(quad: Quad, face: Size, tile: Size, image: Size): st
   return `matrix3d(${[a, dd, 0, g, b, e, 0, h, 0, 0, 1, 0, cc, f, 0, 1].join(", ")})`;
 }
 
+// ---- the phone picture (design rows 4.1 and 4.2)
+
+/** How the phone picture sits in a tile: the whole picture covering it, or the upper part of the phone. */
+export type PhoneCrop = "whole" | { inset: number };
+export interface PhoneView {
+  s: number; // tile px per image px
+  picture: Box; // the picture in the tile
+  screen: Box; // the display in the tile
+  radius: number; // the display's corner in tile px
+  k: number; // tile px per design px of the 390 wide screen
+  design: Size; // the screen's own box in design px, 390 wide
+  island: Box; // the camera pill in design px of the screen
+}
+
+/**
+ * Where the phone picture and its display sit in a tile (row 4.2). `whole` covers the tile, centred.
+ * `{ inset }` puts the body's start, end and top edges at `inset` of the tile width from the tile's
+ * edges and lets the phone run off the bottom. Only a scale and a translate: the picture is a
+ * straight-on view, so no quad is needed.
+ */
+export function phoneView(tile: Size, image: Size, device: Device, crop: PhoneCrop): PhoneView {
+  const { body, screen, radius, island } = device;
+  let s: number;
+  let dx: number;
+  let dy: number;
+  if (crop === "whole") {
+    ({ s, dx, dy } = coverCrop(tile, image));
+  } else {
+    const m = tile.w * crop.inset;
+    s = (tile.w - 2 * m) / body.w;
+    dx = m - body.x * s;
+    dy = m - body.y * s;
+  }
+  const k = (screen.w * s) / 390;
+  const per = screen.w / 390; // image px per design px
+  return {
+    s,
+    picture: { x: dx, y: dy, w: image.w * s, h: image.h * s },
+    screen: { x: dx + screen.x * s, y: dy + screen.y * s, w: screen.w * s, h: screen.h * s },
+    radius: radius * s,
+    k,
+    design: { w: 390, h: screen.h / per },
+    island: {
+      x: (island.x - screen.x) / per,
+      y: (island.y - screen.y) / per,
+      w: island.w / per,
+      h: island.h / per,
+    },
+  };
+}
+
+// ---- the chapter camera (C12)
+
+/** The zoom a chapter view may take: the board's own minimum, and one to one at most. */
+export const VIEW_ZOOM = { min: 0.25, max: 1 } as const;
+/** The padding of a chapter view: a fraction of the board, as xyflow's own fit reads it. */
+export const VIEW_PAD = { chapter: 0.08, overview: 0.2 } as const;
+/** The room a chapter keeps above the dock, in px (F4). */
+export const DOCK_MARGIN = 24;
+
+export interface View {
+  x: number;
+  y: number;
+  zoom: number;
+}
+
+/**
+ * The view of a chapter (spec C12): where the viewport sits so that `bounds`, the box of the
+ * chapter's nodes in flow px, is centred in the board less its padding, less `cover` px at the
+ * bottom (the dock) and `clear` px more above that. A pure function of its arguments, so one
+ * chapter at one board size has one view, however the board came to it. `pad` is read as xyflow
+ * reads a number padding: a fraction of the board, `floor((v - v / (1 + pad)) / 2)` px per side.
+ */
+export function chapterViewport(
+  bounds: Box,
+  board: Size,
+  cover: number,
+  pad: number,
+  clear: number,
+): View {
+  const side = (v: number) => Math.floor((v - v / (1 + pad)) / 2);
+  const left = side(board.w);
+  const top = side(board.h);
+  const room: Size = {
+    w: board.w - 2 * left,
+    h: board.h - 2 * top - Math.ceil(cover) - clear,
+  };
+  const fits = Math.min(room.w / bounds.w, room.h / bounds.h);
+  const zoom = Math.min(VIEW_ZOOM.max, Math.max(VIEW_ZOOM.min, fits));
+  return {
+    x: left + (room.w - bounds.w * zoom) / 2 - bounds.x * zoom,
+    y: top + (room.h - bounds.h * zoom) / 2 - bounds.y * zoom,
+    zoom,
+  };
+}
+
 // ---- the two boards (12 pieces)
 
 /**
@@ -698,6 +879,56 @@ export function cellBox(cell: { col: number; row: number; cols: number; rows: nu
     h: (cell.rows * 776) / 3 + (cell.rows - 1) * 12,
   };
 }
+
+/** Data, not copy: the brand name, the production address of ADR 0010 and a home screen clock. */
+export const BRAND_NAME = "ORIVILO";
+export const ADDRESS = "orivilo.vercel.app";
+export const CLOCK = "9:41";
+/** The browser of piece A and of page 10, at its design size. */
+export const BROWSER: Size = { w: 1180, h: 600 };
+/**
+ * Where the window's board puts the six nodes of the landing's graph (design row 3.2, sign-off F2).
+ * The window shows the edit view, where every node has a port row and so stands taller than on the
+ * landing, whose positions made Colour cover Logo's port row. Logo and Colour stack in one column
+ * with a gap of 34, and every other node is centred on the middle of that column (290).
+ */
+export const WINDOW_AT: Readonly<Record<string, Pt>> = {
+  brief: [0, 180],
+  pos: [300, 160],
+  logo: [640, 0],
+  colour: [640, 324],
+  guide: [920, 120],
+  product: [1240, 172],
+};
+
+/** The 24 glyphs of the icon set specimen (page 11), 6 x 4, in reading order: names in `icons.tsx`. */
+export const ICON_SET = [
+  "Cursor",
+  "Hand",
+  "Plus",
+  "Search",
+  "Undo",
+  "Redo",
+  "InputBlock",
+  "Knowledge",
+  "Artifact",
+  "Reference",
+  "Direction",
+  "Note",
+  "ReadStep",
+  "DraftStep",
+  "CompareStep",
+  "GenerateStep",
+  "Eye",
+  "Group",
+  "Chat",
+  "Send",
+  "Upload",
+  "Copy",
+  "Trash",
+  "Fit",
+] as const;
+export type IconName = (typeof ICON_SET)[number];
 
 export const PIECES: readonly PieceRecord[] = [
   {
@@ -760,69 +991,72 @@ export const PIECES: readonly PieceRecord[] = [
     second: "direction.typeSub",
   },
   {
+    id: "window",
+    board: "inUse",
+    box: cellBox({ col: 0, row: 0, cols: 3, rows: 2 }),
+    flood: VIOLET,
+    content: { kind: "window", design: BROWSER, inset: 0.052, span: 1.31 },
+    caption: "use.window",
+    second: "use.windowSub",
+  },
+  {
+    id: "phone",
+    board: "inUse",
+    box: cellBox({ col: 3, row: 0, cols: 1, rows: 2 }),
+    flood: VIOLET,
+    content: {
+      kind: "phone",
+      image: "scene-phone",
+      screenWidth: 390,
+      status: 54,
+      grid: { lines: [24, 366], measure: [0, 24, 366, 390] },
+    },
+    caption: "use.phone",
+    second: "use.phoneSub",
+  },
+  {
+    id: "icon",
+    board: "inUse",
+    box: cellBox({ col: 4, row: 0, cols: 1, rows: 1 }),
+    flood: VIOLET,
+    content: {
+      kind: "icon",
+      image: "scene-phone",
+      inset: 0.065,
+      grid: { cols: 4, rows: 5, icon: 60, start: 24, pitch: [94, 100], top: 72, gap: 6 },
+      app: { col: 1, row: 1, mark: 0.62 },
+    },
+    caption: "use.icon",
+    second: "use.iconSub",
+  },
+  {
     id: "hero",
     board: "inUse",
-    box: cellBox({ col: 0, row: 0, cols: 2, rows: 2 }),
+    box: cellBox({ col: 4, row: 1, cols: 1, rows: 2 }),
     flood: VIOLET,
     content: { kind: "photo", image: "brand-hero", focus: [50, 34] },
     caption: "use.hero",
     second: "use.heroSub",
   },
   {
-    id: "icon",
+    id: "share",
     board: "inUse",
-    box: cellBox({ col: 2, row: 0, cols: 1, rows: 1 }),
-    flood: VIOLET,
-    content: { kind: "icon", side: 0.52, radius: 0.225, mark: 0.62, ground: INK },
-    caption: "use.icon",
-    second: "use.drawn",
-  },
-  {
-    id: "lockup",
-    board: "inUse",
-    box: cellBox({ col: 3, row: 0, cols: 2, rows: 1 }),
-    flood: VIOLET,
-    content: { kind: "lockup", width: 0.86, guides: { dash: 7, stroke: 1.6 } },
-    caption: "use.lockup",
-    second: "use.drawn",
-  },
-  {
-    id: "phone",
-    board: "inUse",
-    box: cellBox({ col: 2, row: 1, cols: 1, rows: 2 }),
-    flood: VIOLET,
+    box: cellBox({ col: 0, row: 2, cols: 2, rows: 1 }),
+    flood: PAPER,
     content: {
-      kind: "phone",
-      width: 0.84,
-      ratio: 2.06,
-      top: 0.16,
-      radius: 0.15,
-      bezel: 0.035,
-      screenRadius: 0.12,
-      screenWidth: 390,
+      kind: "share",
+      card: { max: 300, margin: 24 },
+      image: { w: 600, h: 315 },
+      mark: { size: 360, at: [236, -8] },
+      logo: { height: 44, inset: 44 },
     },
-    caption: "use.phone",
-    second: "use.phoneSub",
-  },
-  {
-    id: "ink",
-    board: "inUse",
-    box: cellBox({ col: 3, row: 1, cols: 2, rows: 2 }),
-    flood: INK,
-    content: {
-      kind: "ink",
-      mark: { size: 1.12, endInset: 0.62, top: -0.2, ring: VIOLET, dot: VIOLET_ON_INK },
-      lockupSize: 30,
-      lines: [art(d(TAGLINE), { k: 1.2 }, TEXT_ON_DARK, { maxWidth: 330 })],
-      action: { label: "use.start", size: "lg" },
-    },
-    caption: "use.ink",
-    second: "use.inkSub",
+    caption: "use.share",
+    second: "use.shareSub",
   },
   {
     id: "card",
     board: "inUse",
-    box: cellBox({ col: 0, row: 2, cols: 1, rows: 1 }),
+    box: cellBox({ col: 2, row: 2, cols: 1, rows: 1 }),
     flood: VIOLET,
     content: {
       kind: "scene",
@@ -842,7 +1076,7 @@ export const PIECES: readonly PieceRecord[] = [
   {
     id: "sign",
     board: "inUse",
-    box: cellBox({ col: 1, row: 2, cols: 1, rows: 1 }),
+    box: cellBox({ col: 3, row: 2, cols: 1, rows: 1 }),
     flood: INK,
     content: {
       kind: "scene",
@@ -871,7 +1105,7 @@ export const BOARDS: Readonly<Record<BoardId, BoardRecord>> = {
   },
   inUse: {
     id: "inUse",
-    pieces: ["hero", "icon", "lockup", "phone", "ink", "card", "sign"],
+    pieces: ["window", "phone", "icon", "hero", "share", "card", "sign"],
     badge: "use.badge",
     line: "use.noteShort",
     note: "use.note",
@@ -1127,7 +1361,13 @@ export const BOOK: readonly BookPageRecord[] = [
       { n: "11", name: "wall.applications" },
       { n: "12", name: "wall.open" },
     ]),
-    art: { kind: "photo", image: "brand-hero", focus: [50, 30] },
+    art: {
+      kind: "field",
+      ground: VIOLET,
+      group: { x: 10, y: -40, w: 680, h: 960, rotate: -12 },
+      phone: { at: [40, 150], width: 250 },
+      column: { at: [314, 40], gap: 24, window: 560, guidebook: 250 },
+    },
   },
   {
     n: 11,
@@ -1136,16 +1376,18 @@ export const BOOK: readonly BookPageRecord[] = [
     layout: "applications",
     ground: PAPER,
     lines: [],
+    second: "preview.bookSubUse", // the phone picture and the two scenes are AI pictures (row 4.5)
     // Boxes in page px; gutter 12 and the page's side padding 48 (1184 wide, 646 high from y 82).
+    // The bottom row starts or ends on the top row's edges: 360 and 920 (the window), 932 and 1232 (the icon).
     art: {
       kind: "pieces",
       pieces: [
-        { piece: "phone", box: { x: 48, y: 82, w: 300, h: 638 } },
-        { piece: "sign", box: { x: 360, y: 82, w: 430, h: 313 } },
-        { piece: "card", box: { x: 802, y: 82, w: 430, h: 313 } },
-        { piece: "icon", box: { x: 360, y: 407, w: 150, h: 150 }, variant: "violet" },
-        { piece: "icon", box: { x: 522, y: 407, w: 150, h: 150 } },
-        { piece: "ink", box: { x: 802, y: 407, w: 430, h: 313 }, variant: "small" },
+        { piece: "phone", box: { x: 48, y: 82, w: 300, h: 646 }, variant: "grid" },
+        { piece: "window", box: { x: 360, y: 82, w: 560, h: 317 } },
+        { piece: "icon", box: { x: 932, y: 82, w: 300, h: 317 } },
+        { specimen: "icons", box: { x: 360, y: 411, w: 272, h: 317 }, glyphs: ICON_SET },
+        { piece: "card", box: { x: 644, y: 411, w: 276, h: 317 } },
+        { piece: "sign", box: { x: 932, y: 411, w: 300, h: 317 } },
       ],
     },
   },
@@ -1173,7 +1415,7 @@ export const BOOK: readonly BookPageRecord[] = [
   },
 ];
 
-// ---- the seven preview sequences (6, 3, 2, 6, 8, 12 and 3 pages: 40)
+// ---- the eight preview sequences (6, 3, 2, 6, 8, 12, 2 and 3 pages: 42)
 
 function piecePage(id: PieceId): PreviewPageRecord {
   const piece = PIECES.find((p) => p.id === id);
@@ -1254,64 +1496,177 @@ export const SEQUENCES: readonly SequenceRecord[] = [
     pages: BOOK_CAPTIONS.map((caption, i) => ({
       show: { book: i + 1 },
       caption,
-      second: "preview.bookSub",
+      second: BOOK.find((p) => p.n === i + 1)?.second ?? "preview.bookSub",
     })),
+  },
+  {
+    id: "system",
+    title: "preview.designSystem",
+    pages: [
+      { show: { sheet: "base" }, caption: "node.base" },
+      { show: { sheet: "composed" }, caption: "node.composed" },
+    ],
   },
   {
     id: "pages",
     title: "preview.pages",
     pages: [
       { show: { live: "landing" }, caption: "node.landing", second: "product.landingNote" },
-      { show: { live: "form" }, caption: "node.form", second: "product.formNote" },
-      { show: { live: "report" }, caption: "node.report", second: "product.reportNote" },
+      { show: { live: "app" }, caption: "node.app", second: "product.appNote" },
+      { show: { live: "guide" }, caption: "node.guide", second: "product.guideNote" },
     ],
   },
 ];
 
-// ---- the product stage: the sheets and the live frames
+// ---- the design system sheets and the live frames of the product stage
 
-export const SHEETS: { base: readonly RowRecord[]; composed: readonly RowRecord[] } = {
+/** One column of the base sheet: its title, its output port and the catalog entries it shows. */
+export interface BaseColumn {
+  id: "actions" | "inputs" | "display";
+  title: CopyKey;
+  port: CopyKey;
+  /** Catalog names, in the order the column shows them (base-sheet-1); code names, never copy. */
+  entries: readonly string[];
+}
+
+/** One node of the composed sheet: a block of the registry with the answers it was given. */
+export interface StudioNode {
+  id: string;
+  block: string;
+  x: number;
+  y: number;
+  /** The answers by input id: a catalog line or literal data. */
+  answers?: Readonly<Record<string, Text>>;
+  selected?: true;
+}
+/** An edge of the composed sheet, from a node's output to the input `input` of another. */
+export interface StudioEdge {
+  from: string;
+  to: string;
+  input: string;
+  /** `false` hides the label pill: the node toolbar would cover it (C3). */
+  label?: false;
+}
+
+export const SHEETS: {
+  base: readonly BaseColumn[];
+  composed: { nodes: readonly StudioNode[]; edges: readonly StudioEdge[] };
+} = {
   base: [
-    { id: "button", name: d("Button"), story: "base-button" },
-    { id: "badge", name: d("Badge"), story: "base-badge" },
-    { id: "field", name: d("Field, Input"), story: "base-field" },
-    { id: "radio", name: d("RadioGroup"), story: "base-radio-group" },
-    { id: "alert", name: d("Alert"), story: "base-alert" },
-  ],
-  composed: [
-    { id: "card", name: d("Card"), story: "application-card" },
-    { id: "header", name: d("PageHeader"), story: "application-page-header" },
     {
-      id: "form",
-      name: c("node.composedForm"),
-      story: "examples-application-brand-report--form",
+      id: "actions",
+      title: "sheet.actions",
+      port: "port.actions",
+      entries: ["Button", "ToggleGroup", "Tabs", "Breadcrumb", "Kbd", "Avatar", "FeaturedIcon"],
     },
-    { id: "section", name: d("SectionHeader"), story: "application-section-header" },
-    { id: "notice", name: d("Notice, ReadingCard") }, // page-local, no catalog entry
+    {
+      id: "inputs",
+      title: "sheet.inputs",
+      port: "port.inputs",
+      entries: ["Field", "Input", "Select", "Checkbox", "Switch", "Slider", "Textarea"],
+    },
+    {
+      id: "display",
+      title: "sheet.status",
+      port: "port.display",
+      entries: ["Badge", "Tag", "RadioGroup", "Progress", "Alert", "Spinner", "Skeleton"],
+    },
   ],
+  composed: {
+    nodes: [
+      {
+        id: "brief",
+        block: "brief",
+        x: 0,
+        y: 0,
+        answers: {
+          product: { copy: "sheet.answer.product" },
+          goal: { copy: "sheet.answer.goal" },
+        },
+      },
+      {
+        id: "personality",
+        block: "brand-personality",
+        x: 0,
+        y: 400,
+        answers: { traits: { copy: "sheet.answer.traits" } },
+      },
+      { id: "audience", block: "audience", x: 420, y: 0 },
+      {
+        id: "mood",
+        block: "mood-theme",
+        x: 420,
+        y: 460,
+        answers: { feeling: { copy: "sheet.answer.feeling" } },
+        selected: true,
+      },
+      {
+        id: "font",
+        block: "font",
+        x: 840,
+        y: 240,
+        answers: { languages: { data: "th-en" } },
+      },
+    ],
+    edges: [
+      { from: "brief", to: "audience", input: "brief" },
+      { from: "personality", to: "mood", input: "personality" },
+      { from: "audience", to: "mood", input: "audience", label: false },
+      { from: "mood", to: "font", input: "mood" },
+    ],
+  },
 };
+
+/** The composed sheet's board, in the language of `m`: five block nodes and four input edges. */
+export function studioGraph(locale: Locale, m: Messages): Graph {
+  const { nodes, edges } = SHEETS.composed;
+  return {
+    nodes: nodes.map((n): BoardNode => {
+      const block = blockById(n.block);
+      if (!block) throw new RangeError(`orivilo-canvas: no block ${n.block}`);
+      const node = nodeForBlock(block, n.id, { x: n.x, y: n.y }, locale);
+      const answers = Object.fromEntries(
+        Object.entries(n.answers ?? {}).map(([input, text]) => [input, textOf(m, text)]),
+      );
+      return { ...node, selected: n.selected === true, data: { ...node.data, answers } };
+    }),
+    edges: edges.map((e): BoardEdge => ({
+      id: `${e.from}-${e.to}`,
+      type: "orivilo",
+      source: e.from,
+      target: e.to,
+      sourceHandle: OUTPUT_PORT,
+      targetHandle: e.input,
+      data: { meaning: "input", ...(e.label === false ? { label: false as const } : {}) },
+    })),
+  };
+}
 
 export const FRAMES: readonly FrameRecord[] = [
   {
     id: "landing",
-    story: "examples-marketing-landing-page--default",
+    story: "examples-marketing-orivilo-landing--default",
     width: 1280,
     height: 290,
     start: 0,
   },
   {
-    id: "form",
-    story: "examples-application-brand-report--form",
-    width: 800,
-    height: 270,
-    start: 8,
+    id: "app",
+    story: "examples-application-business-board--board-english",
+    width: 1280,
+    height: 290,
+    start: 0,
   },
   {
-    id: "report",
-    story: "examples-application-brand-report--analysed",
+    // The guidebook starts at its foundation heading, the CI work itself, at the same place in
+    // both languages (a pixel start would cut Thai and English at different lines).
+    id: "guide",
+    story: "examples-application-brand-guidebook--guidebook-done",
     width: 800,
-    height: 420,
-    start: "report",
+    height: 290,
+    start: 0,
+    startAt: '[data-section="foundation"]',
+    fade: true,
   },
 ];
 
@@ -1374,7 +1729,7 @@ export const CHAPTERS: readonly ChapterRecord[] = [
     number: "07",
     title: "chapter.product",
     anchor: "p-landing",
-    nodes: ["p-base", "p-pat", "p-landing", "p-form", "p-report"],
+    nodes: ["p-base", "p-pat", "p-landing", "p-app", "p-guide"],
   },
 ];
 
@@ -1906,18 +2261,23 @@ export const NODES: readonly NodeRecord[] = [
     source: `${METHOD} §8; ${BRIEF} §8`,
     body: { kind: "book", part: "use" },
   },
-  // 06 Design system
+  // 06 Design system: two sheets of 1280 x 800, scaled to 540, each opening the "system" sequence.
+  // Both sit at y 96: at 28 the cover's Thai output pill (y 219 to 251) came within 4 world px of
+  // the base's input dot (y 199 to 215); at 96 the dot is at y 267 to 283, 16 clear.
+  // Both sit at y 96, so the Thai name pill of the cover's output (to its right, y 219 to 251) is
+  // 16 world px clear of the base's input dot (y 267 to 283), where 28 left it 4 clear.
   {
     id: "p-base",
     chapter: "system",
     kind: "artifact",
     title: "node.base",
-    width: 300,
+    width: 560,
     x: 3464,
-    y: 28,
-    pad: "text",
+    y: 96,
+    pad: "media",
+    open: { sequence: "system", page: 1 },
     inputs: [port("profile", "profile", c("port.profileIn"))],
-    outputs: SHEETS.base.map((row) => port(row.id, "profile", row.name as Text, row.id)),
+    outputs: SHEETS.base.map((column) => port(column.id, "profile", c(column.port))),
     source: "packages/design-system/src/profiles/source/orivilo.json",
     body: { kind: "sheet", sheet: "base" },
   },
@@ -1926,19 +2286,16 @@ export const NODES: readonly NodeRecord[] = [
     chapter: "system",
     kind: "artifact",
     title: "node.composed",
-    width: 360,
-    x: 3876,
-    y: 28,
-    pad: "text",
-    // Inputs sit on the rows built from the base rows; one output per row.
-    inputs: [
-      port("fromButton", "profile", d("Button"), "form"),
-      port("fromField", "profile", d("Field, Input"), "form"),
-      port("fromRadio", "profile", d("RadioGroup"), "form"),
-      port("fromBadge", "profile", d("Badge"), "notice"),
-      port("fromAlert", "profile", d("Alert"), "notice"),
+    width: 560,
+    x: 4136,
+    y: 96,
+    pad: "media",
+    open: { sequence: "system", page: 2 },
+    inputs: SHEETS.base.map((column) => port(column.id, "profile", c(column.port))),
+    outputs: [
+      port("board", "profile", c("port.board")),
+      port("panels", "profile", c("port.panels")),
     ],
-    outputs: SHEETS.composed.map((row) => port(row.id, "profile", row.name as Text, row.id)),
     source: "packages/design-system/catalog/",
     body: { kind: "sheet", sheet: "composed" },
   },
@@ -1949,44 +2306,44 @@ export const NODES: readonly NodeRecord[] = [
     kind: "artifact",
     title: "node.landing",
     width: 480,
-    x: 4432,
+    x: 4892,
     y: 28,
     pad: "media",
     open: { sequence: "pages", page: 1 },
     inputs: [port("parts", "profile", c("port.parts"))],
     outputs: [],
-    source: "packages/design-system/src/examples/landing.tsx",
+    source: "packages/design-system/src/examples/orivilo-landing.tsx",
     body: { kind: "page", page: "landing" },
   },
   {
-    id: "p-form",
+    id: "p-app",
     chapter: "product",
     kind: "artifact",
-    title: "node.form",
+    title: "node.app",
     width: 480,
-    x: 4432,
-    y: 412,
+    x: 4892,
+    y: 444,
     pad: "media",
     open: { sequence: "pages", page: 2 },
     inputs: [port("parts", "profile", c("port.parts"))],
     outputs: [],
-    source: "packages/design-system/src/examples/brand-report.tsx",
-    body: { kind: "page", page: "form" },
+    source: "packages/design-system/src/examples/business-board.tsx",
+    body: { kind: "page", page: "app" },
   },
   {
-    id: "p-report",
+    id: "p-guide",
     chapter: "product",
     kind: "artifact",
-    title: "node.report",
+    title: "node.guide",
     width: 480,
-    x: 4432,
-    y: 776,
+    x: 4892,
+    y: 860,
     pad: "media",
     open: { sequence: "pages", page: 3 },
     inputs: [port("parts", "profile", c("port.parts"))],
     outputs: [],
-    source: "packages/design-system/src/examples/brand-report.tsx",
-    body: { kind: "page", page: "report" },
+    source: "packages/design-system/src/examples/guidebook.tsx",
+    body: { kind: "page", page: "guide" },
   },
 ];
 
@@ -2006,7 +2363,7 @@ function edge(
   return showLabel ? base : { ...base, label: false };
 }
 
-// 29 input (9 to 13, 15, 17, 19 to 40), 8 reference (1 to 8), 3 derived (14, 16, 18). Edge 18 alone
+// 25 input (9 to 13, 15, 17, 19 to 36), 8 reference (1 to 8), 3 derived (14, 16, 18). Edge 18 alone
 // shows its label pill: the palette was not read from the image.
 export const EDGES: readonly EdgeRecord[] = [
   edge(1, ["b-pos", "onliness"], ["l-idea", "onliness"], "reference"),
@@ -2035,20 +2392,16 @@ export const EDGES: readonly EdgeRecord[] = [
   edge(24, ["t-type", "type"], ["bb-colour", "type"], "input"),
   edge(25, ["u-board", "inUse"], ["bb-use", "inUse"], "input"),
   edge(26, ["bb-cover", "profile"], ["p-base", "profile"], "input"),
-  edge(27, ["p-base", "button"], ["p-pat", "fromButton"], "input"),
-  edge(28, ["p-base", "field"], ["p-pat", "fromField"], "input"),
-  edge(29, ["p-base", "radio"], ["p-pat", "fromRadio"], "input"),
-  edge(30, ["p-base", "badge"], ["p-pat", "fromBadge"], "input"),
-  edge(31, ["p-base", "alert"], ["p-pat", "fromAlert"], "input"),
-  edge(32, ["p-base", "button"], ["p-landing", "parts"], "input"),
-  edge(33, ["p-base", "badge"], ["p-landing", "parts"], "input"),
-  edge(34, ["p-pat", "card"], ["p-landing", "parts"], "input"),
-  edge(35, ["p-pat", "header"], ["p-form", "parts"], "input"),
-  edge(36, ["p-pat", "header"], ["p-report", "parts"], "input"),
-  edge(37, ["p-pat", "form"], ["p-form", "parts"], "input"),
-  edge(38, ["p-pat", "form"], ["p-report", "parts"], "input"),
-  edge(39, ["p-pat", "section"], ["p-report", "parts"], "input"),
-  edge(40, ["p-pat", "notice"], ["p-report", "parts"], "input"),
+  edge(27, ["p-base", "actions"], ["p-pat", "actions"], "input"),
+  edge(28, ["p-base", "inputs"], ["p-pat", "inputs"], "input"),
+  edge(29, ["p-base", "display"], ["p-pat", "display"], "input"),
+  edge(30, ["p-base", "actions"], ["p-landing", "parts"], "input"),
+  edge(31, ["p-pat", "board"], ["p-landing", "parts"], "input"),
+  edge(32, ["p-pat", "board"], ["p-app", "parts"], "input"),
+  edge(33, ["p-pat", "panels"], ["p-app", "parts"], "input"),
+  edge(34, ["p-base", "inputs"], ["p-app", "parts"], "input"),
+  edge(35, ["p-base", "actions"], ["p-guide", "parts"], "input"),
+  edge(36, ["p-base", "display"], ["p-guide", "parts"], "input"),
 ];
 
 // ---- from records to the board's graph
@@ -2071,8 +2424,7 @@ export function textOf(m: Messages, text: Text | { axis: AxisId }): string {
 }
 
 function portSpec(m: Messages, p: PortRecord): PortSpec {
-  const base = { id: p.id, kind: p.kind, label: textOf(m, p.name) };
-  return p.row === undefined ? base : { ...base, row: p.row };
+  return { id: p.id, kind: p.kind, label: textOf(m, p.name) };
 }
 
 /**
