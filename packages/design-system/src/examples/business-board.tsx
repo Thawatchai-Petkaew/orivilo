@@ -37,6 +37,7 @@ import {
   type FoundationEditor,
   FoundationNodeView,
 } from "./foundation-view";
+import { TrueHandles } from "./true-handles";
 
 /**
  * The project board screen, slice 2 (ORV-281 design sections 6.1 and 6.3, ORV-282): the project
@@ -221,6 +222,7 @@ function ReadyBoard({
           onNodeOpen={setOpenId}
         >
           <CanvasControls position="center" />
+          <TrueHandles />
         </CanvasBoard>
       </div>
       {openedId === undefined ? null : (

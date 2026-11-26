@@ -2042,3 +2042,61 @@ export function expectBoardChromeClear(
   }
   return read.length;
 }
+
+/** The distance, in px, from a point to the nearest point of a rect: 0 inside or on its edge. */
+export function pointRectDistance(
+  point: { x: number; y: number },
+  rect: { left: number; right: number; top: number; bottom: number },
+): number {
+  return Math.hypot(
+    Math.max(rect.left - point.x, 0, point.x - rect.right),
+    Math.max(rect.top - point.y, 0, point.y - rect.bottom),
+  );
+}
+
+/**
+ * Asserts every edge of every React Flow board in `scope` ends on a port (ORV-309 F3, L-0018): each
+ * `.ds-edge__path`, its start and its end taken with `getPointAtLength` and carried to the
+ * screen through `getScreenCTM`, lies within `px` screen px of the box of a handle of its own board.
+ * An edge is drawn to the outer edge of its handle, so the box and not the centre is the target. The
+ * boxes are `getBoundingClientRect`, so a handle under an ancestor scale or turn is read where the
+ * person sees it. Boards nested in a board (a live frame's screen, a node's face) are read on their
+ * own handles. `count` is how many edges the scope holds, so a board that lost its edges, or none at
+ * all, cannot pass. `name` says which surface a failure belongs to.
+ */
+export function expectEdgesOnPorts(scope: Element, name: string, count: number, px = 2) {
+  const boards = [
+    ...(scope.matches(".react-flow") ? [scope] : []),
+    ...scope.querySelectorAll(".react-flow"),
+  ];
+  expect(boards.length, `${name} holds a board`).toBeGreaterThan(0);
+  let checked = 0;
+  for (const board of boards) {
+    const own = (el: Element) => el.closest(".react-flow") === board;
+    const boxes = [...board.querySelectorAll(".react-flow__handle")]
+      .filter(own)
+      .map((handle) => handle.getBoundingClientRect());
+    for (const path of [...board.querySelectorAll<SVGPathElement>("path.ds-edge__path")].filter(
+      own,
+    )) {
+      const edge = path.closest(".react-flow__edge")?.getAttribute("data-id") ?? "an edge";
+      const toScreen = path.getScreenCTM();
+      expect(toScreen, `${name} edge ${edge} has a screen matrix`).not.toBeNull();
+      const length = path.getTotalLength();
+      for (const [end, at] of [
+        ["start", 0],
+        ["end", length],
+      ] as const) {
+        const local = path.getPointAtLength(at);
+        const point = new DOMPoint(local.x, local.y).matrixTransform(toScreen as DOMMatrix);
+        const gap = Math.min(...boxes.map((box) => pointRectDistance(point, box)));
+        expect(
+          gap,
+          `${name} edge ${edge} ${end} is ${gap.toFixed(1)} px from its nearest port dot, expected at most ${px}`,
+        ).toBeLessThanOrEqual(px);
+      }
+      checked++;
+    }
+  }
+  expect(checked, `${name} edges checked`).toBe(count);
+}
