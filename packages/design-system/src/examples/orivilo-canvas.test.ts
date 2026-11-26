@@ -714,12 +714,29 @@ describe("orivilo canvas data, boards and book (spec rows 28, 29, 30)", () => {
     expect([m, w - 2 * m, m, w - m]).toEqual([16, 358, 16, 374]);
   });
 
-  it("places the phone board's four nodes by number: flow position plus the origin is design row 2's screen box (ORV-312)", () => {
+  it("places the phone board's seven nodes by number: flow position plus the origin is design row 2's screen box (ORV-312 revision 3)", () => {
     // The board's box and its 1 px hairline put the flow origin at (0, 93) of the screen.
     expect(PHONE_BOARD).toEqual({ x: -1, y: 92, w: 392, h: 800 });
     const origin = [PHONE_BOARD.x + 1, PHONE_BOARD.y + 1];
     expect(origin).toEqual([0, 93]);
-    expect(Object.keys(PHONE_AT)).toEqual(["brief", "logo", "colour", "guide"]);
+    expect(Object.keys(PHONE_AT)).toEqual([
+      "brief",
+      "audience",
+      "personality",
+      "feeling",
+      "logo",
+      "colour",
+      "guide",
+    ]);
+    expect(PHONE_AT).toEqual({
+      brief: { at: [16, 57], width: 130 },
+      audience: { at: [16, 217], width: 122 },
+      personality: { at: [16, 370], width: 122 },
+      feeling: { at: [16, 543], width: 122 },
+      logo: { at: [162, 130], width: 86 },
+      colour: { at: [162, 463], width: 86 },
+      guide: { at: [264, 212], width: 110 },
+    });
     const screen = Object.fromEntries(
       Object.entries(PHONE_AT).map(([id, n]) => [
         id,
@@ -727,34 +744,56 @@ describe("orivilo canvas data, boards and book (spec rows 28, 29, 30)", () => {
       ]),
     );
     expect(screen).toEqual({
-      brief: [16, 150, 200],
-      logo: [262, 190, 112],
-      colour: [294, 424, 80],
-      guide: [88, 572, 286],
+      brief: [16, 150, 130],
+      audience: [16, 310, 122],
+      personality: [16, 463, 122],
+      feeling: [16, 636, 122],
+      logo: [162, 223, 86],
+      colour: [162, 556, 86],
+      guide: [264, 305, 110],
     });
-    // One start edge at 16 (the brief) and one end edge at 374 (the logo, the colour, the guidebook).
+    // One start edge at 16 (the four knowledge cards) and one end edge at 374 (the guidebook).
     const at = (id: string) => (PHONE_AT as Record<string, { at: Pt; width: number }>)[id];
-    expect(at("brief")?.at[0]).toBe(16);
-    expect(
-      ["logo", "colour", "guide"].map((id) => (at(id)?.at[0] ?? 0) + (at(id)?.width ?? 0)),
-    ).toEqual([374, 374, 374]);
+    expect(["brief", "audience", "personality", "feeling"].map((id) => at(id)?.at[0])).toEqual([
+      16, 16, 16, 16,
+    ]);
+    expect((at("guide")?.at[0] ?? 0) + (at("guide")?.width ?? 0)).toBe(374);
   });
 
-  it("joins the phone board with four edges: the brief to the logo and the colour, each to the guidebook (ORV-312 row 2)", () => {
+  it("joins the phone board with six edges, each running forward from a card's end to a later card's start (ORV-312 row 2)", () => {
     expect(PHONE_EDGES).toEqual([
       ["brief", "out", "logo", "in"],
-      ["brief", "out", "colour", "in"],
+      ["audience", "out", "logo", "in"],
+      ["personality", "out", "colour", "in"],
+      ["feeling", "out", "colour", "in"],
       ["logo", "out", "guide", "img"],
       ["colour", "out", "guide", "pal"],
     ]);
-    // Every end is a port the hero graph's own node has (the guide keeps no output: no loose end).
-    const hero = heroGraph(en.oriviloLanding.board, false);
-    const port = (id: string, which: "inputs" | "outputs", handle: string) =>
-      hero.nodes.find((n) => n.id === id)?.data[which].some((p) => p.id === handle);
+    // The ports each node of the phone graph draws (the guide keeps no output: no loose end).
+    const inputs: Record<string, string[]> = {
+      logo: ["in"],
+      colour: ["in"],
+      guide: ["img", "pal"],
+    };
+    const outputs: Record<string, string[]> = {
+      brief: ["out"],
+      audience: ["out"],
+      personality: ["out"],
+      feeling: ["out"],
+      logo: ["out"],
+      colour: ["out"],
+    };
+    const place = PHONE_AT as Record<string, { at: Pt; width: number }>;
     for (const [source, out, target, into] of PHONE_EDGES) {
-      expect(port(source, "outputs", out), `${source}.${out}`).toBe(true);
-      expect(port(target, "inputs", into), `${target}.${into}`).toBe(true);
+      expect(outputs[source], `${source}.${out}`).toContain(out);
+      expect(inputs[target], `${target}.${into}`).toContain(into);
+      // Forward: the target's card starts at or beyond the source's end.
+      expect(
+        (place[target]?.at[0] ?? 0) - ((place[source]?.at[0] ?? 0) + (place[source]?.width ?? 0)),
+        `${source} to ${target} runs forward`,
+      ).toBeGreaterThanOrEqual(0);
     }
+    expect(new Set(PHONE_EDGES.map(([s, , t]) => `${s}-${t}`)).size).toBe(6);
   });
 
   it("gives page 11 its own second line, the other eleven pages the plain book line (design row 4.5)", () => {

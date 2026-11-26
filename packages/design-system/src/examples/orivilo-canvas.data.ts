@@ -903,17 +903,22 @@ export const WINDOW_AT: Readonly<Record<string, Pt>> = {
 };
 
 /**
- * Where the phone board puts its four nodes (ORV-312 design row 2): flow position and width. The
+ * Where the phone board puts its seven nodes (ORV-312 design row 2, revision 3): flow position and
+ * width, a funnel of three columns, 4 to 2 to 1, read from the start edge to the end edge. The
  * board's view stays at its origin with no fit, so a node's flow position plus (0, 93), the board's
  * origin inside its 1 px hairline, is its box on the 390 screen: nothing depends on a measure. One
- * start edge at 16 and one end edge at 374; logo and colour step in width (112, then 80) so no edge
- * runs through a node it does not join.
+ * start edge at 16 (the four knowledge nodes) and one end edge at 374 (the guidebook). Widths: 130
+ * for the brief, whose line needs 8 percent room, 122 for the other knowledge nodes, 86 for the two
+ * artifacts, 110 for the guidebook.
  */
 export const PHONE_AT: Readonly<Record<string, { at: Pt; width: number }>> = {
-  brief: { at: [16, 57], width: 200 },
-  logo: { at: [262, 97], width: 112 },
-  colour: { at: [294, 331], width: 80 },
-  guide: { at: [88, 479], width: 286 },
+  brief: { at: [16, 57], width: 130 },
+  audience: { at: [16, 217], width: 122 },
+  personality: { at: [16, 370], width: 122 },
+  feeling: { at: [16, 543], width: 122 },
+  logo: { at: [162, 130], width: 86 },
+  colour: { at: [162, 463], width: 86 },
+  guide: { at: [264, 212], width: 110 },
 };
 /**
  * The board's box on the screen (design row 1): 1 past each side and 54 past the bottom, so the
@@ -924,10 +929,18 @@ export const PHONE_BOARD: Box = { x: -1, y: 92, w: 392, h: 800 };
 export const PHONE_BAR = 102;
 /** The intent button's margins: its end at 374 of the 390 screen, 34 above the bottom (row 4). */
 export const PHONE_INTENT = { end: 16, bottom: 34 } as const;
-/** The phone board's four edges, `[source, source port, target, target port]` (design row 2). */
+/** Where the personality node's three scales put their dot, in percent of the track (sample data). */
+export const PHONE_SCALES = [72, 34, 58] as const;
+/**
+ * The phone board's six edges, `[source, source port, target, target port]` (design row 2): a pair
+ * of knowledge nodes into each artifact, then the two artifacts into the guidebook. Every edge runs
+ * forward, from a card's end side to a card's start side further toward the end.
+ */
 export const PHONE_EDGES: readonly (readonly [string, string, string, string])[] = [
   ["brief", "out", "logo", "in"],
-  ["brief", "out", "colour", "in"],
+  ["audience", "out", "logo", "in"],
+  ["personality", "out", "colour", "in"],
+  ["feeling", "out", "colour", "in"],
   ["logo", "out", "guide", "img"],
   ["colour", "out", "guide", "pal"],
 ];
